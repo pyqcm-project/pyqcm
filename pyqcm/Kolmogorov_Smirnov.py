@@ -64,7 +64,7 @@ def Kolmogorov_Smirnov(F, G, tol=1e-6, plot=False):
             D[i] = Fcurr-Gcurr
             i += 1
             I_f += 1
-            print('F next\tX = ', X[i], '\tD[i]=', D[i], '\tI_f=', I_f, '\tI_g=', I_g)
+            # print('F next\tX = ', X[i], '\tD[i]=', D[i], '\tI_f=', I_f, '\tI_g=', I_g)
             if I_f == N_f:
                 break
         else:
@@ -73,7 +73,7 @@ def Kolmogorov_Smirnov(F, G, tol=1e-6, plot=False):
             D[i] = Fcurr-Gcurr
             i += 1
             I_g += 1
-            print('G next\tX = ', X[i], '\tD[i]=', D[i], '\tI_f=', I_f, '\tI_g=', I_g)
+            # print('G next\tX = ', X[i], '\tD[i]=', D[i], '\tI_f=', I_f, '\tI_g=', I_g)
             if I_g == N_g:
                 break
 
@@ -91,17 +91,23 @@ def Kolmogorov_Smirnov(F, G, tol=1e-6, plot=False):
             i += 1
             I_f += 1
 
+    # computes sum of intervals times square difference
+    delta = np.sqrt(np.sum(np.diff(X)*D[0:-1]**2))
+
     if plot:
-        plt.step(F[0],Fc, label='F', where='post')
-        plt.step(G[0],Gc, label='G', where='post')
+        plt.step(F[0],Fc, label='F', lw=2, where='post')
+        plt.step(G[0],Gc, label='G', lw=1, where='post')
+        plt.ylabel('accumulated weight')
+        plt.xlabel('$\omega$')
+        plt.title('Kolmogorov-Smirnov distance = {:1.4g}'.format(delta))
         plt.legend()
         plt.show()
-        plt.step(X,D, label='G', where='post')
-        plt.show()
+        # plt.step(X,D, label='G', where='post')
+        # plt.ylabel('difference')
+        # plt.xlabel('$\omega$')
+        # plt.show()
 
-    # computes sum of intervals times square difference
-    delta = np.sum(np.diff(X)*D[0:-1]**2)
-    return np.sqrt(delta)
+    return delta
 
 
 

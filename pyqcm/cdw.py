@@ -32,7 +32,7 @@ class cluster:
         self.minors[1,2] = -S[0,0]*S[1,2] + S[1,0]*S[0,2]
         self.minors[2,2] =  S[0,0]*S[1,1] - S[0,1]*S[1,0]
         # print('minors:\n', self.minors)
-        print('super unit cell volume = ', self.vol)
+        # print('super unit cell volume = ', self.vol)
 
         # folding the sites
         if type(sites) is not tuple:
@@ -50,9 +50,9 @@ class cluster:
         self.sites = np.array(sitesO, dtype='int') # sites, folded into a conventional unit cell
         self.clus = np.array(clus, dtype='int') # cluster associated with each site
         self.N = self.sites.shape[0]
-        print('liste of sites and folded sites:')
-        for i in range(self.N):
-            print(i+1, '\t', self.sites[i], '\t', self.sitesF[i], '\tdiff = ', self.sitesF[i]-self.sites[i])
+        # print('liste of sites and folded sites:')
+        # for i in range(self.N):
+        #     print(i+1, '\t', self.sites[i], '\t', self.sitesF[i], '\tdiff = ', self.sitesF[i]-self.sites[i])
         # dictionary of sites (for getting the index from the position)
         self.siteF_index = {}
         for i,c in enumerate(sitesF):
@@ -265,7 +265,7 @@ def cdw_energy(C, U, _V, n, cluster=False, pr=False):
 
 
 #----------------------------------------------------------------------
-def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None):
+def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None, silent=False):
     """
     Computes the possible CDW states of the cluster, to be used with the Hartree approximation
 
@@ -291,8 +291,7 @@ def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None):
     for v in _V:
         V += [(np.array(v[0], dtype=int), v[1])]
 
-    # print('\ninter-cluster V matrix contributions:\n')
-    print('-'*80)
+    if silent == False: print('-'*80)
     for v in V:
         for i,x in enumerate(C.sites):  # loop over site 1
             j, S, R = C.fold(C.sites[i] + v[0])
@@ -301,7 +300,7 @@ def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None):
                     Vc[i,j] += v[1]
                 else:
                     Vic[i,j] += v[1]
-                if plt_ax != None:
+                if plt_ax != None and silent == False:
                     DX = v[0]@basis
                     plt_ax.plot([S2[i,0], S2[i,0]+DX[0]], [S2[i,1], S2[i,1]+DX[1]])
             j, S, R = C.fold(C.sites[i] - v[0])
@@ -310,29 +309,32 @@ def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None):
                     Vc[i,j] += v[1]
                 else:
                     Vic[i,j] += v[1]
-                if plt_ax != None:
+                if plt_ax != None and silent == False:
                     DX = v[0]@basis
                     plt_ax.plot([S2[i,0], S2[i,0]-DX[0]], [S2[i,1], S2[i,1]-DX[1]])
 
-    print('intra-cluster V matrix:\n',Vc)
-    print('inter-cluster V matrix:\n',Vic)
-
-    fig, ax = plt.subplots((C.N+1)//2, 2, sharex=True, sharey=True)
-    fig.set_size_inches(6, 3*ax.shape[0])
-    if C.N > 2:
-        ax = np.reshape(ax, (C.N))
-
     w, v = np.linalg.eigh(Vic)
     w = np.round(w,10)
-    for i in range(C.N):
-        print('\neigenvalue ', w[i], ' :\n', v[:, i])
-        C.draw_cdw(v[:, i], basis=basis, plt_ax = ax[i])
-        ax[i].set_title('$\\lambda = {:f}$'.format(w[i]))
-        ax[i].tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
 
-    # plt.tight_layout()
-    if file != None: plt.savefig(file)
-    else: plt.show()
+    if silent == False:
+        print('intra-cluster V matrix:\n',Vc)
+        print('inter-cluster V matrix:\n',Vic)
+
+        fig, ax = plt.subplots((C.N+1)//2, 2, sharex=True, sharey=True)
+        fig.set_size_inches(6, 3*ax.shape[0])
+        if C.N > 2:
+            ax = np.reshape(ax, 2*((C.N+1)//2))
+
+        for i in range(C.N):
+            print('\neigenvalue ', w[i], ' :\n', v[:, i])
+            C.draw_cdw(v[:, i], basis=basis, plt_ax = ax[i])
+            ax[i].set_title('$\\lambda = {:f}$'.format(w[i]))
+            ax[i].tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+
+        # plt.tight_layout()
+        if file != None: plt.savefig(file)
+        else: plt.show()
+
     return w, v, Vic, Vc
 
 

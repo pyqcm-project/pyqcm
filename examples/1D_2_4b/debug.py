@@ -21,8 +21,9 @@ set_parameters("""
 
 varia=['tb1_1', 'tb2_1', 'eb1_1', 'eb2_1']
 
+min_iter_E0 = 4
 def F():
-    cdmft(varia=varia, accur=1e-6, accur_hybrid=1e-8, accur_dist=1e-10)
+    cdmft(varia=varia, accur=1e-14, miniter=10, accur_E0=1e-4, accur_hybrid=1e-14, accur_dist=1e-14)
 
 def G():
     cdmft(varia)
@@ -32,4 +33,4 @@ def G():
 
 # F(); exit()
 
-controlled_loop(G, varia, 'mu', (2, 1.0, -0.05))
+controlled_loop(F, varia, 'mu', (2, 1, -0.05))

@@ -1,0 +1,9 @@
+sector R0:N6:S0:1
+sector R0:N6:S0:1
+U  4.0
+eb1  1.0
+eb2  -1.0
+mu  1.0
+t  1.0
+tb1  0.5
+tb2  0.5

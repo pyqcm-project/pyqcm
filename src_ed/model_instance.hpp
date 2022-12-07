@@ -1054,6 +1054,7 @@ void model_instance<HilbertField>::read(istream& fin)
     states.insert(shared_ptr<state<HilbertField>>(new state<HilbertField>(fin, the_model->group, mixing, GF_solver)));
   }
   gf_read = true;
+  is_correlated = true; // added to remove confusion when dealing with read instances
   M = Green_function_average(false);
   if(mixing & HS_mixing::up_down) M_down = Green_function_average(true);
 }

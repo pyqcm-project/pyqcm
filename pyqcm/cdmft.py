@@ -284,6 +284,7 @@ def cdmft(
     beta=50, 
     wc=2.0, 
     maxiter=32, 
+    miniter=0, 
     accur=1e-3, 
     accur_hybrid=1e-4, 
     accur_dist=1e-10,
@@ -312,6 +313,7 @@ def cdmft(
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
     :param int maxiter: maximum number of CDMFT iterations
+    :param int miniter: minimum number of CDMFT iterations
     :param float accur: the procedure converges if parameters do not change by more than accur
     :param float accur_hybrid: the procedure converges on the hybridization function with this accuracy
     :param float accur_dist: convergence criterion when minimizing the distance function.
@@ -389,9 +391,9 @@ def cdmft(
     CT_converged = True
     
     # storing the GS energy and error (the error is relevant for the DVMC solver)
-    E0 = np.zeros(maxiter)
-    E0_err = np.ones(maxiter)
-    moving_ave = np.zeros(maxiter)
+    E0 = np.zeros(maxiter+1)
+    E0_err = np.ones(maxiter+1)
+    moving_ave = np.zeros(maxiter+1)
 
 
     # convergence criterion in the bath parameters
@@ -446,7 +448,7 @@ def cdmft(
                 tmp_norm += 1.0/E0_err[superiter-i]
                 moving_ave[superiter] += E0[superiter-i]/E0_err[superiter-i]
             moving_ave[superiter] /= tmp_norm
-        if superiter >= min_iter_E0:
+        if superiter >= min_iter_E0 and superiter >= miniter:
             diff_E0 = np.abs(moving_ave[superiter]-moving_ave[superiter-1])
             if diff_E0 < accur_E0:
                 converged = True
@@ -538,7 +540,7 @@ def cdmft(
         #______________________________________________________________________
                 
         # checking convergence on the parameters (note the sqrt(nvar) factor in order not to punish large parameter sets)
-        if (diff_param < accur) and hartree_converged and CT_converged:
+        if (diff_param < accur) and hartree_converged and CT_converged and superiter > miniter:
             converged = True
             pyqcm.banner('CDMFT converged on the parameters', '=')
             break
@@ -548,7 +550,7 @@ def cdmft(
             diffH = __diff_hybrid(Hyb, Hyb0)
             if _mixing == 4:
                 diffH += __diff_hybrid(Hyb_down, Hyb_down0)
-            if (diffH < accur_hybrid) and hartree_converged:
+            if (diffH < accur_hybrid) and hartree_converged and superiter > miniter:
                 pyqcm.banner('CDMFT converged on the hybridization function', '=')
                 converged = True
                 break
@@ -566,7 +568,7 @@ def cdmft(
                     observable_series_length = x.length
                 obs_converged = obs_converged and Conv
                 print('observable <{:s}> = {:.6g}'.format(x.name, x.ave))
-            if obs_converged:
+            if obs_converged and superiter > miniter:
                 converged = True
                 pyqcm.banner('CDMFT converged on the observables (length of series : {:d})'.format(observable_series_length), '=')
                 break
