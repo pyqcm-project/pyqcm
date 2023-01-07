@@ -99,7 +99,7 @@ void LanczosEigenvalue(T &H, vector<HilbertField> &gs, vector<double> &alpha, ve
 	vector<HilbertField> r(gs); // residue
 	vector<HilbertField> q(dim); // Lanczos basis vector
 	
-	double Ritz=1.0;
+	double Ritz=2*global_double("accur_lanczos");
 	while(Ritz > global_double("accur_lanczos"))
 	{
 		check_signals();

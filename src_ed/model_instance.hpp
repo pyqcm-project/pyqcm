@@ -274,7 +274,7 @@ pair<double, string> model_instance<HilbertField>::low_energy_states()
   // loop over sectors to find the ground state sector
   
   for(auto& s:sector_set){
-    the_model->build_HS_operators(s, is_complex);
+    //the_model->build_HS_operators(s, is_complex);
     Hamiltonian<HilbertField> *H = create_hamiltonian(the_model, value, s);
     if(H->dim == 0) continue;
     

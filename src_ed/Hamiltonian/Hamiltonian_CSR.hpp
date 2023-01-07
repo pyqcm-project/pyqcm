@@ -123,7 +123,7 @@ void Hamiltonian_CSR<HilbertField>::HS_ops_map(const map<string, double> &value)
         keys.push_back(x.first);
     }
     //construct the hamiltonian in parallel
-    #pragma omp parallel for schedule(guided)
+    #pragma omp parallel for schedule(dynamic, 1)
     //for (auto& x : value){
     for (auto& x : keys) {
         Hermitian_operator& op = *this->the_model->term.at(x);

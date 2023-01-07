@@ -90,7 +90,7 @@ void model::build_HS_operators(const sector& sec, bool is_complex)
   for (auto& x : term) {
       keys.push_back(x.second);
   }
-  #pragma omp parallel for schedule(guided)
+  #pragma omp parallel for schedule(dynamic, 1)
   for(auto& x : keys){
     if(!x->is_active) continue;
     if(x->HS_operator.find(sec) == x->HS_operator.end())
