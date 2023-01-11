@@ -2180,16 +2180,20 @@ def general_interaction_matrix_elements(e, n):
 
     E = []
     for x in e:
+        s = 1
         if x[0]<x[1]:
             I = x[0]+n*x[1]
         else:
-            continue
+            I = x[1]+n*x[0]
+            s *= -1
         if x[2]<x[3]:
             J = x[2]+n*x[3]
         else:
+            J = x[3]+n*x[2]
+            s *= -1
+        if I > J:
             continue
-        if I > J: continue
         
-        E += [(I+1,J+1,x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
+        E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
     return E
         
