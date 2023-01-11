@@ -2108,7 +2108,7 @@ def read_from_file_legacy(filename):
 def __varia_table(var, val, prefix = ''):
     s = prefix
     for i,p in enumerate(var):
-        s += '{:<9} = {: .4f}\t'.format(p,val[i])
+        s += '{:<9} = {: .4g}\t'.format(p,val[i])
         if (i+1)%5 == 0:
             s += '\n'
             s += prefix
@@ -2197,3 +2197,27 @@ def general_interaction_matrix_elements(e, n):
         E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
     return E
         
+######################################################################
+def double_counting_correct(DC):
+    """Modifies some kinetic parameters in view of the presence of interactions and averages values,
+    in order to account minimally for double counting.
+    :param [(str,str,str,float,float)] DC: list of recipes for the correction: (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)
+    """
+    
+    ave = averages()
+    P = parameters()
+    if type(DC) is tuple: DC = [DC]
+    corr = {}
+    for x in DC:
+        if len(x) != 5:
+            raise ValueError(f'in double_counting_correct(), tuples should have 5 elements')
+        if x[0] in corr:
+            corr[x[0]] += P[x[1]]*ave[x[2]]*x[3]
+        else:
+            corr[x[0]] = x[4] + P[x[1]]*ave[x[2]]*x[3]
+
+    for x in corr:
+        set_parameter(x, corr[x], pr=True)
+    
+
+

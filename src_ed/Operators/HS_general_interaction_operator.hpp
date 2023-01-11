@@ -32,11 +32,12 @@ struct HS_general_interaction_operator : HS_nondiagonal_operator<HS_field>
         binary_state ss = this->B->bin(I); // binary form of state 'label'
         auto R = group->Representative(ss, this->B->sec.irrep);
         ssp = ss;
+        // cout << "ijkl = (" << ei << ',' << ej << ';' << ek << ',' << el << ")\t";
         // PrintBinaryDouble(cout, ssp.b, n); cout << " -> "; // TEMPO
-        pauli_phase = ssp.pair_annihilate(binary_state::mask(ek, n), binary_state::mask(el, n));
+        pauli_phase = ssp.pair_annihilate(binary_state::mask(el, n), binary_state::mask(ek, n));
         // PrintBinaryDouble(cout, ssp.b, n); cout << " -> "; // TEMPO
         pauli_phase *= ssp.pair_create(binary_state::mask(ei, n), binary_state::mask(ej, n));
-        // PrintBinaryDouble(cout, ssp.b, n); cout << endl; // TEMPO
+        // PrintBinaryDouble(cout, ssp.b, n); cout << "\tphase=" << pauli_phase << endl; // TEMPO
         if (pauli_phase != 0) {
           auto Rp = group->Representative(ssp, this->B->sec.irrep);
           if (pauli_phase == -1) Rp.phase += group->g;

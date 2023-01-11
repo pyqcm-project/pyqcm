@@ -304,7 +304,8 @@ def cdmft(
     observables=None,
     verb=False,
     max_function_eval = 5000000,
-    compute_potential_energy = False
+    compute_potential_energy = False,
+    double_counting_correct = None
 ):
     """Performs the CDMFT procedure
 
@@ -335,7 +336,7 @@ def cdmft(
     :param boolean verb: If True, prints debugging information
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
     :param boolean compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
-    :returns: None
+    :param [(str,str,str,float,float)] double_counting_correct: list of recipes for double counting corrections: (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)    :returns: None
 
     """
     global w, wr, weight, var, _mixing, first_time, first_time2, Gdim, nclus, nmixed, clusters, maxfev, Hyb, Hyb_down, E0_VMC, E0_err_VMC, min_iter_E0
@@ -465,6 +466,8 @@ def cdmft(
             if _mixing == 4:
                 Hyb_down0 = Hyb_down
         dist_function = __frequency_grid(grid_type, beta, wc)
+        if double_counting_correct != None:
+            pyqcm.double_counting_correct(double_counting_correct)
         qcm.CDMFT_host(wr, weight)
         Hyb = __set_Hyb()
         # if verb: __print_Hyb(Hyb)

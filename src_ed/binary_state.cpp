@@ -33,8 +33,10 @@ int binary_state::one_body(uint64_t i, uint64_t j)
 int binary_state::pair_annihilate(uint64_t i, uint64_t j)
 {
 	if(!(b&i) or !(b&j)) return(0);
+	int pauli = 1;
 	b = b - i - j;
-	return interphase(i,j);
+	if(i<j) pauli = -1;
+	return pauli*interphase(i,j);
 }
 
 
@@ -48,8 +50,10 @@ int binary_state::pair_annihilate(uint64_t i, uint64_t j)
 int binary_state::pair_create(uint64_t i, uint64_t j)
 {
   if((b&i) or (b&j)) return(0);
+  int pauli = 1;
   b = b + i + j;
-  return interphase(i,j);
+  if(i>j) pauli = -1;
+  return pauli*interphase(i,j);
 }
 
 
