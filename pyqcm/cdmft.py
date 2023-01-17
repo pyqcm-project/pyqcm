@@ -1276,3 +1276,52 @@ def cdmft_distance_debug(varia=None, vset=None, beta=50, wc=2.0, grid_type = 'sh
         fout = open('cdmft_distance.tsv', 'a')
         fout.write(S+'\n')
         fout.close()
+
+
+
+######################################################################
+class hybridization:    
+
+    def  __init__(self, file):
+        """Defines hybridization data from a data file
+
+        :param str file: name of the file. Format : each line starts with a frequency and then has N(N+1)/2
+        columns for Delta_{ij}(w), i <= j : (0,0), (0,1), (0,2), ... , (1,1), (1,2), ... , (2,2), ...
+        the frequency is purely imaginary; it is its imaginary part that appears in the file
+
+        """
+        NN = [1,3,6,10,15,21,28,36]
+        data = np.genfromtxt(file, dtype=np.complex128)
+        print(data)
+        self.nw = data.shape[0]
+        LL = data.shape[1]-1
+        try:
+            self.n = NN.index(LL)+1
+        except ValueError:
+            raise ValueError('The number of columns in the hybridization table should be 1 + n(n+1)/2')
+
+        self.w = np.copy(data[:,0])
+        self.Delta = np.zeros((self.nw,self.n,self.n), dtype=np.complex128)
+        k = 0
+        for i in range(self.n):
+            for j in range(i, self.n):
+                self.Delta[:,i,j] = data[:,k+1]
+                if j>i :
+                    self.Delta[:,j,i] = np.conjugate(data[:,k+1])
+                k += 1
+        
+    def distance(self, I):
+        """
+        Evaluates the distance function bewteen the data and the hybridization function of an impurity model instance of label I
+
+        :param int I: label of the impurity model instance
+        """
+        M = np.zeros((self.nw, self.n, self.n), dtype=np.complex128)
+        for i in range(self.nw):
+            M[i,:,:] = pyqcm.hybridization_function(0, self.w[i]*1j, spin_down=False, label=I)
+        
+        print('M : '); print(M)
+        print('Delta : '); print(self.Delta)
+        
+        return np.linalg.norm(M-self.Delta)
+

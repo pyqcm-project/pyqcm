@@ -2176,25 +2176,50 @@ def general_interaction_matrix_elements(e, n):
     """Translates a list of matrix elements (i,j,k,l,v) for a general interaction into a list of compound elements (I,J,v)
     where I = i+n*j and J = k+n*l and v is the value of the matrix element
     Also checks that only non redundant elements are given
+    :param (int,int,int,int,float) e: list of matrix elements
+    :param int n: number of orbitals in the impurity model (excluding spin; 2*n with spin)
     """
 
     E = []
-    for x in e:
-        s = 1
-        if x[0]<x[1]:
-            I = x[0]+n*x[1]
-        else:
-            I = x[1]+n*x[0]
-            s *= -1
-        if x[2]<x[3]:
-            J = x[2]+n*x[3]
-        else:
-            J = x[3]+n*x[2]
-            s *= -1
-        if I > J:
-            continue
-        
-        E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
+    nn = 2*n
+    if len(e[0]) == 5:
+        for x in e:
+            s = 1
+            if x[0]<x[1]:
+                I = x[0]+nn*x[1]
+            else:
+                I = x[1]+nn*x[0]
+                s *= -1
+            if x[2]<x[3]:
+                J = x[2]+nn*x[3]
+            else:
+                J = x[3]+nn*x[2]
+                s *= -1
+            if I > J:
+                continue
+            
+            E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
+    elif len(e[0]) == 9:
+        for y in e:
+            x = (y[0]+n*y[1], y[2]+n*y[3], y[4]+n*y[5], y[6]+n*y[7], y[8])
+            s = 1
+            if x[0]<x[1]:
+                I = x[0]+nn*x[1]
+            else:
+                I = x[1]+nn*x[0]
+                s *= -1
+            if x[2]<x[3]:
+                J = x[2]+nn*x[3]
+            else:
+                J = x[3]+nn*x[2]
+                s *= -1
+            if I > J:
+                continue
+            
+            E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
+    else:
+        raise ValueError('The general matrix elements do not have the right format')
+
     return E
         
 ######################################################################
