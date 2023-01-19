@@ -19,7 +19,7 @@ def test_vca():
 
     F = 'test_vca.pdf'
 
-    banner('testing vca()', c='#', skip=1); vca(names=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], NR=False)
+    banner('testing vca()', c='#', skip=1); vca(names=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
     banner('testing vca() with Newton-Raphson', c='#', skip=1); vca(names=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], NR=True)
 

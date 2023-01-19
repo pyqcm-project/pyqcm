@@ -1169,38 +1169,25 @@ def set_basis(B):
     qcm.set_basis(B)
 
 ################################################################################
-def __band_manager(orb1, orb2):
-    """If a band is none, it is set to a list of all bands. If band is specified --> [band]
+def __orbital_manager(orbitals):
+    """
     """
 
-    if type(orb1) is not int and orb1 is not None:
-        raise ValueError("`orb1` must be of type `int` or None (default)")
-    if type(orb2) is not int and orb2 is not None:
-        raise ValueError("`orb2` must be of type `int` or None (default)")
+    if orbitals is not None:
+        return [orbitals[0]], [orbitals[1]]
 
-    nbands = model_size()[1]
-    complete_band_list = [i for i in range(1, nbands+1)]
-
-    if orb1 is None:
-        orb1 = complete_band_list
     else:
-        orb1 = [orb1]
-
-    if orb2 is None:
-        orb2 = complete_band_list
-    else:
-        orb2 = [orb2]
-
-    return orb1, orb2
+        nbands = model_size()[1]
+        orb_list = [i for i in range(1, nbands+1)]
+        return orb_list, orb_list
     
 ################################################################################
-def interaction_operator(name, link=None, orb1=None, orb2=None, **kwargs):
+def interaction_operator(name, link=None, orbitals=None, **kwargs):
     """
     Defines an interaction operator of type Hubbard, Hund, Heisenberg or X, Y, Z
 
     :param str name: name of the operator
-    :param int orb1: number of the first band (None by default)
-    :param int orb2: number of the second band (None by default)
+    :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
     :param list link: link of the operator (None by default)
 
     :Keyword Arguments:
@@ -1216,13 +1203,13 @@ def interaction_operator(name, link=None, orb1=None, orb2=None, **kwargs):
     if type(the_model.sites) is list:
         the_model._finalize()
 
-    orb1, orb2 = __band_manager(orb1, orb2) 
+    orb1, orb2 = __orbital_manager(orbitals) 
 
-    for band_no1 in orb1:
-        for band_no2 in orb2:
+    for orb_no1 in orb1:
+        for orb_no2 in orb2:
             the_model.record += "interaction_operator('"+name+"'"
-            the_model.record += ', orb1='+str(band_no1)
-            the_model.record += ', orb2='+str(band_no2)
+            the_model.record += ', orb1='+str(orb_no1)
+            the_model.record += ', orb2='+str(orb_no2)
             if link is not None:
                 the_model.record += ', link='+str(link)
 
@@ -1232,17 +1219,16 @@ def interaction_operator(name, link=None, orb1=None, orb2=None, **kwargs):
                 else:	
                     the_model.record += ', '+x+'='+str(kwargs[x])
             the_model.record += ')\n'	
-            qcm.interaction_operator(name, orb1=band_no1, orb2=band_no2, link=link, **kwargs)
+            qcm.interaction_operator(name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs)
 
 ################################################################################
-def hopping_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
+def hopping_operator(name, link, amplitude, orbitals=None, **kwargs):
     """Defines a hopping term or, more generally, a one-body operator
 
     :param str name: name of operator
     :param [int] link: bond vector (3-component integer array)
     :param float amplitude: hopping amplitude multiplier
-    :param int orb1: number of the first band (None by default)
-    :param int orb2: number of the second band (None by default)
+    :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
     
     :Keyword Arguments:
 
@@ -1266,13 +1252,13 @@ def hopping_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
     if type(the_model.sites) is list:
         the_model._finalize()
 
-    orb1, orb2 = __band_manager(orb1, orb2) 
+    orb1, orb2 = __orbital_manager(orbitals) 
 
-    for band_no1 in orb1:
-        for band_no2 in orb2:
+    for orb_no1 in orb1:
+        for orb_no2 in orb2:
             the_model.record += "hopping_operator('"+name+"', "+str(link)+', '+str(amplitude)
-            the_model.record += ', orb1='+str(band_no1)
-            the_model.record += ', orb2='+str(band_no2)
+            the_model.record += ', orb1='+str(orb_no1)
+            the_model.record += ', orb2='+str(orb_no2)
 
             for x in kwargs:
                 if type(kwargs[x]) is str:
@@ -1281,17 +1267,16 @@ def hopping_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
                     the_model.record += ', '+x+'='+str(kwargs[x])
             the_model.record += ')\n'
 
-            qcm.hopping_operator(name, link, amplitude, orb1=band_no1, orb2=band_no2, **kwargs)
+            qcm.hopping_operator(name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs)
 
 ################################################################################
-def anomalous_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
+def anomalous_operator(name, link, amplitude, orbitals=None, **kwargs):
     """Defines an anomalous operator
 
     :param str name: name of operator
     :param [int] link: bond vector (3-component integer array)
     :param complex amplitude: pairing multiplier
-    :param int orb1: number of the first band (None by default)
-    :param int orb2: number of the second band (None by default)
+    :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
 
     :Keyword Arguments:
     
@@ -1306,13 +1291,13 @@ def anomalous_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
     if type(the_model.sites) is list:
         the_model._finalize() 
 
-    orb1, orb2 = __band_manager(orb1, orb2) 
+    orb1, orb2 = __orbital_manager(orbitals) 
 
-    for band_no1 in orb1:
-        for band_no2 in orb2:
+    for orb_no1 in orb1:
+        for orb_no2 in orb2:
             the_model.record += "anomalous_operator('"+name+"', "+str(link)+', '+str(amplitude)
-            the_model.record += ', orb1='+str(band_no1)
-            the_model.record += ', orb2='+str(band_no2)
+            the_model.record += ', orb1='+str(orb_no1)
+            the_model.record += ', orb2='+str(orb_no2)
 
             for x in kwargs:
                 if type(kwargs[x]) is str:
@@ -1321,7 +1306,7 @@ def anomalous_operator(name, link, amplitude, orb1=None, orb2=None, **kwargs):
                     the_model.record += ', '+x+'='+str(kwargs[x])
             the_model.record += ')\n'
 
-            qcm.anomalous_operator(name, link, amplitude, orb1=band_no1, orb2=band_no2, **kwargs)
+            qcm.anomalous_operator(name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs)
 
 ################################################################################
 def explicit_operator(name, elem, **kwargs):
@@ -1364,7 +1349,7 @@ def density_wave(name, t, Q, **kwargs):
 
         * link (*[int]*) -- bond vector, for bond density waves
         * amplitude (*complex*) -- amplitude multiplier. **Caution**: A factor of 2 must be used in some situations (see :ref:`density wave theory`)
-        * band (*int*) -- Band label (0 by default = all bands)
+        * orb (*int*) -- orbital label (0 by default = all orbitals)
         * phase (*float*) -- real phase (as a multiple of :math:`pi`)
 
     :return: None
@@ -1425,13 +1410,13 @@ def tk(k, spin_down=False, label=0):
     return qcm.tk(k, spin_down, label)
 
 ################################################################################
-def QP_weight(k, eta=0.01, band=1, spin_down=False, label=0):
+def QP_weight(k, eta=0.01, orb=1, spin_down=False, label=0):
     """
     computes the k-dependent quasi-particle weight from the self-energy derived from the periodized Green function
 
     :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
     :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
-    :param int band: orbital index (starts at 1)
+    :param int orb: orbital index (starts at 1)
     :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
     :param int label:  label of the model instance
     :return: a single float or an array of floats, depending on the shape of k
@@ -1444,20 +1429,20 @@ def QP_weight(k, eta=0.01, band=1, spin_down=False, label=0):
     sigma1 = qcm.self_energy(-eta*1j, k, spin_down, label)
     sigma2 = qcm.self_energy(eta*1j, k, spin_down, label)
     if len(sigma1.shape) == 3:
-        Z = (sigma1[:,band-1,band-1].imag - sigma2[:,band-1,band-1].imag)/(2*eta) + np.ones(len(k))
+        Z = (sigma1[:,orb-1,orb-1].imag - sigma2[:,orb-1,orb-1].imag)/(2*eta) + np.ones(len(k))
     else:
-        Z = (sigma1[band-1,band-1].imag - sigma2[band-1,band-1].imag)/(2*eta) + 1.0
+        Z = (sigma1[orb-1,orb-1].imag - sigma2[orb-1,orb-1].imag)/(2*eta) + 1.0
     Z = 1.0/Z
     return Z
 
 ################################################################################
-def cluster_QP_weight(cluster=0, eta=0.01, band=1, spin_down=False, label=0):
+def cluster_QP_weight(cluster=0, eta=0.01, orb=1, spin_down=False, label=0):
     """
     computes the cluster quasi-particle weight from the cluster self-energy
 
     :param int cluster: cluster label (starts at 0)
     :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
-    :param int band: orbital index (starts at 1)
+    :param int orb: orbital index (starts at 1)
     :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
     :param int label:  label of the model instance
     :return: a float
@@ -1465,19 +1450,19 @@ def cluster_QP_weight(cluster=0, eta=0.01, band=1, spin_down=False, label=0):
     """
     sigma1 = cluster_self_energy(cluster, -eta*1j, spin_down, label)
     sigma2 = cluster_self_energy(cluster, eta*1j, spin_down, label)
-    Z = (sigma1[band-1,band-1].imag - sigma2[band-1,band-1].imag)/(2*eta) + 1.0
+    Z = (sigma1[orb-1,orb-1].imag - sigma2[orb-1,orb-1].imag)/(2*eta) + 1.0
     Z = 1.0/Z
     return Z
     
 
 ################################################################################
-def spin_spectral_function(freq, k, band=1, label=0):
+def spin_spectral_function(freq, k, orb=1, label=0):
     """
     computes the k-dependent spin-resolved spectral function
 
     :param freq: complex freqency
     :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
-    :param int band: orbital index (starts at 1)
+    :param int orb: orbital index (starts at 1)
     :param int label:  label of the model instance
     :return: depending on the shape of k, a nd.array(3) of nd.array(N,3)
 
@@ -1496,7 +1481,7 @@ def spin_spectral_function(freq, k, band=1, label=0):
     if len(G.shape) == 3:
         nk = G.shape[0]
         S = np.zeros((nk,4))
-        if band is None:
+        if orb is None:
             for l in range(ds):
                 s1 = G[:, l, l+ds]
                 s2 = G[:, l+ds, l]
@@ -1505,7 +1490,7 @@ def spin_spectral_function(freq, k, band=1, label=0):
                 S[:,3] += -(G[:, l, l] - G[:, l+ds, l+ds]).imag
                 S[:,0] += -(G[:, l, l] + G[:, l+ds, l+ds]).imag
         else:
-            l = band-1
+            l = orb-1
             s1 = G[:, l, l+ds]
             s2 = G[:, l+ds, l]
             S[:,1] = -(s1+s2).imag
@@ -1514,7 +1499,7 @@ def spin_spectral_function(freq, k, band=1, label=0):
             S[:,0] = -(G[:, l, l] + G[:, l+ds, l+ds]).imag
     else:
         S = np.zeros(4)
-        if band is None:
+        if orb is None:
             for l in range(ds):
                 s1 = G[l, l+ds]
                 s2 = G[l+ds, l]
@@ -1523,7 +1508,7 @@ def spin_spectral_function(freq, k, band=1, label=0):
                 S[3] += -(G[l, l] - G[l+ds, l+ds]).imag
                 S[0] += -(G[l, l] + G[l+ds, l+ds]).imag
         else:
-            l = band-1
+            l = orb-1
             s1 = G[l, l+ds]
             s2 = G[l+ds, l]
             S[1] = -(s1+s2).imag

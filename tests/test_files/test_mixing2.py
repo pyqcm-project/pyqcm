@@ -49,5 +49,5 @@ elif mixing == 0:
     """)
 
 new_model_instance()
-spectral_function(wmax = 6, nk = 32, path='line', band=None, file='test_mixing_{:d}.pdf'.format(mixing))
+spectral_function(wmax = 6, nk = 32, path='line', file='test_mixing_{:d}.pdf'.format(mixing))
 

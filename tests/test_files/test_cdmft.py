@@ -28,5 +28,5 @@ controlled_loop(
     func=run_cdmft, 
     varia=["tb1_1", "eb1_1"], 
     loop_param="U", 
-    loop_range=(2, 6.1, 0.5)
+    loop_range=(2, 4.1, 0.5)
 )

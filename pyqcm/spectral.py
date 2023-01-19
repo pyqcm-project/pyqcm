@@ -21,7 +21,7 @@ def set_legend_mdc(plane, k_perp):
         return '$k_y = {:1.3f}\pi$'.format(k_perp)
 
 ################################################################################
-def __frequency_array(wmax=6.0, eta=0.05, matsubara=False):
+def __frequency_array(wmax=6.0, eta=0.05, imaginary=False):
     """Returns an array of complex frequencies for plotting spectral quantities
 
     """
@@ -35,7 +35,7 @@ def __frequency_array(wmax=6.0, eta=0.05, matsubara=False):
     else:
         raise TypeError('the type of argument "wmax" in __frequency_array() is wrong')
 
-    if matsubara:
+    if imaginary:
         wc = w*1j
     else:
         wc = np.array([x + eta*1j for x in w], dtype=complex)
@@ -199,7 +199,7 @@ def spectral_function(wmax=6.0, eta=0.05, path='triangle', nk=32, label=0, orb=N
         
 
 ################################################################################
-def hybridization_function(wmax=6, eta=0.01, matsubara=False, clus = 0, realpart=False, label=0, file=None, plt_ax=None, **kwargs):
+def hybridization_function(wmax=6, eta=0.01, imaginary=False, clus = 0, realpart=False, label=0, file=None, plt_ax=None, **kwargs):
     """This function plots the imaginary part of the hybridization function Gamma as a function of frequency.
     Only the diagonal elements are plotted, but for all clusters if there is more than one.
     The arguments have the same meaning as in `plot_spectrum`, except 'realpart' which, if True, plots
@@ -207,7 +207,7 @@ def hybridization_function(wmax=6, eta=0.01, matsubara=False, clus = 0, realpart
 
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
     :param float eta: Lorentzian broadening
-    :param boolean matsubara: If True, the frequency range is along the imaginary frequency axis
+    :param boolean imaginary: If True, the frequency range is along the imaginary frequency axis
     :param int clus: cluster index (starts at 0)
     :param boolean realpart: if True, the real part of the Green function is shown, not the imaginary part
     :param int label: label of the model instance
@@ -224,7 +224,7 @@ def hybridization_function(wmax=6, eta=0.01, matsubara=False, clus = 0, realpart
     else:
         ax = plt_ax
 
-    w = __frequency_array(wmax, eta, matsubara)  # defines the array of frequencies
+    w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
     eta = 0.05j
     info = pyqcm.cluster_info()
     d = info[clus][3]
@@ -245,7 +245,7 @@ def hybridization_function(wmax=6, eta=0.01, matsubara=False, clus = 0, realpart
                     A[i, l] += -g[l1, l2].imag
 
     offset = 2
-    if matsubara:
+    if imaginary:
         ax.set_xlim(np.imag(w[0]), np.imag(w[-1]))
         for j in range(d*d):
             ax.plot(np.imag(w), A[:, j] + offset * j, 'b-', lw=0.5, **kwargs)
@@ -267,12 +267,12 @@ def hybridization_function(wmax=6, eta=0.01, matsubara=False, clus = 0, realpart
 
 
 ################################################################################
-def cluster_spectral_function(wmax=6, eta = 0.05, matsubara=False, clus=0, label=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, realpart=False, color = 'b', **kwargs):
+def cluster_spectral_function(wmax=6, eta = 0.05, imaginary=False, clus=0, label=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, realpart=False, color = 'b', **kwargs):
     """Plots the spectral function of the cluster in the site basis
     
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
     :param float eta: Lorentzian broadening
-    :param boolean matsubara: If True, the frequency range is along the imaginary frequency axis
+    :param boolean imaginary: If True, the frequency range is along the imaginary frequency axis
     :param int clus: label of the cluster within the super unit cell (starts at 0)
     :param int label: label of the model instance
     :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
@@ -295,7 +295,7 @@ def cluster_spectral_function(wmax=6, eta = 0.05, matsubara=False, clus=0, label
     else:
         ax = plt_ax
 
-    w = __frequency_array(wmax, eta, matsubara)  # defines the array of frequencies
+    w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
     info = pyqcm.cluster_info()
     d = info[clus][3]
     if full:
@@ -332,7 +332,7 @@ def cluster_spectral_function(wmax=6, eta = 0.05, matsubara=False, clus=0, label
     max = np.max(A)
     plt.ylim(0, dd * offset + max)
 
-    if matsubara:
+    if imaginary:
         ax.set_xlim(np.imag(w[0]), np.imag(w[-1]))
         for j in range(dd):
             plt.plot(np.imag(w), A[:, j] + offset * j, '-', lw=0.5, color=color, **kwargs)
@@ -388,7 +388,7 @@ def spectral_function_Lehmann(path='triangle', nk=32, label=0, orb=1, offset=0.1
         plt.xlim(lims[0], lims[1])
     plt.title(pyqcm.parameter_string(), fontsize=9)
     plt.yticks(offset * tick_pos, tick_str)
-    G = pyqcm.Lehmann_Green_function(k, band, label=label)
+    G = pyqcm.Lehmann_Green_function(k, orb, label=label)
     for i in range(len(k)):
         plt.vlines(G[i][0], i*offset, G[i][1]+i*offset, lw=0.8, color='b')
         plt.axhline(i*offset, lw=0.25, color='grey')
@@ -819,8 +819,8 @@ def mdc_anomalous(nk=200, w=0.1j, label=0, orbitals=(1,1), self=False, im_part=F
     d, nbands = pyqcm.reduced_Green_function_dimension()
     d = d//2
     if type(orbitals) is tuple:
-        assert (orbitals[0] > 0 and orbitals[0] <= nbands), 'bands is out of range in mdc_anomalous()'
-        assert (orbitals[1] > 0 and orbitals[1] <= nbands), 'bands is out of range in mdc_anomalous()'
+        assert (orbitals[0] > 0 and orbitals[0] <= nbands), 'orbitals is out of range in mdc_anomalous()'
+        assert (orbitals[1] > 0 and orbitals[1] <= nbands), 'orbitals is out of range in mdc_anomalous()'
 
     k, x = __kgrid(ax, nk, quadrant=quadrant, k_perp=k_perp, plane=plane)
 

@@ -135,7 +135,7 @@ def monopole(k, a=0.01, nk=20, label=0, orb=None, subdivide=False):
 
     """
 
-    if band is None:
+    if orb is None:
         orb=0 # this is a quick and simple uniformity change across pyqcm functions
 
     return qcm.monopole(0.5*np.array(k), a*0.5, nk, orb, subdivide, label)
@@ -214,7 +214,7 @@ def monopole_map(nk=40, label=0, orb=None, plane='z', k_perp=0.0, file=None, plt
     K = pyqcm.wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
     B = np.zeros(nk*nk)
     for i, k in enumerate(K):
-        B[i] = monopole(2.0*k, a=2.0/nk, nk=5, orb=band, label=label)
+        B[i] = monopole(2.0*k, a=2.0/nk, nk=5, orb=orb, label=label)
 
     ext = [-1, 1,-1,1]
     B = np.reshape(B,(nk,nk)) # transpose because y affects the row number and x the column number
