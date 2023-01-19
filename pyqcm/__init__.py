@@ -1916,83 +1916,6 @@ def wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp = 0, plane='z'):
             k[i + n * j, c[2]] = 0.5*k_perp
     return k
 
-
-################################################################################
-def read_from_file(out_file, n=0):
-    """
-    reads an output file for parameters
-
-    :param str out_file: name of output file from which parameters are read
-    :param int n: line number of data in output file (excluding titles)
-    :return: string to be added to an eventual input file
-
-    """
-
-    if not os.path.isfile(out_file):
-        raise FileNotFoundError(f"file `{out_file}` could not be found!")
-
-    print('reading data file ' + out_file + ', line ' + str(n + 1))
-    fin = open(out_file, 'r')
-    K = fin.readline().strip()
-    K = K.split()
-    V = ""
-    for i in range(n + 1):
-        V = fin.readline()
-    V = V.split()
-    print(str(len(V)) + ' columns read')
-
-    out_keys = ['model', 'omega', 'E_kin', 'E_pot']
-
-    PR = ''
-    for i in range(len(K)):
-        if K[i] in out_keys:
-            continue
-        elif K[i][0:4] == 'ave_':
-            break
-        else:
-            PR += K[i] + ' = ' + str(V[i]) + '\n'
-
-    return PR
-
-def to_input_file(out_file, n=0):
-    return read_from_file(out_file, n)
-
-################################################################################
-def params_from_file(out_file, n=0):
-    """
-    reads an output file for parameters
-
-    :param str out_file: name of output file from which parameters are read
-    :param int n: line number of data in output file (excluding titles).
-    :return: a dict of (parameter, value)
-
-    """
-
-    if not os.path.isfile(out_file):
-        raise FileNotFoundError(f"file `{out_file}` could not be found!")
-
-    print('reading data file ' + out_file + ', line ' + str(n + 1))
-    fin = open(out_file, 'r')
-    K = fin.readline().strip()
-    K = K.split()
-    V = ""
-    for i in range(n + 1):
-        V = fin.readline()
-    V = V.split()
-    print(str(len(V)) + ' columns read')
-
-    out_keys = ['model', 'omega', 'E_kin', 'E_pot']
-
-    D = {}
-    for i in range(len(K)):
-        if K[i] in out_keys:
-            continue
-        elif K[i][0:4] == 'ave_':
-            break
-        else:
-            D[K[i]] = float(V[i])
-    return D
-
 ################################################################################
 def set_params_from_file(out_file, n=0):
     """
@@ -2003,14 +1926,16 @@ def set_params_from_file(out_file, n=0):
     :return: nothing
 
     """
-
     par = qcm.parameter_set()
-    D = params_from_file(out_file, n)
+    try:
+        D = np.genfromtxt(out_file, names=True)
+    except:
+        raise("The file containing the solutions could not be read!")
     for x in par:
         if par[x][1] != None:
             continue
-        if x in D:
-            set_parameter(x,D[x],pr=True)
+        if x in D.dtype.names:
+            set_parameter(x,D[x][n],pr=True)
 
 ################################################################################
 def parameter_string(lattice=True, CR=False):
@@ -2036,62 +1961,6 @@ def parameter_string(lattice=True, CR=False):
         if first:
             first = False
     return S            
-
-
-################################################################################
-def read_from_file_legacy(filename):
-    """
-    reads model parameters from a text file, for legacy results
-    :param str filename: name of the input text file
-    """
-    if not os.path.isfile(filename):
-        raise FileNotFoundError(f"file `{filename}` could not be found!")
-    
-    with open(filename, 'r') as f:
-        F = f.read()
-
-    try:
-        i1 = F.find('parameters')
-    except:
-        raise RuntimeError(f'"parameters" not found in {filename}; exiting')
-
-    data = F[i1:].splitlines()
-    data = data[1:]
-
-    elems = []
-    for s in data:
-        if len(s)==0: break
-        if s[0]=='#': continue
-        p = re.split('[ ,\t]+', s)
-        if len(p) == 2:
-            elem = (p[0].strip(), float(p[1].strip()))
-        elif len(p) == 3:
-            elem = (p[0].strip(), float(p[1].strip()), p[2].strip())
-        else:
-            break	
-        elems.append(tuple(elem))
-    print('parameters: ', elems)
-    set_parameters(elems)
-
-    try:
-        i1 = F.find('target_sectors')
-    except:
-        raise RuntimeError('"target_sectors" not found in {filename}; exiting')
-
-    i2 = F[i1:].find('\n\n')	
-    data = F[i1:i2].splitlines()
-    data = data[1:]
-    elems = []
-    for s in data:
-        if s[0]=='#': continue
-        terms = re.split('[, \t]', s)
-        sec = ''
-        for i in range(1, len(terms)):
-            sec += terms[i].strip() + '/'
-        elems.append(sec[:-1])
-    print('target sectors: ', elems)
-    set_target_sectors(elems)
-
 
 
 ################################################################################
