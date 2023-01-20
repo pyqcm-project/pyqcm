@@ -22,7 +22,7 @@ fout.close()
 
 skbuild.setup(
     name="pyqcm",
-    version="1.0",
+    version=version[1:],
     description="Quantum cluster methods for the physics of strongly correlated systems",
     author="David Sénéchal",
     license="GPL",
