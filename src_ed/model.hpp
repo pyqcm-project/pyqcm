@@ -25,6 +25,8 @@ struct model
   map<sector, shared_ptr<ED_mixed_basis>> basis; //!< list of bases
   map<sector, shared_ptr<ED_factorized_basis>> factorized_basis; //!< list of bases in the facto
   map<string, shared_ptr<Hermitian_operator>> term; //!< list of operators in the Hamiltonian, by name
+  map<sector, vector<double> > last_eigenvectors; //storing the last eigenvectors in each sectors for further solve
+  map<sector, double > last_eigenvalues; //storing the last eigenvalues in each sectors for further solve
   shared_ptr<symmetry_group> group; //!< contains data on symmetry operations
   size_t n_bath; //!< number of sites considered as 'bath' (no Green function computation for these)
   size_t n_orb; //!< total number of sites (=L+nb)

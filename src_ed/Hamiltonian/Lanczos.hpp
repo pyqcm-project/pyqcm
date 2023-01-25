@@ -16,7 +16,6 @@ void Lanczos(T &hamil, size_t dim, double &val, vector<HilbertField> &x, bool ve
 	vector<double> alpha;
 	vector<double> beta;
 	size_t niter = 0;
-	random(x, normal_dis);
 
 	LanczosEigenvalue(hamil, x, alpha, beta, energy, niter, verb);
 	val = energy[0];
@@ -35,7 +34,6 @@ void Modified_Lanczos(T &hamil, size_t dim, double &val, vector<HilbertField> &x
 
 	if(verb) cout << "\nModified Lanczos method; dim = " << dim << endl;
 
-	random(x, normal_dis);
 	int niter;
 	for(niter=0; niter<max_iter_lanczos; niter++){
 		to_zero(psi1);
@@ -99,7 +97,7 @@ void LanczosEigenvalue(T &H, vector<HilbertField> &gs, vector<double> &alpha, ve
 	vector<HilbertField> r(gs); // residue
 	vector<HilbertField> q(dim); // Lanczos basis vector
 	
-	double Ritz=2.0*global_double("accur_lanczos");
+	double Ritz=1.0;
 	while(Ritz > global_double("accur_lanczos"))
 	{
 		check_signals();

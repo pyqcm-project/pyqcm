@@ -99,11 +99,30 @@ vector<shared_ptr<state<HilbertField>>> Hamiltonian<HilbertField>::states(double
     vector<shared_ptr<state<HilbertField>>> low_energy_states;
   
     vector<double> evalues;
-    vector<vector<HilbertField> > evectors;
-    char method = global_char("Ground_state_method");
     evalues.resize(1);
-    evectors.resize(1);
-    evectors[0].resize(dim);
+    vector<vector<HilbertField> > evectors;
+    //use the previous eigenvectors
+    int ndouble = sizeof(HilbertField) / sizeof(double);
+    if (global_bool("Ground_state_init_last")) {
+        if (the_model->last_eigenvectors[sec].size() == 0) { //initialise random
+            the_model->last_eigenvectors[sec].resize(ndouble*dim);
+            random(the_model->last_eigenvectors[sec], normal_dis);
+        }
+        //this create a copy of the previous eigenvector to work on
+        //this could be optimized to not duplicate the ground state vector for example=
+        evectors.assign(1, vector<HilbertField> (
+            (HilbertField*) the_model->last_eigenvectors[sec].data(), 
+            (HilbertField*) the_model->last_eigenvectors[sec].data() + dim
+        )); 
+        evalues[0] = the_model->last_eigenvalues[sec];
+    }
+    else {
+        evectors.resize(1);
+        evectors[0].resize(dim);
+        random(evectors[0], normal_dis);
+    }
+
+    char method = global_char("Ground_state_method");
     if (method == 'D') { //Davidson method
         size_t Davidson_states = global_int("Davidson_states");
         Davidson(*this, dim, Davidson_states, evalues, evectors, global_double("accur_Davidson"),  global_bool("verb_ED"));
@@ -135,6 +154,15 @@ vector<shared_ptr<state<HilbertField>>> Hamiltonian<HilbertField>::states(double
         gs->energy = evalues[i];
         gs->psi = evectors[i];
         low_energy_states.push_back(gs);
+    }
+    
+    //write the new previous eigenvector
+    if (global_bool("Ground_state_init_last")) {
+        the_model->last_eigenvectors[sec] = vector<double> (
+            (double*) evectors[0].data(),
+            (double*) evectors[0].data() + ndouble*dim
+        );
+        the_model->last_eigenvalues[sec] = evalues[0];
     }
     return low_energy_states;
 }
