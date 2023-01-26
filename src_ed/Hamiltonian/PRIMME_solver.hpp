@@ -108,6 +108,9 @@ void PRIMME_state_solver(
    primme.maxBasisSize = 14;
    primme.minRestartSize = 4;
    primme.maxBlockSize = 1;
+   
+   //The initial vector have already been set to random or previous values, so:
+   primme.initSize = 1;
 
     /* Set problem matrix */
     if (Hamiltonian_format == H_format_eigen) {
