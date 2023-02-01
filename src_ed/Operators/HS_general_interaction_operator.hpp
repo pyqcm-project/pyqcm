@@ -20,11 +20,12 @@ struct HS_general_interaction_operator : HS_nondiagonal_operator<HS_field>
     for (auto &x : elements) {
       // unfolding the elements
       int nn = 2 * n;
-      int ej = x.r / nn;
       int ei = x.r % nn;
-      int el = x.c / nn;
+      int ej = x.r / nn;
       int ek = x.c % nn;
-      // cout << "element (" << ei << ", "  << ej << " | " << ek << ", "<< el << ") : "  << x.v << endl; // TEMPO
+      int el = x.c / nn;
+      if((ei == ej) or (el == ek)) continue;
+      // cout << "element (" << ei << ", "  << ej << " | " << ek << ", "<< el << ") : "  << x.v << endl; // TEMPO
       for (size_t I = 0; I < this->B->dim; ++I) {
         int pauli_phase;
         binary_state ssp;
@@ -49,7 +50,7 @@ struct HS_general_interaction_operator : HS_nondiagonal_operator<HS_field>
             // finding the phase
             X = group->phaseX<double>(Rp.phase) * fold_type<HS_field, op_field>(x.v) * sqrt((1.0 * R.length) / Rp.length);
             this->insert(J, I, X);
-            if(I != J) this->insert(I, J, conjugate(X)); // Hermitian conjugate
+            // if(I != J) this->insert(I, J, conjugate(X)); // Hermitian conjugate
           }
         }
       }

@@ -584,7 +584,9 @@ static PyObject* new_operator_python(PyObject *self, PyObject *args)
       qcm_ED_throw("failed to read parameters in call to new_operator (python)");
   
     double fac = 1.0;
+    bool check_upper = true;
     if(strcmp(type, "anomalous") == 0) fac = 0.5; // correction for anomalous operators
+    if(strcmp(type, "general_interaction") == 0) check_upper = false; // correction for anomalous operators
 
     if(PyArray_Check(elem_pyobj)){
       size_t nelem = PyArray_DIMS((PyArrayObject*)elem_pyobj)[0];
@@ -599,7 +601,7 @@ static PyObject* new_operator_python(PyObject *self, PyObject *args)
         if(PyTuple_Size(pkey) == 3){
           elem[i].r = PyLong_AsLong(PyTuple_GetItem(pkey, 0));
           elem[i].c = PyLong_AsLong(PyTuple_GetItem(pkey, 1));
-          if(elem[i].r > elem[i].c) qcm_ED_throw("the first index of element "+to_string<size_t>(i)+" of argument 4 of 'new_operator' cannot be bigger than the second index");
+          if((elem[i].r > elem[i].c) and check_upper) qcm_ED_throw("the first index of element "+to_string<size_t>(i)+" of argument 4 of 'new_operator' cannot be bigger than the second index");
           if(elem[i].r == 0 or elem[i].c == 0) qcm_ED_throw("indices in matrix elements of operators are labelled starting at 1, not at 0.");
           elem[i].r--;
           elem[i].c--;

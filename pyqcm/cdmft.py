@@ -220,7 +220,7 @@ def __diff_hybrid(hyb1, hyb2):
 ######################################################################
 # optimization of the bath parameters
 
-def __optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_dist = 1e-8):
+def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_dist = 1e-8):
     """
 
     :param F: function to be optimized
@@ -480,7 +480,7 @@ def cdmft(
             sol = __dual_minimization(params_array, nvar_E, method, initial_step=initial_step, accur=accur, accur_dist=accur_dist, nsteps=12)
             iter_done = sol.nfev
         else:
-            sol, iter_done = __optimize(lambda x : qcm.CDMFT_distance(x, 0), params_array, method, initial_step, accur, accur_dist)
+            sol, iter_done = optimize(lambda x : qcm.CDMFT_distance(x, 0), params_array, method, initial_step, accur, accur_dist)
 
         t3 = timeit.default_timer()
         time_MIN += t3 - t2
@@ -774,7 +774,7 @@ def __dual_minimization(params_array, N, method, initial_step=1e-3, accur=1e-4, 
 
 
         # second set of parameters : bath hybridizations ------------------------------------------
-        sol, iter = __optimize(lambda x : qcm.CDMFT_distance(np.concatenate((x1, x))), x2, method[1], initial_step, accur, accur_dist)
+        sol, iter = optimize(lambda x : qcm.CDMFT_distance(np.concatenate((x1, x))), x2, method[1], initial_step, accur, accur_dist)
         try:
             __check_bounds(sol.x, 1000.0)
         except pyqcm.OutOfBoundsError(i):
@@ -786,7 +786,7 @@ def __dual_minimization(params_array, N, method, initial_step=1e-3, accur=1e-4, 
         nfev += sol.nfev
 
         # first set of parameters : bath energies --------------------------------------------------
-        sol, iter = __optimize(lambda x : qcm.CDMFT_distance(np.concatenate((x, x2)),0), x1, method[0], initial_step, accur, accur_dist)
+        sol, iter = optimize(lambda x : qcm.CDMFT_distance(np.concatenate((x, x2)),0), x1, method[0], initial_step, accur, accur_dist)
         try:
             __check_bounds(sol.x, 1000.0)
         except pyqcm.OutOfBoundsError():
@@ -1285,30 +1285,27 @@ class hybridization:
     def  __init__(self, file):
         """Defines hybridization data from a data file
 
-        :param str file: name of the file. Format : each line starts with a frequency and then has N(N+1)/2
-        columns for Delta_{ij}(w), i <= j : (0,0), (0,1), (0,2), ... , (1,1), (1,2), ... , (2,2), ...
+        :param str file: name of the file or string. Format : each line starts with a frequency and then has N*N
+        columns for Delta_{ij}(w)
         the frequency is purely imaginary; it is its imaginary part that appears in the file
 
         """
-        NN = [1,3,6,10,15,21,28,36]
-        data = np.genfromtxt(file, dtype=np.complex128)
-        print(data)
+        NN = [1,4,9,16,25,36,49,64,81,100,121,144]
+        # data = np.genfromtxt(file, dtype=np.complex128)
+        # data = np.genfromtxt(file, invalid_raise=True, loose=False, dtype=None)
+        data = np.genfromtxt(file, invalid_raise=True, loose=False, dtype=np.complex128)
+        # print(data)
         self.nw = data.shape[0]
         LL = data.shape[1]-1
         try:
             self.n = NN.index(LL)+1
         except ValueError:
-            raise ValueError('The number of columns in the hybridization table should be 1 + n(n+1)/2')
+            raise ValueError('The number of columns in the hybridization table should be 1 + n^2')
 
-        self.w = np.copy(data[:,0])
+        self.w = np.copy(np.real(data[:,0]))
         self.Delta = np.zeros((self.nw,self.n,self.n), dtype=np.complex128)
-        k = 0
-        for i in range(self.n):
-            for j in range(i, self.n):
-                self.Delta[:,i,j] = data[:,k+1]
-                if j>i :
-                    self.Delta[:,j,i] = np.conjugate(data[:,k+1])
-                k += 1
+        for i in range(self.nw):
+            self.Delta[i,:,:] = np.reshape(data[i, 1:], (self.n,self.n))
         
     def distance(self, I):
         """
@@ -1320,8 +1317,30 @@ class hybridization:
         for i in range(self.nw):
             M[i,:,:] = pyqcm.hybridization_function(0, self.w[i]*1j, spin_down=False, label=I)
         
-        print('M : '); print(M)
-        print('Delta : '); print(self.Delta)
+        # print('M : '); print(M)
+        # print('Delta : '); print(self.Delta)
         
         return np.linalg.norm(M-self.Delta)
+
+    def __str__(self):
+        S = ""
+        for i in range(self.nw):
+            S += 'w = ' + self.w[i].__str__() + '\n' + self.Delta[i].__str__() + '\n\n'
+        return S
+
+    def optimize_bath(self, varia, x):
+        """
+        Optimizes the bath parameters to fit the hybridization function delta
+        :param [str] varia: list of variational parameters (bath parameters) from PyQCM
+        :param [float] x: starting values of the parameters
+        """
+
+        nvar = len(varia)
+        def tmp_distance(x):
+            for i in range(nvar):
+                pyqcm.set_parameter(varia[i], x[i])
+            pyqcm.new_model_instance(1)
+            return self.distance(1)
+
+        return optimize(tmp_distance, x)
 

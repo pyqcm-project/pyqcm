@@ -45,18 +45,8 @@ Compiling can be done with pip::
 Advanced installation
 ---------------------
 
-These instruction allow to finely tune the configuration of Pyqcm (e.g. its
-optional dependencies).
-
-Clone the source code as above::
-
-    #from bitbucket
-    git clone https://dsenech@bitbucket.org/dsenechQCM/qcm_wed.git
-    git checkout Moise/modular_Hamiltonian #dev version
-
-Specify the build configuration by exporting the ``CMAKE_ARGS`` environment variable::
-
-    export CMAKE_ARGS="[BUILD_ARG1]=[VALUE1] [BUILD_ARG2]=[VALUE2] ..."
+These instruction allow to finely tune the configuration of Pyqcm and its optional dependencies. These options are set before installing pyqcm with pip and are configurable through the CMAKE_ARGS environment variable such as:
+export CMAKE_ARGS="[BUILD_ARG1]=[VALUE1] [BUILD_ARG2]=[VALUE2] ..."
 
 Optional build arguments and their values include:
 

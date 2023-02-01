@@ -393,10 +393,10 @@ def cluster_hopping_matrix(clus=0, spin_down=False, label=0, full=0):
 ################################################################################
 def interactions(clus=0):
     """
-    returns the one-body matrix of cluster no i for instance 'label'
+    returns the density-density interactions in cluster no i for instance 'label'
 
     :param cluster: label of the cluster (0 to the number of clusters - 1)
-    :return: a real-valued matrix
+    :return: a list of matrix elements tuples (i,j,v)
     """
     return qcm.interactions(clus)
 
@@ -634,6 +634,13 @@ def new_model_instance(label=0, record=False):
         except:
             raise SolverError()
 
+    elif solver=='external':
+        import pyqcm.external
+        try:
+            pyqcm.external.test_ed_solver()
+        except:
+            raise SolverError()
+
     if record:
         cinfo = cluster_info()
         params = parameter_set(True)
@@ -734,11 +741,11 @@ def set_parameters(params, dump=True):
         if dump:
             parameter_set_str = 'set_parameters("""\n'+str(params)+'""")\n'
         qcm.set_parameters(elems)
-        new_model_instance() # Prevents user error by instantiating model
+        # new_model_instance() # Prevents user error by instantiating model
         return elems
     else:	
         qcm.set_parameters(params)
-        new_model_instance() # Prevents user error by instantiating model
+        # new_model_instance() # Prevents user error by instantiating model
         return params
 
 set_parameters.called = False        
@@ -1931,6 +1938,9 @@ def set_params_from_file(out_file, n=0):
         D = np.genfromtxt(out_file, names=True)
     except:
         raise("The file containing the solutions could not be read!")
+    if len(D.shape) == 0:
+        np.reshape(D,(1,len(D.dtype)))
+        assert(n == 0)
     for x in par:
         if par[x][1] != None:
             continue
@@ -2037,47 +2047,20 @@ def general_interaction_matrix_elements(e, n):
     Also checks that only non redundant elements are given
     :param (int,int,int,int,float) e: list of matrix elements
     :param int n: number of orbitals in the impurity model (excluding spin; 2*n with spin)
+    Here a sum over spin for the Coulomb interaction est performed
     """
 
     E = []
     nn = 2*n
-    if len(e[0]) == 5:
-        for x in e:
-            s = 1
-            if x[0]<x[1]:
-                I = x[0]+nn*x[1]
-            else:
-                I = x[1]+nn*x[0]
-                s *= -1
-            if x[2]<x[3]:
-                J = x[2]+nn*x[3]
-            else:
-                J = x[3]+nn*x[2]
-                s *= -1
-            if I > J:
-                continue
-            
-            E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
-    elif len(e[0]) == 9:
-        for y in e:
-            x = (y[0]+n*y[1], y[2]+n*y[3], y[4]+n*y[5], y[6]+n*y[7], y[8])
-            s = 1
-            if x[0]<x[1]:
-                I = x[0]+nn*x[1]
-            else:
-                I = x[1]+nn*x[0]
-                s *= -1
-            if x[2]<x[3]:
-                J = x[2]+nn*x[3]
-            else:
-                J = x[3]+nn*x[2]
-                s *= -1
-            if I > J:
-                continue
-            
-            E += [(I+1,J+1,s*x[4])]  # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
-    else:
-        raise ValueError('The general matrix elements do not have the right format')
+    if len(e[0]) != 5: raise ValueError('The general matrix elements do not have the right format')
+    for x in e:
+        for s in [0,n]:
+            for sp in [0,n]:
+                I = x[0]+s-1 + nn*(x[1]+sp-1)
+                J = x[3]+s-1 + nn*(x[2]+sp-1) 
+                print('-----> ', I, J, x[4])
+                E += [(I+1,J+1,x[4])]
+                # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
 
     return E
         

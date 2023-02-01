@@ -28,16 +28,25 @@ export CMAKE_ARGS="[BUILD_ARG1]=[VALUE1] [BUILD_ARG2]=[VALUE2] ..."
 pip install .
 ```
 
+## Building the documentation
+
+The code's documentation can be built by going to the "docs" directory and typing "./makedoc"
+By default this produces a web site within the "html" folder. Open the file "html/index.html".
+Alternatively, one can acccess the documentation at
+
+https://dsenech.github.io/qcm_wed_doc/
+
 ## Build options
 
-Build arguments and their values include:
+Additional options for building the code are described in the introduction section of the documentation.
 
 * ``-DDOWNLOAD_CUBA=0/1``: Specify to download and compile automatically the CUBA integration library.
-* ``-DCUBA_DIR=[path_to_CUBA_root_dir]``: If CUBA not downloaded from above, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library (``libcuba.a``) along with the header ``cuba.h``).
+* ``-DCUBA_DIR=[path_to_CUBA_root_dir]``: If CUBA not downloaded from above, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library ``libcuba.a`` along with the header ``cuba.h``).
 * ``-DBLA_VENDOR=[value]``: BLAS implementation to use. See `CMake vendor documentation <https://cmake.org/cmake/help/latest/module/FindBLAS.html?highlight=bla_vendor#blas-lapack-vendors>`_ for more information (recommended: do not specify or ``FlexiBLAS`` on Alliance cluster).
-* ``-DEIGEN_HAMILTONIAN=0/1``: Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine.
+* ``-DEIGEN_HAMILTONIAN=0/1``: Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine (require `Eigen library <https://eigen.tuxfamily.org/index.php?title=Main_Page>`_).
 * ``-DWITH_PRIMME=0/1``: Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs ``-DEIGEN_HAMILTONIAN=1``).
-* ``-DPRIMME_DIR=[path_to_PRIMME_root_dir]``: Specify the path to the PRIMME root directory for linking qcm_wed library against (required if ``-DWITH_PRIMME=1``).
+* ``-DDOWNLOAD_PRIMME=0/1``: Specify to download and compile automatically the PRIMME eigensolver library (needs ``-DWITH_PRIMME=1``).
+* ``-DPRIMME_DIR=[path_to_PRIMME_root_dir]``: Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically.
 
 
 ## Installation from source
