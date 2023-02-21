@@ -35,7 +35,7 @@ string Py2string(PyObject* PyObj)
   return string(c, s);
 }
 //------------------------------------------------------------------------------
-vector3D<int64_t> position_from_Py(PyArrayObject *k_pyobj)
+vector3D<int64_t> intvector_from_Py(PyArrayObject *k_pyobj)
 {
   vector3D<int64_t> k;
   if(PyArray_Check(k_pyobj)){
@@ -60,11 +60,25 @@ vector3D<int64_t> position_from_Py(PyArrayObject *k_pyobj)
     if(!PyLong_Check(pkey)) qcm_throw("element no 3 of list is not an integer");
     k.z = PyLong_AsLong(pkey);
   }
-  else qcm_throw("object is neither a numpy array or a python list");
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    if(PyTuple_Size(PyObj) != 3) qcm_throw("a position must have 3 components");
+    PyObject* pkey;
+    pkey = PyTuple_GetItem(PyObj,0);
+    if(!PyLong_Check(pkey)) qcm_throw("element no 1 of list is not an integer");
+    k.x = PyLong_AsLong(pkey);
+    pkey = PyTuple_GetItem(PyObj,1);
+    if(!PyLong_Check(pkey)) qcm_throw("element no 2 of list is not an integer");
+    k.y = PyLong_AsLong(pkey);
+    pkey = PyTuple_GetItem(PyObj,2);
+    if(!PyLong_Check(pkey)) qcm_throw("element no 3 of list is not an integer");
+    k.z = PyLong_AsLong(pkey);
+  }
+  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
   return k;
 }
 //------------------------------------------------------------------------------
-vector3D<double> wavevector_from_Py(PyArrayObject *k_pyobj)
+vector3D<double> vector_from_Py(PyArrayObject *k_pyobj)
 {
   vector3D<double> k;
   if(PyArray_Check(k_pyobj)){
@@ -82,30 +96,50 @@ vector3D<double> wavevector_from_Py(PyArrayObject *k_pyobj)
     k.y = PyFloat_AsDouble(PyList_GetItem(PyObj,1));
     k.z = PyFloat_AsDouble(PyList_GetItem(PyObj,2));
   }
-  else qcm_throw("object is neither a numpy array or a python list");
-  return k;
-}
-//------------------------------------------------------------------------------
-vector<vector3D<double>> wavevectors_from_Py(PyArrayObject *k_pyobj)
-{
-  if(PyArray_NDIM(k_pyobj) != 2) qcm_throw("The supplied wavevectors must form a 2D Numpy array!");
-  
-  vector<npy_intp> dims(2);
-  dims[0] = *PyArray_DIMS(k_pyobj);
-  dims[1] = *(PyArray_DIMS(k_pyobj)+1);
-  
-  if(dims[1] != 3) qcm_throw("The supplied wavevectors must have 3 components!");
-  vector<vector3D<double>> k(dims[0]);
-  
-  for(size_t i=0; i<k.size(); i++){
-    k[i].x = *(double*)PyArray_GETPTR2(k_pyobj, i, 0);
-    k[i].y = *(double*)PyArray_GETPTR2(k_pyobj, i, 1);
-    k[i].z = *(double*)PyArray_GETPTR2(k_pyobj, i, 2);
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    if(PyTuple_Size(PyObj) != 3) qcm_throw("a wavevector must have 3 components");
+    k.x = PyFloat_AsDouble(PyTuple_GetItem(PyObj,0));
+    k.y = PyFloat_AsDouble(PyTuple_GetItem(PyObj,1));
+    k.z = PyFloat_AsDouble(PyTuple_GetItem(PyObj,2));
   }
+  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
   return k;
 }
 //------------------------------------------------------------------------------
-vector<vector3D<int64_t>> intvec3D_from_Py(PyArrayObject *k_pyobj)
+vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj)
+{
+  vector<vector3D<double>> k;
+  if(PyArray_Check(k_pyobj)){
+    if(PyArray_NDIM(k_pyobj) != 2) qcm_throw("The supplied wavevectors must form a 2D Numpy array!");
+    
+    vector<npy_intp> dims(2);
+    dims[0] = *PyArray_DIMS(k_pyobj);
+    dims[1] = *(PyArray_DIMS(k_pyobj)+1);
+    if(dims[1] != 3) qcm_throw("The supplied wavevectors must have 3 components!");
+
+    k.resize(dims[0]);
+    for(size_t i=0; i<k.size(); i++){
+      k[i].x = *(double*)PyArray_GETPTR2(k_pyobj, i, 0);
+      k[i].y = *(double*)PyArray_GETPTR2(k_pyobj, i, 1);
+      k[i].z = *(double*)PyArray_GETPTR2(k_pyobj, i, 2);
+    }
+  }
+  else if(PyList_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    k.resize(PyList_Size(PyObj));
+    for(int i=0; i<k.size(); i++) k[i] = vector_from_Py((PyArrayObject*)PyList_GetItem(PyObj,i));
+  }
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    k.resize(PyTuple_Size(PyObj));
+    for(int i=0; i<k.size(); i++) k[i] = vector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj,i));
+  }
+  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
+  return k;
+}
+//------------------------------------------------------------------------------
+vector<vector3D<int64_t>> many_intvectors_from_Py(PyArrayObject *k_pyobj)
 {
   vector<vector3D<int64_t>> k;
   if(PyArray_Check(k_pyobj)){
@@ -126,49 +160,25 @@ vector<vector3D<int64_t>> intvec3D_from_Py(PyArrayObject *k_pyobj)
   }
   else if(PyList_Check(k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
-    k.assign(n, vector3D<int64_t>());
-    for(size_t i=0; i<k.size(); i++){
-      PyObject* PyObj2 = PyList_GetItem(PyObj,i);
-      if(PyList_Size(PyObj2) != 3) qcm_throw("a position must have 3 components");
-      k[i].x = PyLong_AsLong(PyList_GetItem(PyObj2,0));
-      k[i].y = PyLong_AsLong(PyList_GetItem(PyObj2,1));
-      k[i].z = PyLong_AsLong(PyList_GetItem(PyObj2,2));
-    }
+    k.resize(PyList_Size(PyObj));
+    for(size_t i=0; i<k.size(); i++) k[i] = intvector_from_Py((PyArrayObject*)PyList_GetItem(PyObj,i));
+  }
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    k.resize(PyTuple_Size(PyObj));
+    for(size_t i=0; i<k.size(); i++) k[i] = intvector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj,i));
   }
   return k;
 }
 //------------------------------------------------------------------------------
-vector<int64_t> intvector_from_Py(PyArrayObject *k_pyobj)
+vector<int64_t> intvectors_from_Py(PyArrayObject *k_pyobj)
 {
-  vector<int64_t> k;
-  if(PyArray_Check(k_pyobj)){
-    vector<npy_intp> dims(2);
-    dims[0] = *PyArray_DIMS(k_pyobj);
-    dims[1] = *(PyArray_DIMS(k_pyobj)+1);
-    
-    if(dims[1] != 3) qcm_throw("The supplied integer vectors must have 3 components!");
-    k.assign(3*dims[0], 0);
-    
-    int l=0;
-    for(size_t i=0; i<dims[0]; i++){
-      for(size_t j=0; j<3; j++){
-        k[l++] = *(int64_t*)PyArray_GETPTR2(k_pyobj, i, j);
-      }
-    }
-  }
-  else if(PyList_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
-    k.assign(3*n, 0);
-    int l=0;
-    for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyList_GetItem(PyObj,i);
-      if(PyList_Size(PyObj2) != 3) qcm_throw("the integer vectors must have 3 components");
-      k[l++] = PyLong_AsLong(PyList_GetItem(PyObj2,0));
-      k[l++] = PyLong_AsLong(PyList_GetItem(PyObj2,1));
-      k[l++] = PyLong_AsLong(PyList_GetItem(PyObj2,2));
-    }
+  vector<vector3D<int64_t>> kk = many_intvectors_from_Py(k_pyobj);
+  vector<int64_t> k(3*kk.size());
+  for (int i=0; i<kk.size(); i++){
+    k[3*i] = kk[i].x;
+    k[3*i+1] = kk[i].y;
+    k[3*i+2] = kk[i].z;
   }
   return k;
 }
@@ -193,42 +203,23 @@ vector<int> intarray_from_Py(PyArrayObject *k_pyobj)
     k.assign(n, 0);
     for(size_t i=0; i<n; i++) k[i] = PyLong_AsLong(PyList_GetItem(PyObj,i));
   }
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    size_t n = PyTuple_Size(PyObj);
+    k.assign(n, 0);
+    for(size_t i=0; i<n; i++) k[i] = PyLong_AsLong(PyTuple_GetItem(PyObj,i));
+  }
   return k;
 }
 //------------------------------------------------------------------------------
-vector<double> doublematrix_from_Py(PyArrayObject *k_pyobj)
+vector<double> vectors_from_Py(PyArrayObject *k_pyobj)
 {
-  vector<double> k;
-
-  if(PyArray_Check(k_pyobj)){
-    if(PyArray_NDIM(k_pyobj) != 2) qcm_throw("The supplied wavevectors must form a 2D Numpy array!");
-    
-    vector<npy_intp> dims(2);
-    dims[0] = *PyArray_DIMS(k_pyobj);
-    dims[1] = *(PyArray_DIMS(k_pyobj)+1);
-    
-    if(dims[1] != 3) qcm_throw("The supplied integer vectors must have 3 components!");
-    k.assign(3*dims[0], 0.0);
-    
-    int l=0;
-    for(size_t i=0; i<dims[0]; i++){
-      for(size_t j=0; j<3; j++){
-        k[l++] = *(int64_t*)PyArray_GETPTR2(k_pyobj, i, j);
-      }
-    }
-  }
-  else if(PyList_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
-    k.assign(3*n, 0);
-    int l=0;
-    for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyList_GetItem(PyObj,i);
-      if(PyList_Size(PyObj2) != 3) qcm_throw("the vectors must have 3 components");
-      k[l++] = PyFloat_AsDouble(PyList_GetItem(PyObj2,0));
-      k[l++] = PyFloat_AsDouble(PyList_GetItem(PyObj2,1));
-      k[l++] = PyFloat_AsDouble(PyList_GetItem(PyObj2,2));
-    }
+  vector<vector3D<double>> kk = many_vectors_from_Py(k_pyobj);
+  vector<double> k(3*kk.size());
+  for (int i=0; i<kk.size(); i++){
+    k[3*i] = kk[i].x;
+    k[3*i+1] = kk[i].y;
+    k[3*i+2] = kk[i].z;
   }
   return k;
 }
@@ -255,6 +246,13 @@ vector<double> doubles_from_Py(PyObject* lst)
     out.resize(n);
     for(size_t i=0; i<n; i++){
       out[i] = PyFloat_AsDouble(PyList_GetItem(lst,i));
+    }
+  }
+  else if(PyTuple_Check(lst)){
+    size_t n = PyTuple_Size(lst);
+    out.resize(n);
+    for(size_t i=0; i<n; i++){
+      out[i] = PyFloat_AsDouble(PyTuple_GetItem(lst,i));
     }
   }
   else if(PyArray_Check(lst)){
@@ -323,6 +321,21 @@ vector<vector<int>> intmatrix_from_Py(PyArrayObject *k_pyobj)
       }
     }
   }
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    size_t n = PyTuple_Size(PyObj);
+    k.assign(n, vector<int>());
+    for(size_t i=0; i<n; i++){
+      PyObject* PyObj2 = PyTuple_GetItem(PyObj,i);
+      if(!PyTuple_Check(PyObj2))
+        qcm_ED_throw("generator or position "+to_string(i+1)+" should be a tuple!");
+      size_t m = PyTuple_Size(PyObj2);
+      k[i].assign(m, 0);
+      for(size_t j=0; j<m; j++){
+        k[i][j] = (int)PyLong_AsLong(PyTuple_GetItem(PyObj2,j));
+      }
+    }
+  }
   return k;
 }
 
@@ -357,6 +370,21 @@ vector<vector<double>> pos_from_Py(PyArrayObject *k_pyobj)
       k[i].assign(m, 0);
       for(size_t j=0; j<m; j++){
         k[i][j] = (double)PyFloat_AsDouble(PyList_GetItem(PyObj2,j));
+      }
+    }
+  }
+  else if(PyTuple_Check(k_pyobj)){
+    PyObject* PyObj = (PyObject*)k_pyobj;
+    size_t n = PyTuple_Size(PyObj);
+    k.assign(n, vector<double>());
+    for(size_t i=0; i<n; i++){
+      PyObject* PyObj2 = PyTuple_GetItem(PyObj,i);
+      if(!PyTuple_Check(PyObj2))
+        qcm_ED_throw("position "+to_string(i+1)+" should be a list!");
+      size_t m = PyTuple_Size(PyObj2);
+      k[i].assign(m, 0);
+      for(size_t j=0; j<m; j++){
+        k[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(PyObj2,j));
       }
     }
   }

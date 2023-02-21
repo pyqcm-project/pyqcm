@@ -20,9 +20,9 @@
 #include "lattice_model.hpp"
 #include "common_Py.hpp"
 
-vector3D<int64_t> position_from_Py(PyArrayObject *k_pyobj);
-vector3D<double> wavevector_from_Py(PyArrayObject *k_pyobj);
-vector<vector3D<double>> wavevectors_from_Py(PyArrayObject *k_pyobj);
+vector3D<int64_t> intvector_from_Py(PyArrayObject *k_pyobj);
+vector3D<double> vector_from_Py(PyArrayObject *k_pyobj);
+vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj);
 vector<string> strings_from_PyList(PyObject* lst);
 
 extern shared_ptr<parameter_set> param_set;
@@ -59,7 +59,7 @@ static PyObject* add_cluster_python(PyObject *self, PyObject *args)
     if(!PyArg_ParseTuple(args, "sOO|i", &s1, &cpos_pyobj, &pos_pyobj, &ref))
       qcm_throw("failed to read parameters in call to lattice_model (python)");
   
-    QCM::add_cluster(string(s1), position_from_Py(cpos_pyobj), intvec3D_from_Py(pos_pyobj), ref);
+    QCM::add_cluster(string(s1), intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref);
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
 }
@@ -123,7 +123,7 @@ static PyObject* Berry_flux_python(PyObject *self, PyObject *args)
       qcm_throw("failed to read parameters in call to Berry_flux (python)");
   } catch(const string& s) {qcm_catch(s);}
   
-  vector<vector3D<double>> k = wavevectors_from_Py(k_pyobj);
+  vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
   double g;
   try{
     g = QCM::Berry_flux(k, orb, label);
@@ -166,8 +166,8 @@ static PyObject* Berry_curvature_python(PyObject *self, PyObject *args)
       qcm_throw("failed to read parameters in call to Berry_curvature (python)");
   } catch(const string& s) {qcm_catch(s);}
   
-  vector3D<double> k1 = wavevector_from_Py(k1_pyobj);
-  vector3D<double> k2 = wavevector_from_Py(k2_pyobj);
+  vector3D<double> k1 = vector_from_Py(k1_pyobj);
+  vector3D<double> k2 = vector_from_Py(k2_pyobj);
   
   vector<double> g;
   try{
@@ -481,7 +481,7 @@ static PyObject* CPT_Green_function_python(PyObject *self, PyObject *args)
     if(ndim>2) qcm_throw("Argument 2 of 'CPT_Green_function' should be of dimension 1 or 2");
     
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       matrix<complex<double>> g = QCM::CPT_Green_function(z, k, (bool)spin_down, label);
       size_t d = QCM::Green_function_dimension();
       npy_intp dims[2];
@@ -491,7 +491,7 @@ static PyObject* CPT_Green_function_python(PyObject *self, PyObject *args)
       PyArray_ENABLEFLAGS((PyArrayObject*) out, NPY_ARRAY_OWNDATA);
     }
     else{
-      vector<vector3D<double>> k = wavevectors_from_Py(k_pyobj);
+      vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
       vector<matrix<complex<double>>> g = QCM::CPT_Green_function(z, k, (bool)spin_down, label);
       size_t d = QCM::Green_function_dimension();
       npy_intp dims[3];
@@ -535,7 +535,7 @@ static PyObject* CPT_Green_function_inverse_python(PyObject *self, PyObject *arg
     int ndim = PyArray_NDIM(k_pyobj);
     if(ndim != 2) qcm_throw("Argument 3 of 'CPT_Green_function_inverse' should be of dimension 2");
     
-    vector<vector3D<double>> k = wavevectors_from_Py(k_pyobj);
+    vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
     vector<matrix<complex<double>>> g = QCM::CPT_Green_function_inverse(z, k, (bool)spin_down, label);
     
     size_t d = QCM::Green_function_dimension();
@@ -579,11 +579,11 @@ static PyObject* dispersion_python(PyObject *self, PyObject *args)
     
     vector<vector3D<double>> kk;
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       kk.assign(1,k);
     }
     else{
-      kk = wavevectors_from_Py(k_pyobj);
+      kk = many_vectors_from_Py(k_pyobj);
     }
     vector<vector<double>> g;
     try{
@@ -633,7 +633,7 @@ static PyObject* tk_python(PyObject *self, PyObject *args)
     if(ndim>2) qcm_throw("Argument 2 of 'CPT_Green_function' should be of dimension 1 or 2");
     
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       auto g = QCM::tk(k, (bool)spin_down, label);
       size_t d = QCM::Green_function_dimension();
       npy_intp dims[2];
@@ -643,7 +643,7 @@ static PyObject* tk_python(PyObject *self, PyObject *args)
       PyArray_ENABLEFLAGS((PyArrayObject*) out, NPY_ARRAY_OWNDATA);
     }
     else{
-      vector<vector3D<double>> k = wavevectors_from_Py(k_pyobj);
+      vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
       auto g = QCM::tk(k, (bool)spin_down, label);
       size_t d = QCM::Green_function_dimension();
       npy_intp dims[3];
@@ -824,14 +824,14 @@ static PyObject* lattice_model_python(PyObject *self, PyObject *args)
       qcm_throw("failed to read parameters in call to lattice_model (python)");
     if(qcm_model==nullptr) qcm_throw("no cluster has been added to the model!");
   
-    vector<int64_t> superlattice = intvector_from_Py(super_pyobj);
+    vector<int64_t> superlattice = intvectors_from_Py(super_pyobj);
     vector<int64_t> unit_cell;
     if(unit_pyobj==nullptr or (PyObject*)unit_pyobj==Py_None){
       unit_cell.assign(superlattice.size(),0);
       size_t dim = superlattice.size()/3;
       for(int i=0; i<dim; i++) unit_cell[i*4] = 1;
     }
-    else unit_cell = intvector_from_Py(unit_pyobj);
+    else unit_cell = intvectors_from_Py(unit_pyobj);
   
     QCM::new_lattice_model(string(s1), superlattice, unit_cell);
   } catch(const string& s) {qcm_catch(s);}
@@ -930,7 +930,7 @@ static PyObject* momentum_profile_python(PyObject *self, PyObject *args)
     if(ndim != 2) qcm_throw("Argument 3 of 'momentum_profile' should be of dimension 2");
 
     vector<vector3D<double>> kk;
-    kk = wavevectors_from_Py(k_pyobj);
+    kk = many_vectors_from_Py(k_pyobj);
     vector<double> g;
     g = QCM::momentum_profile(string(s1), kk, label);
     
@@ -1162,11 +1162,11 @@ static PyObject* periodized_Green_function_python(PyObject *self, PyObject *args
     
     vector<vector3D<double>> kk;
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       kk.assign(1,k);
     }
     else{
-      kk = wavevectors_from_Py(k_pyobj);
+      kk = many_vectors_from_Py(k_pyobj);
     }
     auto g = QCM::periodized_Green_function(z, kk, (bool)spin_down, label);
     
@@ -1215,11 +1215,11 @@ static PyObject* band_Green_function_python(PyObject *self, PyObject *args)
     
     vector<vector3D<double>> kk;
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       kk.assign(1,k);
     }
     else{
-      kk = wavevectors_from_Py(k_pyobj);
+      kk = many_vectors_from_Py(k_pyobj);
     }
     auto g = QCM::band_Green_function(z, kk, (bool)spin_down, label);
     
@@ -1269,7 +1269,7 @@ static PyObject* periodized_Green_function_element_python(PyObject *self, PyObje
     if(ndim>2) qcm_throw("Argument 2 of 'periodized_Green_function' should be of dimension 1 or 2");
     
     vector<vector3D<double>> kk;
-    kk = wavevectors_from_Py(k_pyobj);
+    kk = many_vectors_from_Py(k_pyobj);
     auto g = QCM::periodized_Green_function_element(r, c, z, kk, (bool)spin_down, label);
         
     npy_intp dims[1];
@@ -1485,11 +1485,11 @@ static PyObject* self_energy_python(PyObject *self, PyObject *args)
     
     vector<vector3D<double>> kk;
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       kk.assign(1,k);
     }
     else{
-      kk = wavevectors_from_Py(k_pyobj);
+      kk = many_vectors_from_Py(k_pyobj);
     }
     auto g = QCM::self_energy(z, kk, (bool)spin_down, label);
     
@@ -1694,7 +1694,7 @@ static PyObject* set_basis_python(PyObject *self, PyObject *args)
     if(!PyArg_ParseTuple(args, "O", &basis_pyobj))
       qcm_throw("failed to read parameters in call to lattice_model (python)");
   
-    vector<double> basis = doublematrix_from_Py(basis_pyobj);
+    vector<double> basis = vectors_from_Py(basis_pyobj);
     QCM::set_basis(basis);
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
@@ -1739,7 +1739,7 @@ static PyObject* interaction_operator_python(PyObject *self, PyObject *args, PyO
     if(type != nullptr) the_type = string(type);
   
     vector3D<int64_t> link(0,0,0);
-    if(link_pyobj != nullptr and (PyObject*)link_pyobj != Py_None) link = position_from_Py(link_pyobj);
+    if(link_pyobj != nullptr and (PyObject*)link_pyobj != Py_None) link = intvector_from_Py(link_pyobj);
   
     QCM::interaction_operator(string(name), link, amplitude, orb1, orb2, the_type);
   } catch(const string& s) {qcm_catch(s);}
@@ -1785,7 +1785,7 @@ static PyObject* hopping_operator_python(PyObject *self, PyObject *args, PyObjec
                                      &sigma))
       qcm_throw("failed to read parameters in call to hopping_operator (python)");
 
-    vector3D<int64_t> link = position_from_Py(link_pyobj);
+    vector3D<int64_t> link = intvector_from_Py(link_pyobj);
 
     QCM::hopping_operator(string(name), link, amplitude, orb1, orb2, tau, sigma);
   } catch(const string& s) {qcm_catch(s);}
@@ -1831,7 +1831,7 @@ static PyObject* anomalous_operator_python(PyObject *self, PyObject *args, PyObj
   
     string the_type("singlet");
     if(type != nullptr) the_type = string(type);
-    vector3D<int64_t> link = position_from_Py(link_pyobj);
+    vector3D<int64_t> link = intvector_from_Py(link_pyobj);
     QCM::anomalous_operator(string(name), link, amplitude, orb1, orb2, the_type);
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
@@ -1882,8 +1882,8 @@ static PyObject* explicit_operator_python(PyObject *self, PyObject *args, PyObje
       PyObject* PyObj2 = PyList_GetItem(elem_obj,i);
       if(!PyTuple_Check(PyObj2)) qcm_throw("Element "+to_string(i)+" passed to explicit_operator is not a tuple");
       if(PyTuple_Size(PyObj2)!=3) qcm_throw("Element "+to_string(i)+" passed to explicit_operator is not a 3-tuple");
-      vector3D<int64_t> pos1 =  position_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj2,0));
-      vector3D<int64_t> pos2 =  position_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj2,1));
+      vector3D<int64_t> pos1 =  intvector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj2,0));
+      vector3D<int64_t> pos2 =  intvector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj2,1));
       Py_complex z = PyComplex_AsCComplex(PyTuple_GetItem(PyObj2,2));
       get<0>(elem[i]) = pos1;
       get<1>(elem[i]) = pos2;
@@ -1933,9 +1933,9 @@ static PyObject* density_wave_python(PyObject *self, PyObject *args, PyObject *k
       qcm_throw("failed to read parameters in call to density_wave (python)");
   
     vector3D<int64_t> link(0,0,0);
-    if(link_pyobj != nullptr and (PyObject*)link_pyobj != Py_None) link = position_from_Py(link_pyobj);
+    if(link_pyobj != nullptr and (PyObject*)link_pyobj != Py_None) link = intvector_from_Py(link_pyobj);
   
-    QCM::density_wave(string(name), link, amplitude, orb, wavevector_from_Py(Q_pyobj), phase, string(type));
+    QCM::density_wave(string(name), link, amplitude, orb, vector_from_Py(Q_pyobj), phase, string(type));
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
 }
@@ -2011,7 +2011,7 @@ static PyObject* V_matrix_python(PyObject *self, PyObject *args)
   
     int ndim = PyArray_NDIM(k_pyobj);
     if(ndim>1) qcm_throw("Argument 2 of 'V_matrix' should be of dimension 1");
-    vector3D<double> k = wavevector_from_Py(k_pyobj);
+    vector3D<double> k = vector_from_Py(k_pyobj);
     auto g = QCM::V_matrix(z, k, (bool)spin_down, label);
     size_t d = QCM::Green_function_dimension();
     npy_intp dims[2];
@@ -2056,10 +2056,10 @@ static PyObject* Lehmann_Green_function_python(PyObject *self, PyObject *args)
 
     vector<vector3D<double>> kk;
     if(ndim == 1){
-      vector3D<double> k = wavevector_from_Py(k_pyobj);
+      vector3D<double> k = vector_from_Py(k_pyobj);
       kk.assign(1,k);
     }
-    else kk = wavevectors_from_Py(k_pyobj);
+    else kk = many_vectors_from_Py(k_pyobj);
   
     lst = PyList_New(kk.size());
     auto g = QCM::Lehmann_Green_function(kk, orb, (bool)spin_down, label);
@@ -2109,7 +2109,7 @@ static PyObject* monopole_python(PyObject *self, PyObject *args)
   try{
     if(!PyArg_ParseTuple(args, "Odii|ii", &k_pyobj, &a, &nk, &orb, &rec, &label))
       qcm_throw("failed to read parameters in call to monopole (python)");
-    k = wavevector_from_Py(k_pyobj);
+    k = vector_from_Py(k_pyobj);
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("d", QCM::monopole(k, a, nk, orb, rec, label));
 }

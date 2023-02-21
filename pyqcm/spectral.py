@@ -882,7 +882,7 @@ def plot_dispersion(nk=64, label=0, spin_down=False, orb=None, contour=False, da
             ax = plt.gca()
             plt.gca().set_aspect(1)
         else:
-            ax = plt.gca(projection='3d')
+            ax = plt.axes(projection='3d')
     else:
         ax = plt_ax
     
@@ -1048,7 +1048,7 @@ def G_dispersion(nk=64, label=0, orb=None, period = 'G', contour=False, inv=Fals
             ax = plt.gca()
             plt.gca().set_aspect(1)
         else:
-            ax = plt.gca(projection='3d')
+            ax = plt.axes(projection='3d')
         plt.title('G dispersion: '+pyqcm.parameter_string(), fontsize=9)
     else:
         ax = plt_ax
