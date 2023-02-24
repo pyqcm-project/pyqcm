@@ -593,11 +593,11 @@ static PyObject* new_operator_python(PyObject *self, PyObject *args)
       elem.resize(nelem);
       memcpy(elem.data(), PyArray_DATA((PyArrayObject*)elem_pyobj), nelem*PyArray_STRIDES((PyArrayObject*)elem_pyobj)[0]);
     }
-    else if(PyList_Check(elem_pyobj)){
-      size_t n = PyList_Size(elem_pyobj);
+    else if(PySequence_Check(elem_pyobj)){
+      size_t n = PySequence_Size(elem_pyobj);
       elem.assign(n, matrix_element<double>());
       for(int i=0; i<n; i++){
-        PyObject* pkey = PyList_GetItem(elem_pyobj,i);
+        PyObject* pkey = PySequence_GetItem(elem_pyobj,i);
         if(PyTuple_Size(pkey) == 3){
           elem[i].r = PyLong_AsLong(PyTuple_GetItem(pkey, 0));
           elem[i].c = PyLong_AsLong(PyTuple_GetItem(pkey, 1));
@@ -651,11 +651,11 @@ static PyObject* new_operator_complex_python(PyObject *self, PyObject *args)
       elem.resize(nelem);
       memcpy(elem.data(), PyArray_DATA((PyArrayObject*)elem_pyobj), nelem*PyArray_STRIDES((PyArrayObject*)elem_pyobj)[0]);
     }
-    else if(PyList_Check(elem_pyobj)){
-      size_t n = PyList_Size(elem_pyobj);
+    else if(PySequence_Check(elem_pyobj)){
+      size_t n = PySequence_Size(elem_pyobj);
       elem.assign(n, matrix_element<complex<double>>());
       for(int i=0; i<n; i++){
-        PyObject* pkey = PyList_GetItem(elem_pyobj,i);
+        PyObject* pkey = PySequence_GetItem(elem_pyobj,i);
         if(PyTuple_Size(pkey) == 3){
           elem[i].r = PyLong_AsLong(PyTuple_GetItem(pkey, 0));
           elem[i].c = PyLong_AsLong(PyTuple_GetItem(pkey, 1));

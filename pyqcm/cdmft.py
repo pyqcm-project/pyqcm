@@ -5,6 +5,7 @@
 
 from multiprocessing.sharedctypes import Value
 import numpy as np
+from numpy.distutils.misc_util import is_sequence
 import pyqcm
 from pyqcm import qcm
 import timeit
@@ -342,11 +343,11 @@ def cdmft(
     global w, wr, weight, var, _mixing, first_time, first_time2, Gdim, nclus, nmixed, clusters, maxfev, Hyb, Hyb_down, E0_VMC, E0_err_VMC, min_iter_E0
 
     maxfev = max_function_eval
-    if type(hartree) is not list and hartree is not None:
+    if is_sequence(hartree) == False and hartree is not None:
         hartree = [hartree] # quick fix to protect against hartree=`obj` behavior
 
     nvar_E = 0
-    if type(varia) is tuple:
+    if type(varia) is tuple and is_sequence(varia[0]):
         nvar_E = len(varia[0])
         nvar_H = len(varia[1])
         var = varia[0] + varia[1]

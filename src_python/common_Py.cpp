@@ -46,35 +46,21 @@ vector3D<int64_t> intvector_from_Py(PyArrayObject *k_pyobj)
     k.y = *(int*)PyArray_GETPTR1(k_pyobj, 1);
     k.z = *(int*)PyArray_GETPTR1(k_pyobj, 2);
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    if(PyList_Size(PyObj) != 3) qcm_throw("a position must have 3 components");
+    if(PySequence_Size(PyObj) != 3) qcm_throw("a position must have 3 components");
     PyObject* pkey;
-    pkey = PyList_GetItem(PyObj,0);
+    pkey = PySequence_GetItem(PyObj,0);
     if(!PyLong_Check(pkey)) qcm_throw("element no 1 of list is not an integer");
     k.x = PyLong_AsLong(pkey);
-    pkey = PyList_GetItem(PyObj,1);
+    pkey = PySequence_GetItem(PyObj,1);
     if(!PyLong_Check(pkey)) qcm_throw("element no 2 of list is not an integer");
     k.y = PyLong_AsLong(pkey);
-    pkey = PyList_GetItem(PyObj,2);
+    pkey = PySequence_GetItem(PyObj,2);
     if(!PyLong_Check(pkey)) qcm_throw("element no 3 of list is not an integer");
     k.z = PyLong_AsLong(pkey);
   }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    if(PyTuple_Size(PyObj) != 3) qcm_throw("a position must have 3 components");
-    PyObject* pkey;
-    pkey = PyTuple_GetItem(PyObj,0);
-    if(!PyLong_Check(pkey)) qcm_throw("element no 1 of list is not an integer");
-    k.x = PyLong_AsLong(pkey);
-    pkey = PyTuple_GetItem(PyObj,1);
-    if(!PyLong_Check(pkey)) qcm_throw("element no 2 of list is not an integer");
-    k.y = PyLong_AsLong(pkey);
-    pkey = PyTuple_GetItem(PyObj,2);
-    if(!PyLong_Check(pkey)) qcm_throw("element no 3 of list is not an integer");
-    k.z = PyLong_AsLong(pkey);
-  }
-  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
+  else qcm_throw("object is not a sequence");
   return k;
 }
 //------------------------------------------------------------------------------
@@ -89,21 +75,14 @@ vector3D<double> vector_from_Py(PyArrayObject *k_pyobj)
     k.y = *(double*)PyArray_GETPTR1(k_pyobj, 1);
     k.z = *(double*)PyArray_GETPTR1(k_pyobj, 2);
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    if(PyList_Size(PyObj) != 3) qcm_throw("a wavevector must have 3 components");
-    k.x = PyFloat_AsDouble(PyList_GetItem(PyObj,0));
-    k.y = PyFloat_AsDouble(PyList_GetItem(PyObj,1));
-    k.z = PyFloat_AsDouble(PyList_GetItem(PyObj,2));
+    if(PySequence_Size(PyObj) != 3) qcm_throw("a wavevector must have 3 components");
+    k.x = PyFloat_AsDouble(PySequence_GetItem(PyObj,0));
+    k.y = PyFloat_AsDouble(PySequence_GetItem(PyObj,1));
+    k.z = PyFloat_AsDouble(PySequence_GetItem(PyObj,2));
   }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    if(PyTuple_Size(PyObj) != 3) qcm_throw("a wavevector must have 3 components");
-    k.x = PyFloat_AsDouble(PyTuple_GetItem(PyObj,0));
-    k.y = PyFloat_AsDouble(PyTuple_GetItem(PyObj,1));
-    k.z = PyFloat_AsDouble(PyTuple_GetItem(PyObj,2));
-  }
-  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
+  else qcm_throw("object is not a sequence");
   return k;
 }
 //------------------------------------------------------------------------------
@@ -125,17 +104,12 @@ vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj)
       k[i].z = *(double*)PyArray_GETPTR2(k_pyobj, i, 2);
     }
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    k.resize(PyList_Size(PyObj));
-    for(int i=0; i<k.size(); i++) k[i] = vector_from_Py((PyArrayObject*)PyList_GetItem(PyObj,i));
+    k.resize(PySequence_Size(PyObj));
+    for(int i=0; i<k.size(); i++) k[i] = vector_from_Py((PyArrayObject*)PySequence_GetItem(PyObj,i));
   }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    k.resize(PyTuple_Size(PyObj));
-    for(int i=0; i<k.size(); i++) k[i] = vector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj,i));
-  }
-  else qcm_throw("object is neither a numpy array nor a python list nor a tuple");
+  else qcm_throw("object is neither a numpy array nor a sequence");
   return k;
 }
 //------------------------------------------------------------------------------
@@ -158,15 +132,10 @@ vector<vector3D<int64_t>> many_intvectors_from_Py(PyArrayObject *k_pyobj)
       k[i].z = *(int64_t*)PyArray_GETPTR2(k_pyobj, i, 2);
     }
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    k.resize(PyList_Size(PyObj));
-    for(size_t i=0; i<k.size(); i++) k[i] = intvector_from_Py((PyArrayObject*)PyList_GetItem(PyObj,i));
-  }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    k.resize(PyTuple_Size(PyObj));
-    for(size_t i=0; i<k.size(); i++) k[i] = intvector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj,i));
+    k.resize(PySequence_Size(PyObj));
+    for(size_t i=0; i<k.size(); i++) k[i] = intvector_from_Py((PyArrayObject*)PySequence_GetItem(PyObj,i));
   }
   return k;
 }
@@ -197,17 +166,11 @@ vector<int> intarray_from_Py(PyArrayObject *k_pyobj)
       k[l++] = *(int*)PyArray_GETPTR1(k_pyobj, i);
     }
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
+    size_t n = PySequence_Size(PyObj);
     k.assign(n, 0);
-    for(size_t i=0; i<n; i++) k[i] = PyLong_AsLong(PyList_GetItem(PyObj,i));
-  }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyTuple_Size(PyObj);
-    k.assign(n, 0);
-    for(size_t i=0; i<n; i++) k[i] = PyLong_AsLong(PyTuple_GetItem(PyObj,i));
+    for(size_t i=0; i<n; i++) k[i] = PyLong_AsLong(PySequence_GetItem(PyObj,i));
   }
   return k;
 }
@@ -226,11 +189,11 @@ vector<double> vectors_from_Py(PyArrayObject *k_pyobj)
 //------------------------------------------------------------------------------
 vector<string> strings_from_PyList(PyObject* lst)
 {
-  if(!PyList_Check(lst)) qcm_throw("expected a list of strings");
-  size_t n = PyList_Size(lst);
+  if(!PySequence_Check(lst)) qcm_throw("expected a sequence of strings");
+  size_t n = PySequence_Size(lst);
   vector<string> out(n);
   for(size_t i=0; i<n; i++){
-    PyObject* pkey = PyList_GetItem(lst,i);
+    PyObject* pkey = PySequence_GetItem(lst,i);
     Py_ssize_t s = PyUnicode_GetLength(pkey);
     const char* key_char = PyUnicode_AsUTF8(pkey);
     out[i] = string(key_char, s);
@@ -241,21 +204,7 @@ vector<string> strings_from_PyList(PyObject* lst)
 vector<double> doubles_from_Py(PyObject* lst)
 {
   vector<double> out;
-  if(PyList_Check(lst)){
-    size_t n = PyList_Size(lst);
-    out.resize(n);
-    for(size_t i=0; i<n; i++){
-      out[i] = PyFloat_AsDouble(PyList_GetItem(lst,i));
-    }
-  }
-  else if(PyTuple_Check(lst)){
-    size_t n = PyTuple_Size(lst);
-    out.resize(n);
-    for(size_t i=0; i<n; i++){
-      out[i] = PyFloat_AsDouble(PyTuple_GetItem(lst,i));
-    }
-  }
-  else if(PyArray_Check(lst)){
+  if(PyArray_Check(lst)){
     PyArrayObject* alst = (PyArrayObject*)(lst);
     if(PyArray_NDIM(alst) != 1) qcm_throw("The supplied NumPy array must be one-dimensional!");
     vector<npy_intp> dims(1);
@@ -266,8 +215,15 @@ vector<double> doubles_from_Py(PyObject* lst)
       out[i] = *(double*)PyArray_GETPTR1(alst, i);
     }
   }
+  else if(PySequence_Check(lst)){
+    size_t n = PySequence_Size(lst);
+    out.resize(n);
+    for(size_t i=0; i<n; i++){
+      out[i] = PyFloat_AsDouble(PySequence_GetItem(lst,i));
+    }
+  }
   else{
-    qcm_throw("expected list or NumPy array and got something else!");
+    qcm_throw("expected a sequence or NumPy array and got something else!");
   }
   return out;
 }
@@ -306,33 +262,18 @@ vector<vector<int>> intmatrix_from_Py(PyArrayObject *k_pyobj)
       }
     }
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
+    size_t n = PySequence_Size(PyObj);
     k.assign(n, vector<int>());
     for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyList_GetItem(PyObj,i);
-      if(!PyList_Check(PyObj2))
-        qcm_ED_throw("generator or position "+to_string(i+1)+" should be a list!");
-      size_t m = PyList_Size(PyObj2);
+      PyObject* PyObj2 = PySequence_GetItem(PyObj,i);
+      if(!PySequence_Check(PyObj2))
+        qcm_ED_throw("generator or position "+to_string(i+1)+" should be a sequence!");
+      size_t m = PySequence_Size(PyObj2);
       k[i].assign(m, 0);
       for(size_t j=0; j<m; j++){
-        k[i][j] = (int)PyLong_AsLong(PyList_GetItem(PyObj2,j));
-      }
-    }
-  }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyTuple_Size(PyObj);
-    k.assign(n, vector<int>());
-    for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyTuple_GetItem(PyObj,i);
-      if(!PyTuple_Check(PyObj2))
-        qcm_ED_throw("generator or position "+to_string(i+1)+" should be a tuple!");
-      size_t m = PyTuple_Size(PyObj2);
-      k[i].assign(m, 0);
-      for(size_t j=0; j<m; j++){
-        k[i][j] = (int)PyLong_AsLong(PyTuple_GetItem(PyObj2,j));
+        k[i][j] = (int)PyLong_AsLong(PySequence_GetItem(PyObj2,j));
       }
     }
   }
@@ -358,33 +299,18 @@ vector<vector<double>> pos_from_Py(PyArrayObject *k_pyobj)
       }
     }
   }
-  else if(PyList_Check(k_pyobj)){
+  else if(PySequence_Check((PyObject*)k_pyobj)){
     PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyList_Size(PyObj);
+    size_t n = PySequence_Size(PyObj);
     k.assign(n, vector<double>());
     for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyList_GetItem(PyObj,i);
-      if(!PyList_Check(PyObj2))
-        qcm_ED_throw("position "+to_string(i+1)+" should be a list!");
-      size_t m = PyList_Size(PyObj2);
+      PyObject* PyObj2 = PySequence_GetItem(PyObj,i);
+      if(!PySequence_Check(PyObj2))
+        qcm_ED_throw("position "+to_string(i+1)+" should be a sequence!");
+      size_t m = PySequence_Size(PyObj2);
       k[i].assign(m, 0);
       for(size_t j=0; j<m; j++){
-        k[i][j] = (double)PyFloat_AsDouble(PyList_GetItem(PyObj2,j));
-      }
-    }
-  }
-  else if(PyTuple_Check(k_pyobj)){
-    PyObject* PyObj = (PyObject*)k_pyobj;
-    size_t n = PyTuple_Size(PyObj);
-    k.assign(n, vector<double>());
-    for(size_t i=0; i<n; i++){
-      PyObject* PyObj2 = PyTuple_GetItem(PyObj,i);
-      if(!PyTuple_Check(PyObj2))
-        qcm_ED_throw("position "+to_string(i+1)+" should be a list!");
-      size_t m = PyTuple_Size(PyObj2);
-      k[i].assign(m, 0);
-      for(size_t j=0; j<m; j++){
-        k[i][j] = (double)PyFloat_AsDouble(PyTuple_GetItem(PyObj2,j));
+        k[i][j] = (double)PyFloat_AsDouble(PySequence_GetItem(PyObj2,j));
       }
     }
   }

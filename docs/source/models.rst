@@ -65,9 +65,9 @@ The hopping amplitude matrix :math:`t^{(a)}_{\alpha\beta}` is Hermitian.
 For a given pair of sites, labelled 1 and 2, the general form of the one-body term is
 
 .. math::
-    \sum_{\alpha\beta}\sum_{i,j} c^\dagger_{i\alpha} \tau^{(a)}_{ij} \sigma^{(b)}_{\alpha\beta}  c_{j\beta}
+    \sum_{ss'}\sum_{i,j} c^\dagger_{is} \tau^{(a)}_{ij} \sigma^{(b)}_{ss'}  c_{js'}
 
-The use of Pauli matrices :math:`\sigma^b_{\alpha\beta}` and :math:`\tau^a_{ij}` makes sure that the operator is Hermitian (:math:`a=0`, :math:`b=0` correspond to the identity matrix). Case :math:`a=1` and :math:`b=0` corresponds to an ordinary hopping term, without spin flip. In specifying the precise shape of the one-body operator, it will suffice to specify the matrix types :math:`a` and :math:`b` for the spatial and spin parts respectively.
+The use of Pauli matrices :math:`\sigma^b_{ss'}` and :math:`\tau^a_{ij}` makes sure that the operator is Hermitian (:math:`a=0`, :math:`b=0` correspond to the identity matrix). Case :math:`a=1` and :math:`b=0` corresponds to an ordinary hopping term, without spin flip. In specifying the precise shape of the one-body operator, it will suffice to specify the matrix types :math:`a` and :math:`b` for the spatial and spin parts respectively.
 
 Anomalous operators
 -------------------
@@ -80,11 +80,11 @@ Anomalous (or pairing) operators are useful in describing superconductivity. The
 where again the indices :math:`\alpha` and :math:`\beta` are composite indices. The pairing amplitude :math:`\Delta^{(a)}_{\alpha\beta}` is antisymmetric. It may be symmetric in site indices and antisymmetric in spin indices (singlet superconductivity), or vice-versa (triplet superconductivity). A common way of representing these possibilities is the so-called *d-vector* : 
 
 .. math::
-    H_a = \sum_{i,j,\sigma,\sigma'} \left(\Delta^{(a)}_{ij,b} c_{is} (i\sigma_b\sigma_2)_{ss'} c_{js'}  + \mathrm{H.c.}\right)
+    H_a = \sum_{i,j,s,s'} \left(\Delta^{(a)}_{ij,b} c_{is} (i\sigma_b\sigma_2)_{ss'} c_{js'}  + \mathrm{H.c.}\right)
 
 where the index :math:`b` can take the values 0 to 3. The case :math:`b=0` corresponds to singlet superconductivity (in which case
 :math:`(\Delta^{(a)}_{ij,0} = \Delta^{(a)}_{ji,0}`) and the cases :math:`b=1,2,3` corresponds to triplet superconductivity (in which case
-:math:`(\Delta^{(a)}_{ij,b} = -\Delta^{(a)}_{ji,b}`).
+:math:`\Delta^{(a)}_{ij,b} = -\Delta^{(a)}_{ji,b}`).
 
 **pyqcm** provides functions to define pairing operators by specifying the vectors :math:`i-j` and the values of :math:`b`.
 

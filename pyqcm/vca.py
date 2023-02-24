@@ -3,6 +3,7 @@
 ################################################################################
 
 import numpy as np
+from numpy.distutils.misc_util import is_sequence
 import pyqcm
 import time
 from scipy.optimize import minimize
@@ -586,7 +587,7 @@ SEF_eval = 0
 
 def vca(
     var2sef=None,
-    names=None, 
+    varia=None, 
     start=None, 
     steps=None, 
     accur=None, 
@@ -604,7 +605,7 @@ def vca(
     """Performs a VCA with the QN or NR method
     
     :param var2sef: function that converts variational parameters to model parameters
-    :param str or [str] names: names of the variational parameters
+    :param str or [str] varia: variational parameters (list or tuple)
     :param float or [float] start: starting values
     :param float or [float] steps: initial steps
     :param float or [float] accur: accuracy of parameters (also step for 2nd derivatives)
@@ -622,14 +623,14 @@ def vca(
     """
     global SEF_eval
     # type and length checks
-    if type(names) != list:
-        if type(names) != str:
-            raise ValueError('argument names of vca() must be a string or a list of strings')
+    if is_sequence(varia) == False:
+        if type(varia) != str:
+            raise ValueError('argument varia of vca() must be a string or a sequence of strings')
         single = True
-        names = [names]
+        varia = [varia]
         if start != None:
             if type(start) != float and type(start) != int:
-                raise ValueError('argument start of vca() must be a float or a list of float')
+                raise ValueError('argument start of vca() must be a float or a sequence of float')
             start = [start]
         if type(steps) != float:
             raise ValueError('argument steps of vca() must be a float')
@@ -642,7 +643,7 @@ def vca(
         max = [max]
         nvar = 1
     else:
-        nvar = len(names)  # number of variational parameters
+        nvar = len(varia)  # number of variational parameters
         if start != None:
             if len(start) != nvar:
                 raise ValueError('argument max of vca() must contain {:d} elements'.format(nvar))
@@ -664,9 +665,9 @@ def vca(
         hartree_self = hartree
 
 
-    if names is None:
-        print('missing argument names : variational parameters must be specified')
-        raise pyqcm.MissingArgError('names')
+    if varia is None:
+        print('missing argument varia : variational parameters must be specified')
+        raise pyqcm.MissingArgError('varia')
 
 
     if max is None:
@@ -680,7 +681,7 @@ def vca(
             raise ValueError('the start argument is missing in vca(). Should be specified if var2sef is not None')
         start = [0.0]*nvar
         P = pyqcm.parameters()
-        for i,v in enumerate(names):
+        for i,v in enumerate(varia):
             start[i] = P[v]
 
     elif len(start) != nvar:
@@ -700,11 +701,11 @@ def vca(
     def var2x(x):
         for i in range(len(x)):
             if np.abs(x[i]) > max[i]:
-                raise pyqcm.OutOfBoundsError(variable=names[i])
+                raise pyqcm.OutOfBoundsError(variable=varia[i])
         global SEF_eval
         if var2sef is None:
-            for i in range(len(names)): 
-                pyqcm.set_parameter(names[i], x[i])
+            for i in range(len(varia)): 
+                pyqcm.set_parameter(varia[i], x[i])
             print('x = ', x) # new
         else:
             var2sef(x)    
@@ -716,7 +717,7 @@ def vca(
         pyqcm.banner('VCA procedure, method {:s}'.format(method), '*')
     else:
         pyqcm.banner('VCA procedure, (combined with Hartree procedure) method {:s}'.format(method), '*')
-    var_val = pyqcm.__varia_table(names,start)
+    var_val = pyqcm.__varia_table(varia,start)
     print(var_val)
 
     scipy_minimization = False
@@ -782,7 +783,7 @@ def vca(
             sol = solution.x
 
         elif method == 'minimax':
-            sol = __minimax(names, var_max_start, start, steps, accur, max, max_iteration=max_iter, hartree=hartree)
+            sol = __minimax(varia, var_max_start, start, steps, accur, max, max_iteration=max_iter, hartree=hartree)
         else:
             raise ValueError('method {:s} unknown in VCA'.format(method))
 
@@ -819,7 +820,7 @@ def vca(
             for i in range(nvar):
                 val += '{:.4g}\t'.format(H[i, i])
             for i in range(nvar):
-                des += '2der_' + names[i] + '\t'
+                des += '2der_' + varia[i] + '\t'
         if hartree != None:
             val += '{:.8g}\t'.format(omega)
             des += 'omegaH\t'

@@ -19,11 +19,11 @@ def test_vca():
 
     F = 'test_vca.pdf'
 
-    banner('testing vca()', c='#', skip=1); vca(names=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
+    banner('testing vca()', c='#', skip=1); vca(varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
-    banner('testing vca() with Newton-Raphson', c='#', skip=1); vca(names=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
+    banner('testing vca() with Newton-Raphson', c='#', skip=1); vca(varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
-    banner('testing vca() with explicit starting values', c='#', skip=1); vca(names=['M_1', 't_1'], start=[0.1, 1.1], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
+    banner('testing vca() with explicit starting values', c='#', skip=1); vca(varia=['M_1', 't_1'], start=[0.1, 1.1], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
 
     banner('testing plot_sef()', c='#', skip=1); plot_sef('M_1', np.arange(1e-9, 0.3, 0.02), accur_SEF=1e-4, file="SEF.pdf", show=False)
 

@@ -58,7 +58,7 @@ for V in np.arange(V_start, V_stop, V_step):
 # This is the function to run inside of controlled_loop to perform the vca itself
 def run_vca():
     update_mu()
-    vca(names=["Vm"], steps=[0.05], accur=[2e-3], max=[20], hartree=[Vm_obj], max_iter=300)    
+    vca(varia=["Vm"], steps=[0.05], accur=[2e-3], max=[20], hartree=[Vm_obj], max_iter=300)    
 
 
 set_parameter("Vm", 5.65) # Initial guess for the VCA based on the Hartee self-consistency
