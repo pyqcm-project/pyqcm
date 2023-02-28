@@ -104,7 +104,7 @@ vector<shared_ptr<state<HilbertField>>> Hamiltonian<HilbertField>::states(double
     evalues.resize(1);
     evectors.resize(1);
     evectors[0].resize(dim);
-    if (method == 'D') { //Davidson method
+    if (method == 'D' or global_int("Davidson_states") > 1) { //Davidson method
         size_t Davidson_states = global_int("Davidson_states");
         Davidson(*this, dim, Davidson_states, evalues, evectors, global_double("accur_Davidson"),  global_bool("verb_ED"));
         if(Davidson_states > 1) {

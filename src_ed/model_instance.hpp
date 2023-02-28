@@ -376,9 +376,9 @@ void model_instance<HilbertField>::compute_weights(){
   }
 
   if(global_bool("verb_ED")){
-    cout << "list of states/sectors conserved:\n";
+    cout << "list of states/sectors conserved (maximum gap = " << max_gap << "):\n";
     for(auto &x : states){
-      cout << x->sec << "\tenergy = " << x->energy << "\tweight = " << x->weight << endl;
+      cout << x->sec << "\tE-E0 = " << x->energy-GS_energy << "\tweight = " << x->weight << endl;
     }
   }
 }
