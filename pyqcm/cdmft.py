@@ -301,6 +301,7 @@ def cdmft(
     grid_type = 'sharp', 
     counterterms=None, 
     SEF=False, 
+    check_ground_state = False,
     observables=None,
     verb=False,
     max_function_eval = 5000000,
@@ -331,6 +332,7 @@ def cdmft(
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self'
     :param [str] counterterms: list of counterterms names (cluster operators that should strive to have zero average)
     :param boolean SEF: if True, computes the Potthoff functional at the end
+    :param boolean check_ground_state: if True, checks the ground state consistency and raises exception if inconsistent
     :param [class observable]: list of observables used to assess convergence
     :param boolean verb: If True, prints debugging information
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
@@ -607,6 +609,18 @@ def cdmft(
     # here we have converged
     if converged:
 
+        # check consistency
+        GS_consistent = True
+        for i in range(nclus):
+            ave = pyqcm.cluster_averages(i)
+            diffGS = np.abs(ave['mu'][0] - pyqcm.Green_function_density(i))
+            if np.abs(ave['mu'][0] - pyqcm.Green_function_density(i)) > 1e-6:
+                GS_consistent = False
+                pyqcm.banner("GROUND STATE INCONSISTENCY FOR CLUSTER {:d}, DENSITY DIFFERENCE = {:1.5f}".format(i+1,diffGS), '+', skip=1)
+                if check_ground_state:
+                    raise ValueError("failed GS consistency for cluster {:d} in CDMFT".format(i+1))
+                
+
         var_val = pyqcm.__varia_table(var,sol.x)
         print(var_val)
 
@@ -619,7 +633,8 @@ def cdmft(
 
         if file != None:
             des = 'iterations\tdist_function\tdistance\tdiff_hybrid\t'
-            val = '{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(superiter, dist_function, dist_value, diffH)
+            if GS_consistent : val = '{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(superiter, dist_function, dist_value, diffH)
+            else : val = '{:d} *\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(superiter, dist_function, dist_value, diffH)
             if SEF : 
                 des += 'omegaH\t'
                 val += '{: #.8g}\t'.format(omegaH)

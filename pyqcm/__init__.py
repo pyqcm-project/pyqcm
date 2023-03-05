@@ -1595,12 +1595,13 @@ def banner(s, c='-', skip=0):
     if skip:
         print('\n'*(skip-1))
     n = len(s)
-    if n > 72 :
-        print(c[0]*80, flush=True)
+    L = 100
+    if n > L-8 :
+        print(c[0]*L, flush=True)
         print(s, flush=True)
-        print(c[0]*80, flush=True)
+        print(c[0]*L, flush=True)
     else:
-        m = (80 - n - 2) // 2
+        m = (L - n - 2) // 2
         print(c[0]*m, s, c[0]*m, flush=True)
     if skip:
         print('\n'*(skip-1))
