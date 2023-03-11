@@ -1,5 +1,5 @@
 import pyqcm
-import pyqcm.spectral
+import pyqcm._spectral
 import matplotlib.pyplot as plt
 import model_1D_4
 
@@ -20,7 +20,7 @@ for i,u in enumerate(U):
 
 for i,u in enumerate(U):
     # plt.subplot(2,2,i+1)
-    pyqcm.spectral.spectral_function(wmax=6, path='line', label=i, plt_ax=plt.gca(), file=f"test_instances_U{u}.pdf")
+    pyqcm._spectral.spectral_function(wmax=6, path='line', label=i, plt_ax=plt.gca(), file=f"test_instances_U{u}.pdf")
     # plt.title('U = {:1.2f}, instance {:d}'.format(u, i))
 
 # plt.tight_layout()

@@ -1,5 +1,5 @@
 from pyqcm import *
-from pyqcm.spectral import *
+from pyqcm._spectral import *
 import model_1D_4_C2
 
 mixing = 3

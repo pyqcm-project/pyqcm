@@ -4,7 +4,7 @@ L = 8
 new_cluster_model('clus', L, 0)
 pos = []
 for i in range(L):
-    pos += [[i,0,0]]
+    pos.append((i,0,0))
 
 
 add_cluster('clus', [0, 0, 0], pos)

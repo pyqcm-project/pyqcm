@@ -1,5 +1,5 @@
 import pyqcm
-import pyqcm.spectral as SP
+import pyqcm._spectral as SP
 import model_1D_2_4b
 
 import pyqcm.qcm as qcm

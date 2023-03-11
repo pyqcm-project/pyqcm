@@ -43,9 +43,9 @@ class cluster:
         for i,c in enumerate(sites):
             csites = np.array(c, dtype='int')
             for x in csites:
-                sitesF += [self.fold_shifted(x)[1]]
-                sitesO += [x]
-                clus += [i]
+                sitesF.append(self.fold_shifted(x)[1])
+                sitesO.append(x)
+                clus.append(i)
         self.sitesF = np.array(sitesF, dtype='int') # sites, folded into a conventional unit cell
         self.sites = np.array(sitesO, dtype='int') # sites, folded into a conventional unit cell
         self.clus = np.array(clus, dtype='int') # cluster associated with each site
@@ -234,7 +234,7 @@ def cdw_energy(C, U, _V, n, cluster=False, pr=False):
         assert type(y) == tuple
 
     for v in _V:
-        V += [(np.array(v[0], dtype=int), v[1])]
+        V.append((np.array(v[0], dtype=int), v[1]))
 
     # contribution of the on-site energy
     for i in range(C.N):
@@ -289,7 +289,7 @@ def cdw_eigenstates(C, _V, plt_ax=None, basis=np.eye(3), file=None, silent=False
         assert type(y) == tuple
 
     for v in _V:
-        V += [(np.array(v[0], dtype=int), v[1])]
+        V.append((np.array(v[0], dtype=int), v[1]))
 
     if silent == False: print('-'*80)
     for v in V:
@@ -366,7 +366,7 @@ def draw_V(C, _V, plt_ax, basis=None):
         assert type(y) == tuple
 
     for v in _V:
-        V += [(np.array(v[0], dtype=int), v[1])]
+        V.append((np.array(v[0], dtype=int), v[1]))
 
     C.draw(basis, plt_ax)
     S2 = C.sites@basis
@@ -399,7 +399,7 @@ def draw_Vic(C, _V, plt_ax, basis=None):
         assert type(y) == tuple
 
     for v in _V:
-        V += [(np.array(v[0], dtype=int), v[1])]
+        V.append((np.array(v[0], dtype=int), v[1]))
 
     C.draw(basis, plt_ax)
     S2 = C.sites@basis
@@ -460,7 +460,7 @@ def sdw_energy(C, _J, sdw, cluster=False, pr=False):
         assert type(y) == tuple
 
     for v in _J:
-        J += [(np.array(v[0], dtype=int), np.array(v[1]))]
+        J.append((np.array(v[0], dtype=int), np.array(v[1])))
 
     sdw = np.array(sdw)
     if pr:

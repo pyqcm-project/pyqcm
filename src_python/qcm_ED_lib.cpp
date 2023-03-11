@@ -105,5 +105,8 @@ void ED::qcm_ED_init()
   // Initialize environment variable
   // May be overwrite by the user
   setenv("CUBACORES","0",0); 
+  if(std::strlen(std::getenv("OPENBLAS_NUM_THREADS"))==0) setenv("OPENBLAS_NUM_THREADS","1",0); 
+  if(std::strlen(std::getenv("BLIS_NUM_THREADS"))==0) setenv("BLIS_NUM_THREADS","1",0); 
+
   global_parameter_init();
 }

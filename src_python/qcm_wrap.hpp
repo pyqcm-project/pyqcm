@@ -703,9 +703,7 @@ returns: integer
 //------------------------------------------------------------------------------
 static PyObject* Green_function_dimension_python(PyObject *self, PyObject *args)
 {
-  PyArg_ParseTuple(args, "");
-  size_t d = QCM::Green_function_dimension();
-  return Py_BuildValue("i", d);
+  return Py_BuildValue("i", QCM::Green_function_dimension());
 }
 
 

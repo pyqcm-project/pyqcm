@@ -1,6 +1,7 @@
-from pyqcm import *
-from pyqcm.spectral import *
+import pyqcm2 as pyqcm
 import matplotlib.pyplot as plt
+import model_2x2_C2 as M
+I = pyqcm.model_instance(M.model)
 
 ax = None
 F = None
@@ -42,53 +43,55 @@ F = None
 Lab = 9
 def test_spectral():
     x = None
-    import record_2x2_anom
-    read_cluster_model_instance(record_2x2_anom.solution[0], 9)
+    # import record_2x2_anom
+    # read_cluster_model_instance(record_2x2_anom.solution[0], 9)
 
+    F = 'test_cluster_spectral_function.pdf'
+    pyqcm.banner('testing cluster_spectral_function()', c='#', skip=1); I.cluster_spectral_function(file = F, plt_ax=ax)
+    
     F = 'test_DoS.pdf'
-    banner('testing DoS()', c='#', skip=1); DoS(w=1, eta=0.2, label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing DoS()', c='#', skip=1); I.DoS(w=1, eta=0.2, file = F, plt_ax=ax)
     
     F = 'test_G_dispersion.pdf'
-    banner('testing G_dispersion()', c='#', skip=1); G_dispersion(max=20, label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing G_dispersion()', c='#', skip=1); I.G_dispersion(max=20, file = F, plt_ax=ax)
     
     F = 'test_Luttinger_surface.pdf'
-    banner('testing Luttinger_surface()', c='#', skip=1); Luttinger_surface(label = Lab, file = F, plt_ax=ax)
-    
-    F = 'test_cluster_spectral_function.pdf'
-    banner('testing cluster_spectral_function()', c='#', skip=1); cluster_spectral_function(label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing Luttinger_surface()', c='#', skip=1); I.Luttinger_surface(file = F, plt_ax=ax)
     
     F = 'test_mdc.pdf'
-    banner('testing mdc()', c='#', skip=1); mdc(nk = 50, label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing mdc()', c='#', skip=1); I.mdc(nk = 50, file = F, plt_ax=ax)
     
     F = 'test_momentum_profile.pdf'
-    banner('testing momentum_profile()', c='#', skip=1); momentum_profile('t', nk=10, label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing momentum_profile()', c='#', skip=1); I.plot_momentum_profile('t', nk=10, file = F, plt_ax=ax)
     
     F = 'test_spectral_function.pdf'
-    banner('testing spectral_function()', c='#', skip=1); spectral_function(label = Lab, nk=8, file = F, plt_ax=ax)
+    pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F, plt_ax=ax)
     
     F = 'test_spectral_function_Lehmann.pdf'
-    banner('testing spectral_function_Lehmann()', c='#', skip=1); spectral_function_Lehmann(lims=(-5,5), nk=8, label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing spectral_function_Lehmann()', c='#', skip=1); I.spectral_function_Lehmann(lims=(-5,5), nk=8, file = F, plt_ax=ax)
     
-    F = 'test_spin_mdc.pdf'
-    banner('testing spin_mdc()', c='#', skip=1); spin_mdc(nk=40, opt='spins', label = Lab, file = F, plt_ax=ax)
+    if I.model.mixing&2:
+        F = 'test_spin_mdc.pdf'
+        pyqcm.banner('testing spin_mdc()', c='#', skip=1); I.spin_mdc(nk=40, opt='spins', file = F, plt_ax=ax)
 
-    F = 'test_hybridization_function.pdf'
-    banner('testing hybridization_function()', c='#', skip=1); hybridization_function(label = Lab, file = F, plt_ax=ax)
+    F = 'test_plot_hybridization_function.pdf'
+    pyqcm.banner('testing plot_hybridization_function()', c='#', skip=1); I.plot_hybridization_function(file = F, plt_ax=ax)
 
-    F = 'test_mdc_anomalous.pdf'
-    banner('testing mdc_anomalous()', c='#', skip=1); mdc_anomalous(nk=40, label = Lab, file = F, plt_ax=ax)
+    if I.model.mixing&1:
+        F = 'test_mdc_anomalous.pdf'
+        pyqcm.banner('testing mdc_anomalous()', c='#', skip=1); I.mdc_anomalous(nk=40, file = F, plt_ax=ax)
 
     F = 'test_Fermi_surface.pdf'
-    banner('testing Fermi_surface()', c='#', skip=1); Fermi_surface(label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing Fermi_surface()', c='#', skip=1); I.Fermi_surface(file = F, plt_ax=ax)
     
     F = 'test_dispersion.pdf'
-    banner('testing dispersion()', c='#', skip=1); plot_dispersion(label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing dispersion()', c='#', skip=1); I.plot_dispersion(file = F, plt_ax=ax)
     
     F = 'test_dispersionC.pdf'
-    banner('testing dispersion() with contours', c='#', skip=1); plot_dispersion(label = Lab, contour=True, file = F, plt_ax=ax)
+    pyqcm.banner('testing dispersion() with contours', c='#', skip=1); I.plot_dispersion(contour=True, file = F, plt_ax=ax)
 
     F = 'test_segment_dispersion.pdf'
-    banner('testing segment_dispersion()', c='#', skip=1); segment_dispersion(label = Lab, file = F, plt_ax=ax)
+    pyqcm.banner('testing segment_dispersion()', c='#', skip=1); I.segment_dispersion(file = F, plt_ax=ax)
     
 
 test_spectral()

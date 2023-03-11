@@ -1,6 +1,7 @@
-from pyqcm import *
-from pyqcm.vca import *
+import pyqcm2 as pyqcm
+import pyqcm2.vca as V
 import matplotlib.pyplot as plt
+import numpy as np
 
 # ax = plt.gca()
 ax = None
@@ -15,28 +16,32 @@ F = None
 
 def test_vca():
     x = None
-    import model_2x2_C2
+    import model_2x2_C2 as M
 
     F = 'test_vca.pdf'
 
-    banner('testing vca()', c='#', skip=1); vca(varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
+    pyqcm.banner('testing vca()', c='#', skip=1)
+    vca = V.VCA(M.model, varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
-    banner('testing vca() with Newton-Raphson', c='#', skip=1); vca(varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
+    pyqcm.banner('testing vca() with Newton-Raphson', c='#', skip=1)
+    vca = V.VCA(M.model, varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
-    banner('testing vca() with explicit starting values', c='#', skip=1); vca(varia=['M_1', 't_1'], start=[0.1, 1.1], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
+    pyqcm.banner('testing vca() with explicit starting values', c='#', skip=1)
+    vca = V.VCA(M.model, varia=['M_1', 't_1'], start=[0.1, 1.1], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
 
-    banner('testing plot_sef()', c='#', skip=1); plot_sef('M_1', np.arange(1e-9, 0.3, 0.02), accur_SEF=1e-4, file="SEF.pdf", show=False)
+    pyqcm.banner('testing plot_sef()', c='#', skip=1)
+    V.plot_sef(M.model, 'M_1', np.arange(1e-9, 0.3, 0.02), accur_SEF=1e-4, show=False)
 
-    banner('testing plot_GS_energy()', c='#', skip=1); plot_GS_energy('M_1', np.arange(1e-9, 0.3, 0.02), file="GS_energy.pdf")
+    pyqcm.banner('testing plot_GS_energy()', c='#', skip=1)
+    V.plot_GS_energy(M.model, 'M_1', np.arange(1e-9, 0.3, 0.02), file="GS_energy.pdf")
 
-    # banner('testing transition_line()', c='#', skip=1) ########## Temporary fix ##########
-    # set_parameter('U', 1)
-    # set_parameter('t2', -0.5)
-    # transition_line('M_1', 'U', np.arange(1, 8.01, 0.25), 'mu', [0.8, 1], delta=1, verb=True)
+    # pyqcm.banner('testing transition_line()', c='#', skip=1) ########## Temporary fix ##########
+    # M.model.set_parameter('U', 1)
+    # M.model.set_parameter('t2', -0.5)
+    # V.transition_line(M.model, 'M_1', 'U', np.arange(1, 8.01, 0.25), 'mu', [0.8, 1], delta=1, verb=True)
 
 
 test_vca()
-
 
 # transition
 # transition_line

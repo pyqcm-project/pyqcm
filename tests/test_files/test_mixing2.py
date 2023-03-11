@@ -1,5 +1,5 @@
 from pyqcm import *
-from pyqcm.spectral import *
+from pyqcm._spectral import *
 set_global_parameter('nosym')
 import model_1D_4
 

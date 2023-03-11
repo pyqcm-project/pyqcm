@@ -27,9 +27,9 @@ def draw_operator(op_name, show_labels=False, show_orb_labels=True, show_neighbo
         L = fin.readline()
         if L == '\n': break
         X = re.split("[(,)\t ]+", L)
-        sites += [(int(X[4]), int(X[5]), int(X[6]))]
-        orb += [int(X[3])-1]
-        cluster += [int(X[1])-1]
+        sites.append((int(X[4]), int(X[5]), int(X[6])))
+        orb.append(int(X[3])-1)
+        cluster.append(int(X[1])-1)
 
     #-------------------------------------------------------------------------
     # reading basis
@@ -43,7 +43,7 @@ def draw_operator(op_name, show_labels=False, show_orb_labels=True, show_neighbo
     for i in range(3):
         L = fin.readline()
         X = re.split("[(,) ]+", L)
-        basis += [(float(X[1]), float(X[2]), float(X[3]))]
+        basis.append((float(X[1]), float(X[2]), float(X[3])))
     B = np.array(basis)
     B = np.linalg.inv(B)
 
@@ -67,7 +67,7 @@ def draw_operator(op_name, show_labels=False, show_orb_labels=True, show_neighbo
     for i in range(dimension):
         L = fin.readline()
         X = re.split("[(,) ]+", L)
-        super += [(float(X[1]), float(X[2]), float(X[3]))]
+        supe.append((float(X[1]), float(X[2]), float(X[3])))
 
     #-------------------------------------------------------------------------
     # reading neighbors
@@ -82,7 +82,7 @@ def draw_operator(op_name, show_labels=False, show_orb_labels=True, show_neighbo
         L = fin.readline()
         if L == '\n': break
         X = re.split("[(,): ]+", L)
-        neighbors += [(float(X[1]), float(X[2]), float(X[3]))]
+        neighbors.append((float(X[1]), float(X[2]), float(X[3])))
     Neigh = np.zeros((len(neighbors), 3))
     for i,s in enumerate(neighbors):
         Neigh[i,:] = (np.array(s)@B).T
@@ -317,7 +317,7 @@ def draw_cluster_operator(clus_name, op_name, show_labels=True, values=False, pl
         if L == '\n': break
         X = re.split("[(,)\t ]+", L)
         if int(X[1]) == clus_I:
-            sites += [(int(X[4]), int(X[5]), int(X[6]))]
+            sites.append((int(X[4]), int(X[5]), int(X[6])))
 
     ns = len(sites)
     no = nb + ns
@@ -333,7 +333,7 @@ def draw_cluster_operator(clus_name, op_name, show_labels=True, values=False, pl
     for i in range(3):
         L = fin.readline()
         X = re.split("[(,) ]+", L)
-        basis += [(float(X[1]), float(X[2]), float(X[3]))]
+        basis.append((float(X[1]), float(X[2]), float(X[3])))
     B = np.array(basis)
     B = np.linalg.inv(B)
 
@@ -383,8 +383,8 @@ def draw_cluster_operator(clus_name, op_name, show_labels=True, values=False, pl
         if J > no : 
             s2 = 1
             J -= no
-        if I > ns: elements += [(J-1,I-1,v,s2,s1)]
-        else: elements += [(I-1,J-1,v, s1, s2)]
+        if I > ns: elements.append((J-1,I-1,v,s2,s1))
+        else: elements.append((I-1,J-1,v, s1, s2))
 
     fin.close()
 
@@ -409,7 +409,7 @@ def draw_cluster_operator(clus_name, op_name, show_labels=True, values=False, pl
     S = np.concatenate((S, S + np.array([spin_offset,spin_offset,0])))
     E = []
     for e in elements:
-        E += [(e[0]+no*e[3], e[1]+no*e[4], e[2])]
+        E.append((e[0]+no*e[3], e[1]+no*e[4], e[2]))
     elements = E
 
     #-------------------------------------------------------------------------
