@@ -61,9 +61,9 @@ def moving_std(x, min):
 ######################################################################
 class observable:
     def __init__(self, name, tol, min_length=2):
-        self.name = name
-        self.tol = tol
-        self.val = np.zeros(32)
+        self.name = name  #: name (str): name of the observable
+        self.tol = tol  #: tol (float): tolerance
+        self.val = np.zeros(32)  #: val (ndarray): values of the observable over the (max) 32 previous iterations
         self.ave = 999
         self.length = 0
         self.min_length = min_length
@@ -610,14 +610,18 @@ def cdmft(
 
         # check consistency
         GS_consistent = True
+        GS_cons = ''
         for i in range(nclus):
+            if ref[i] != i: continue
             ave = pyqcm.cluster_averages(i)
             diffGS = np.abs(ave['mu'][0] - pyqcm.Green_function_density(i))
             if np.abs(ave['mu'][0] - pyqcm.Green_function_density(i)) > 1e-6:
                 GS_consistent = False
+                GS_cons += 'N'
                 pyqcm.banner("GROUND STATE INCONSISTENCY FOR CLUSTER {:d}, DENSITY DIFFERENCE = {:1.5f}".format(i+1,diffGS), '+', skip=1)
                 if check_ground_state:
                     raise ValueError("failed GS consistency for cluster {:d} in CDMFT".format(i+1))
+            else: GS_con += 'Y'
                 
 
         var_val = pyqcm.__varia_table(var,sol.x)
@@ -631,9 +635,8 @@ def cdmft(
             omegaH=pyqcm.Potthoff_functional(hartree)
 
         if file != None:
-            des = 'iterations\tdist_function\tdistance\tdiff_hybrid\t'
-            if GS_consistent : val = '{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(superiter, dist_function, dist_value, diffH)
-            else : val = '{:d}*\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(superiter, dist_function, dist_value, diffH)
+            des = 'GS_consistency\titerations\tdist_function\tdistance\tdiff_hybrid\t'
+            val = '{:s}\t{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(GS_cons, superiter, dist_function, dist_value, diffH)
             if SEF : 
                 des += 'omegaH\t'
                 val += '{: #.8g}\t'.format(omegaH)
@@ -821,7 +824,13 @@ def __dual_minimization(params_array, N, method, initial_step=1e-3, accur=1e-4, 
 ################################################################################
 # definition of a general bath for a new cluster model
 class general_bath:    
+    """
+    :ivar (int) ns: number of sites in the cluster
+    :ivar int nb: number of bath orbitals
+    :ivar str name: name of the impurity model
 
+    """
+    
     def  __init__(self, name, ns, nb, spin_dependent=False, spin_flip=False, singlet=False, triplet=False, complex=False, sites=None):
         """Defines a general bath (constructor)
 
@@ -838,9 +847,9 @@ class general_bath:
         """
         from pyqcm import new_cluster_model, new_cluster_operator, new_cluster_operator_complex
         new_cluster_model(name, ns, nb)
-        self.ns = ns
-        self.nb = nb
-        self.name = name
+        self.ns = ns 
+        self.nb = nb  
+        self.name = name 
         self.var_E = []
         self.var_H = []
         self.spin_dependent = spin_dependent
