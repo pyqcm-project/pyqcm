@@ -503,94 +503,37 @@ void lattice_model_instance::SEF_integrand(Complex w, vector3D<double> &k, const
 void lattice_model_instance::print_parameters(ostream& out, print_format format)
 {
   bool print_all = global_bool("print_all");
+  bool print_variances = global_bool("print_variances");
 
   out << setprecision((int)global_int("print_precision"));
-  if(param_set == nullptr){
-    switch(format){
-      case print_format::names_noave :
-        for(auto& x : params) out << x.first << '\t';
-        break;
-      case print_format::names :
-        for(auto& x : params) out << x.first << '\t' << "ave_" << x.first << '\t';
-        for(size_t i = 0; i<n_clus; i++){
-          // if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out  << "ave_" << strip_at(get<0>(x)) << '\t';
-        }
-        for(size_t i = 0; i<n_clus; i++){
-          // if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out  << "var_" << strip_at(get<0>(x)) << '\t';
-        }
-        break;
-      case print_format::values_noave :
-        for(auto& x : params) out << chop(x.second, 1e-10) << '\t';
-        break;
-      case print_format::values :
-        for(auto& x : params) out << chop(x.second, 1e-10) << '\t';
-        for(auto& x : ave) out << chop(x.second, 1e-10) << '\t';
-        for(size_t i = 0; i<n_clus; i++){
-          // if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << chop(get<1>(x), 1e-10) << '\t';
-        }
-        for(size_t i = 0; i<n_clus; i++){
-          // if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << chop(get<2>(x), 1e-10) << '\t';
-        }
-        break;
-      case print_format::namesvalues :
-        for(auto& x : params) out << strip_at(x.first) << " = " << chop(x.second, 1e-10) << ", ";
-        for(size_t i = 0; i<n_clus; i++){
-          // if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << "ave_" << strip_at(get<0>(x)) << " = " << chop(get<1>(x), 1e-10) << ", ";
-        }
-        out << endl;
-        break;
-      default:
-        break;
-    }
-  }
-  else{
-    switch(format){
-      case print_format::names_noave :
-        for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << x.first << '\t';
-        break;
-      case print_format::names :
-        for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << x.first << '\t';
-        for(auto& x : ave) out << "ave_" << x.first << '\t';
-        for(size_t i = 0; i<n_clus; i++){
-          if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out  << "ave_" << strip_at(get<0>(x)) << '\t';
-        }
-        for(size_t i = 0; i<n_clus; i++){
-          if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out  << "var_" << strip_at(get<0>(x)) << '\t';
-        }
-        break;
-      case print_format::values_noave :
-        for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << chop(x.second, 1e-10) << '\t';
-        break;
-      case print_format::values :
-        for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << chop(x.second, 1e-10) << '\t';
-        for(auto& x : ave) out << chop(x.second, 1e-10) << '\t';
-        for(size_t i = 0; i<n_clus; i++){
-          if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << chop(get<1>(x), 1e-10) << '\t';
-        }
-        for(size_t i = 0; i<n_clus; i++){
-          if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << chop(get<2>(x), 1e-10) << '\t';
-        }
-        break;
-      case print_format::namesvalues :
-        for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true)  out << strip_at(x.first) << " = " << chop(x.second, 1e-10) << ", ";
-        for(size_t i = 0; i<n_clus; i++){
-          if(model->clusters[i].ref != i) continue;
-          for(auto& x : clus_ave[i]) out << "ave_" << strip_at(get<0>(x)) << " = " << chop(get<1>(x), 1e-10) << ", ";
-        }
-        out << endl;
-        break;
-      default:
-        break;
-    }
+  if(param_set == nullptr) return;
+  switch(format){
+    case print_format::names :
+      for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << x.first << '\t';
+      for(auto& x : ave) out << "ave_" << x.first << '\t';
+      for(size_t i = 0; i<n_clus; i++){
+        if(model->clusters[i].ref != i) continue;
+        for(auto& x : clus_ave[i]) out  << "ave_" << strip_at(get<0>(x)) << '\t';
+      }
+      for(size_t i = 0; i<n_clus; i++){
+        if(model->clusters[i].ref != i) continue;
+        if(print_variances) for(auto& x : clus_ave[i]) out  << "var_" << strip_at(get<0>(x)) << '\t';
+      }
+      break;
+    case print_format::values :
+      for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << chop(x.second, 1e-10) << '\t';
+      for(auto& x : ave) out << chop(x.second, 1e-10) << '\t';
+      for(size_t i = 0; i<n_clus; i++){
+        if(model->clusters[i].ref != i) continue;
+        for(auto& x : clus_ave[i]) out << chop(get<1>(x), 1e-10) << '\t';
+      }
+      if(print_variances) for(size_t i = 0; i<n_clus; i++){
+        if(model->clusters[i].ref != i) continue;
+        for(auto& x : clus_ave[i]) out << chop(get<2>(x), 1e-10) << '\t';
+      }
+      break;
+    default:
+      break;
   }
 }
 

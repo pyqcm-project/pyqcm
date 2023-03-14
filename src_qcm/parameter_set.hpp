@@ -13,7 +13,7 @@ struct lattice_model_instance;
 
 using namespace std;
 
-enum class print_format {none, namesvalues, names, values, screen, definition, names_noave, values_noave};
+enum class print_format {names, values};
 
 //! parameter of the model (lattice or cluster) with its dependency
 struct parameter{
