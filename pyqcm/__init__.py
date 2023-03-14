@@ -1055,17 +1055,6 @@ def projected_Green_function(z, spin_down=False, label=0):
     """
     return qcm.projected_Green_function(z, spin_down, label)
 
-################################################################################<<<<<<<<< eliminer
-def read_model(filename):
-    """
-    Reads the definition of the model from a file
-
-    :param file: name of the file, the same as that of the model, i.e., without the '.model' suffix.
-    :return: None
-
-    """
-    qcm.read_model(filename)
-
 ################################################################################
 def reduced_Green_function_dimension():
     """
@@ -1164,15 +1153,6 @@ def spectral_average(name, z, label=0):
 
     """
     return qcm.spectral_average(name, z, label)
-
-################################################################################
-def variational_parameters():
-    """
-     
-    :return: a list of the names of the variational parameters
-
-    """
-    return qcm.variational_parameters()
 
 ################################################################################
 def set_basis(B):

@@ -251,6 +251,7 @@ namespace ED {
     //new_global_bool(false,"modified_Lanczos","Uses the modified Lanczos method for the ground state instead of the usual Lanczos method");
     new_global_bool(false,"continued_fraction","Uses the continued fraction solver for the Green function instead of the band Lanczos method");
     new_global_bool(false,"verb_ED","prints ED information and progress");
+    new_global_bool(false,"print_variances","prints the variance of the operators in files");
 
 
     new_global_double(1e-12,"accur_band_lanczos","energy difference tolerance for stopping the BL process");

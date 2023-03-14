@@ -462,8 +462,8 @@ def DoS(w, eta = 0.1, label=0, sum=False, progress = True, labels=None, colors=N
 
     nw = len(w)
     mix = pyqcm.mixing()
-    nsites = pyqcm.model_size()[1]
-    d = nsites
+    nband = pyqcm.model_size()[1]
+    d = nband
     if mix != 0: d *=2
     # reserves space for the DoS
     A = np.zeros((nw, d))
@@ -483,35 +483,34 @@ def DoS(w, eta = 0.1, label=0, sum=False, progress = True, labels=None, colors=N
 
     head = 'w\t'
     
-    for i in range(nsites):
+    for i in range(nband):
         head += 'up_{:d}\t'.format(i+1)
     if mix > 0:
-        for i in range(nsites):
+        for i in range(nband):
             head += 'down_{:d}\t'.format(i+1)
-    for i in range(nsites):
+    for i in range(nband):
         head += 'cumul_up_{:d}\t'.format(i+1)
     if mix > 0:
-        for i in range(nsites):
+        for i in range(nband):
             head += 'cumul_down_{:d}\t'.format(i+1)
     np.savetxt(data_file, np.hstack((np.reshape(np.real(w), (nw, 1)), A, accum)), header=head, delimiter='\t', fmt='%1.6g', comments='')
     print('DoS totals: ', total)
-    mix = pyqcm.mixing()
 
     if plot == False: return
     
     if colors != None:
         plt.rc('axes', prop_cycle=cycler(color=colors))
     if labels is None:
-        labels = [str(i+1) for i in range(nsites)]
+        labels = [str(i+1) for i in range(nband)]
     plt.xlim(w[0].real, w[-1].real)
-    for i in range(nsites):
+    for i in range(nband):
         plt.plot(np.real(w), A[:, i], '-', label=labels[i], linewidth=1.6, **kwargs)
-    if mix == 1 or mix == 5:
-        for i in range(nsites):
-            plt.plot(-np.real(w), A[:, i+nsites], '-', label=labels[i], linewidth=0.8, **kwargs)
+    if mix == 1 or mix == 4:
+        for i in range(nband):
+            plt.plot(-np.real(w), A[:, i+nband], '-', label=labels[i], linewidth=0.8, **kwargs)
     elif mix>0:
-        for i in range(nsites):
-            plt.plot(np.real(w), A[:, i+nsites], '-', label=labels[i]+'$\downarrow$', linewidth=0.8, **kwargs)
+        for i in range(nband):
+            plt.plot(np.real(w), A[:, i+nband], '-', label=labels[i]+'$\downarrow$', linewidth=0.8, **kwargs)
     if sum:
         plt.plot(np.real(w), np.sum(A, 1), 'r-', label = 'total', **kwargs)
     plt.xlabel(r'$\omega$')

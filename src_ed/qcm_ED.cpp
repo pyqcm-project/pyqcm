@@ -148,9 +148,23 @@ namespace ED{
     // decides whether the sector set requires a complex Hilbert space
     if(mod.group->has_complex_irrep) need_complex = true;
     
-    if(model_instances.find(label) != model_instances.end()) model_instances[label].reset();
-    if(need_complex) model_instances[label] = make_shared<model_instance<Complex>>(label, models.at(model_name), param, sec);
-    else model_instances[label] = make_shared<model_instance<double>>(label, models.at(model_name), param, sec);
+    bool identical = false;
+    if(model_instances.find(label) != model_instances.end()){
+      auto I = model_instances.at(label);
+      if(I->gf_solved){
+        bool identical = true;
+        // comparing parameters with previous instance of the same label
+        for(auto &x : param){
+          if(abs(I->value[x.first] - param[x.first]) > SMALL_VALUE) {identical = false; break;}
+        }
+        if(identical) cout << "No new instance needed for cluster " << I->the_model->name << ". Same instance re-used" << endl;
+      }
+      if(!identical) model_instances[label].reset();
+    }
+    if(!identical){
+      if(need_complex) model_instances[label] = make_shared<model_instance<Complex>>(label, models.at(model_name), param, sec);
+      else model_instances[label] = make_shared<model_instance<double>>(label, models.at(model_name), param, sec);
+    }
   }
   
   
