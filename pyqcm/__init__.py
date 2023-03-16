@@ -1823,4 +1823,10 @@ def is_sequence(obj):
     if isinstance(obj, list) or isinstance(obj, tuple) or isinstance(obj, np.ndarray): return True
     else: return False
 
+#---------------------------------------------------------------------------------------------------
+def model_reset():
+    banner("RESETTING THE MODEL", c='#', skip=1)
+    lattice_model.defined = False
+    qcm.great_reset()
+
 

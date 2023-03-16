@@ -28,6 +28,7 @@ struct lattice_matrix_element;
  Interface per se
  */
 namespace QCM{
+  void great_reset();
   bool complex_HS(size_t label);
   double Berry_flux(vector<vector3D<double>>& k, int orb, int label);
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label);

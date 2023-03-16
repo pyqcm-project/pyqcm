@@ -41,6 +41,8 @@ void parameter::check_name(const string &str)
 //==============================================================================
 // implementation of struct 'parameter_set'
 
+bool parameter_set::parameter_set_defined = false;
+
 /**
  default constructor
  */
@@ -59,7 +61,6 @@ parameter_set::parameter_set()
 parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<string, double>> values, vector<tuple<string, double, string>> equiv)
 : model(_model)
 {
-  static bool parameter_set_defined = false;
   if(parameter_set_defined){
     qcm_throw("parameter_set() can only be called once!");
   }

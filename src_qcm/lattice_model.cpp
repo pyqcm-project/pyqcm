@@ -20,11 +20,11 @@ size_t Green_function_k::dim_GF;
 size_t Green_function_k::dim_reduced_GF;
 
 size_t lattice_index_pair::Nc;
+bool lattice_model::model_consolidated = false;
 
 //==============================================================================
 /** 
  default constructor
- the filename (without the extension .model) is given as argument
  */
 lattice_model::lattice_model() : is_closed(false), bath_exists(false)
 {
@@ -267,7 +267,6 @@ void lattice_model::close_model(bool force)
  */
 void lattice_model::post_parameter_consolidate(size_t label)
 {
-  static bool model_consolidated = false;
   //..............................................................................
   // converting the neighbors to the superlattice basis, for future use
   

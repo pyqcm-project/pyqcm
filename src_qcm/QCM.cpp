@@ -33,6 +33,23 @@ extern map<string, shared_ptr<model>> models;
 //==============================================================================
 namespace QCM{
   
+/**
+resets all the models and global variables
+*/
+void great_reset(){
+  for(auto& x:lattice_model_instances) x.second.reset();
+  lattice_model_instances.clear();
+  for(auto& x:models) x.second.reset();
+  models.clear();
+  target_sectors.clear();
+  param_set.reset();
+  parameter_set::parameter_set_defined = false;
+  lattice_model::model_consolidated = false;
+  qcm_model.reset();
+  qcm_model = make_shared<lattice_model>();
+}
+
+
 
 /**
  * prints the definition of the model in a file

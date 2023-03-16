@@ -68,6 +68,7 @@ struct lattice_model{
 	vector<vector3D<double>> Green_to_position; // position associated (in superlattice basis) with each Green function index
 	vector<vector3D<int64_t>> neighbor; //!< list of neighboring superclusters
 	
+	static bool model_consolidated;
 	
 	lattice_model();
 	double Potthoff_functional();

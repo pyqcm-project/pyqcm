@@ -46,5 +46,7 @@ struct parameter_set{
   void print(ostream& out);
   bool is_dependent(const string &S);
   void CDMFT_variational_set(const vector<string>& vars);
+
+  static bool parameter_set_defined;
 };
 #endif /* parameter_h */

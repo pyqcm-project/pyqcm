@@ -2179,6 +2179,19 @@ static PyObject* complex_HS_python(PyObject *self, PyObject *args)
 }
 
 
+//==============================================================================
+const char* great_reset_help =
+R"{(
+Resets the whole system and allows to redefine the model
+returns None
+){";
+//------------------------------------------------------------------------------
+static PyObject* great_reset_python(PyObject *self, PyObject *args)
+{
+  QCM::great_reset();
+  return Py_BuildValue("");
+}
+
 
 
 
