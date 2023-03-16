@@ -1,5 +1,5 @@
-import pyqcm2 as pyqcm
-import pyqcm2.vca as V
+import pyqcm
+import pyqcm.vca as V
 import matplotlib.pyplot as plt
 import numpy as np
 

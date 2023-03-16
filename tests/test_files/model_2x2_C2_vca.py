@@ -23,17 +23,17 @@ model.anomalous_operator('D', ( 0, 1, 0), -1)
 
 
 ################################################
-# model.set_target_sectors(['R0:N4:S0'])
-model.set_target_sectors(['R0'])
+model.set_target_sectors(['R0:N4:S0'])
 model.set_parameters("""
 t = 1
 t2 = 1e-9
 U = 8
 mu = 4
+mu_1 = 4
 M = 0
-# M_1 = 0.15
+M_1 = 0.15
 t_1 = 1
-D = 0.001
-hx = 0.001
+# D = 0.001
+# hx = 0.001
 """)
                      

@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import model_1D_4_C2 as M
 import matplotlib.pyplot as plt
 

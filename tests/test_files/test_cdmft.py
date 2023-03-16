@@ -1,5 +1,5 @@
-import pyqcm2 as pyqcm
-from pyqcm2.cdmft import CDMFT
+import pyqcm
+from pyqcm.cdmft import CDMFT
 
 import model_graphene_bath as M
 

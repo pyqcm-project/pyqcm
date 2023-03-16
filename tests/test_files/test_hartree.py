@@ -1,5 +1,5 @@
-import pyqcm2 as pyqcm
-from pyqcm2.vca import *
+import pyqcm
+from pyqcm.vca import *
 import numpy as np
 
 import model_hartree as M

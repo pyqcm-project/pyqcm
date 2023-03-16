@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 
 clusmod = pyqcm.cluster_model('L4', 4, 0, [[4,3,2,1]])
 clus = pyqcm.cluster(clusmod, (0,0,0), ((0,0,0), (1,0,0), (2,0,0), (3,0,0)))

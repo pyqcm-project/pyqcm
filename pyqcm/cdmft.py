@@ -4,7 +4,7 @@
 ####################################################################################################
 
 import numpy as np
-import pyqcm2 as pyqcm
+import pyqcm
 from pyqcm import qcm
 import timeit
 

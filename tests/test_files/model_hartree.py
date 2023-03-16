@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import numpy as np
 
 # A simple 1D 4 site cluster

@@ -3,7 +3,7 @@
 ################################################################################
 
 import numpy as np
-import pyqcm2 as pyqcm
+import pyqcm
 import time
 from scipy.optimize import minimize
 

@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import matplotlib.pyplot as plt
 import model_WSM as M
 import numpy as np

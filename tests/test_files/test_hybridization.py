@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import model_1D_2_4b as M
 
 sec = 'R0:N4:S0'

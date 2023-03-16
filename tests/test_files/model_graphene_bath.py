@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import numpy as np
 
 # Constructing a new cluster model

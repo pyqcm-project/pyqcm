@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 
 ns = 2
 nb = 4

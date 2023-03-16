@@ -1,4 +1,4 @@
-import pyqcm2 as pyqcm
+import pyqcm
 import matplotlib.pyplot as plt
 import model_2x2_C2 as M
 I = pyqcm.model_instance(M.model)
