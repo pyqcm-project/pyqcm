@@ -981,10 +981,10 @@ static PyObject* set_parameters_python(PyObject *self, PyObject *args)
   try{
     if(!PyArg_ParseTuple(args, "O", &py_values))
       qcm_throw("failed to read parameters in call to set_parameters (python)");
-    if(!PyList_Check(py_values)) qcm_throw("argument 2 of 'set_parameters' should be a list");
+    if(!PySequence_Check(py_values)) qcm_throw("argument 2 of 'set_parameters' should be a list");
     
     PyObject *pkey = nullptr;    
-    size_t n = PyList_Size(py_values);
+    size_t n = PySequence_Size(py_values);
     vector<pair<string,double>> values;
     pair<string,double> val;
     values.reserve(n);
@@ -992,7 +992,7 @@ static PyObject* set_parameters_python(PyObject *self, PyObject *args)
     tuple<string,double,string> eq;
     equiv.reserve(n);
     for(size_t i=0; i<n; i++){
-      pkey = PyList_GetItem(py_values,i);
+      pkey = PySequence_GetItem(py_values,i);
       if(PyTuple_Size(pkey) == 2){
         val.first = Py2string(PyTuple_GetItem(pkey, 0));
         val.second = PyFloat_AsDouble(PyTuple_GetItem(pkey, 1));
@@ -1030,16 +1030,16 @@ static PyObject* set_target_sectors_python(PyObject *self, PyObject *args)
   try{
     if(!PyArg_ParseTuple(args, "O", &py_sectors))
       qcm_throw("failed to read parameters in call to set_target_sectors (python)");
-    if(!PyList_Check(py_sectors)) qcm_throw("argument 1 of 'set_target_sectors' should be a list");
+    if(!PySequence_Check(py_sectors)) qcm_throw("argument 1 of 'set_target_sectors' should be a sequence");
     
     PyObject *pkey = nullptr;
     // processing py_sectors
-    size_t n = PyList_Size(py_sectors);
+    size_t n = PySequence_Size(py_sectors);
     if(n != qcm_model->clusters.size())
       qcm_throw("The number of strings in argument of 'set_target_sectors' ("+to_string(n)+") should be the number of clusters in the repeated unit ("+to_string(qcm_model->clusters.size())+")");
     target_sectors.resize(n);
     for(size_t i=0; i<n; i++){
-      target_sectors[i] = Py2string(PyList_GetItem(py_sectors,i));
+      target_sectors[i] = Py2string(PySequence_GetItem(py_sectors,i));
     }
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
@@ -1890,14 +1890,14 @@ static PyObject* explicit_operator_python(PyObject *self, PyObject *args, PyObje
                                     &type
                                     ))
       qcm_throw("failed to read parameters in call to anomalous_operator "+string(name)+" (python)");
-    if(!PyList_Check(elem_obj)) qcm_throw("Argument 2 passed to 'explicit_operator' is not a python list");
+    if(!PySequence_Check(elem_obj)) qcm_throw("Argument 2 passed to 'explicit_operator' is not a python list");
 
     string the_type("one-body");
     if(type != nullptr) the_type = string(type);
-    size_t n = PyList_Size(elem_obj);
+    size_t n = PySequence_Size(elem_obj);
     vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> elem(n);
     for(size_t i=0; i<elem.size(); i++){
-      PyObject* PyObj2 = PyList_GetItem(elem_obj,i);
+      PyObject* PyObj2 = PySequence_GetItem(elem_obj,i);
       if(!PyTuple_Check(PyObj2)) qcm_throw("Element "+to_string(i)+" passed to explicit_operator is not a tuple");
       if(PyTuple_Size(PyObj2)!=3) qcm_throw("Element "+to_string(i)+" passed to explicit_operator is not a 3-tuple");
       vector3D<int64_t> pos1 =  intvector_from_Py((PyArrayObject*)PyTuple_GetItem(PyObj2,0));

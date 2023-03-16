@@ -10,6 +10,8 @@ import timeit
 
 ####################################################################################################
 class CDMFT:
+    first_time = True
+    first_time2 = True
 
     def __init__(self, model, varia,
         beta=50,
@@ -138,8 +140,6 @@ class CDMFT:
         diff_E0 = 0.0
         time_ED = 0.0
         time_MIN = 0.0
-        first_time = True
-        first_time2 = True
         while True:
             self.I = pyqcm.model_instance(self.model)
             params = self.I.instance_parameters() # params is a dict
@@ -245,8 +245,8 @@ class CDMFT:
             # writing the parameters in a progress file
             des = 'distance\tdiff_param\tdiff_hybrid\t'
             val = '{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(dist_value, diff_param, diffH)
-            self.I.write_summary('cdmft_iter.tsv', suppl_descr = des, suppl_values = val, first_of_series=first_time2)
-            first_time2 = False
+            self.I.write_summary('cdmft_iter.tsv', suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time2)
+            CDMFT.first_time2 = False
 
 
             #______________________________________________________________________
@@ -341,14 +341,13 @@ class CDMFT:
                         val += '{: #.6e}\t'.format(x.ave)
                     des += 'series_length\t'
                     val += '{:d}\t'.format(observable_series_length)
-                self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=first_time)
-                first_time = False
-                first_time2 = True
+                self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time)
+                CDMFT.first_time = False
+                CDMFT.first_time2 = True
 
             # writing the frequency grid to a file
             if 'self' in self.grid.dist_function:
-                self.I.write_summary('cdmft_grid.tsv', suppl_descr = des, suppl_values = val, first_of_series=first_time)
-                first_time = False
+                self.I.write_summary('cdmft_grid.tsv', suppl_descr = des, suppl_values = val, first_of_series=True)
                 with open('cdmft_grid.tsv','a') as gridfile:
                     np.savetxt(gridfile, np.stack((self.grid.w.imag, self.grid.weight),axis=-1),header='w\tweight', fmt='%.8f', delimiter='\t')
                     gridfile.close()

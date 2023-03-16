@@ -20,11 +20,12 @@ try:
 except ImportError:
     root = True
 
-first_time = True
+current_instance = None
 
 ################################################################################
 # PRIVATE FUNCTIONS
 ################################################################################
+
 
 ################################################################################
 # evaluation of many instances of a function in parallel
@@ -120,7 +121,7 @@ def _quasi_newton(func=None, start=None, step=None, accur=None, max=10, gtol=1e-
         if hartree != None:
             hartree_converged = True
             for C in hartree:
-                C.update()
+                C.update(current_instance)
                 C.print()
                 hartree_converged = hartree_converged and C.converged()
 
@@ -311,6 +312,8 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
     :returns (float, [float], [[float]]): the value of the function, the gradient, and the Hessian
 
     """
+    global current_instance
+
     n = len(start)
     gradient = np.zeros(n)
     dx = np.zeros(n)
@@ -331,7 +334,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
         if hartree != None:
             hartree_converged = True
             for C in hartree:
-                C.update(pr=True)
+                C.update(current_instance, pr=True)
                 hartree_converged  = hartree_converged and C.converged()
 
         if np.linalg.norm(gradient) < gtol and hartree_converged:
@@ -478,7 +481,7 @@ def _altNR(func=None, start=None, step=None, accur=None, max=10, gtol=1e-4, max_
 SEF_eval = 0
 
 class VCA:
-    
+    first_time = True
     def __init__(self, model,
         var2sef=None,
         varia=None, 
@@ -531,7 +534,6 @@ class VCA:
         if pyqcm.is_sequence(max) == False: max = (max,)*nvar
         if pyqcm.is_sequence(hartree) == False and hartree is not None: hartree = (hartree,)
 
-        global first_time
         self.I = pyqcm.model_instance(model)
         L = model.nsites
 
@@ -572,6 +574,7 @@ class VCA:
 
         SEF_eval = 0
         def var2x(x):
+            global current_instance
             for i in range(len(x)):
                 if np.abs(x[i]) > max[i]:
                     raise pyqcm.OutOfBoundsError(variable=varia[i])
@@ -584,6 +587,7 @@ class VCA:
                 var2sef(x)    
             SEF_eval += 1
             self.I = pyqcm.model_instance(model)
+            current_instance = self.I
             return self.I.Potthoff_functional(hartree, symmetrized_operator=symmetrized_operator)
             
         if hartree is None:
@@ -696,8 +700,8 @@ class VCA:
             if hartree != None:
                 val += '{:.8g}\t'.format(omega)
                 des += 'omegaH\t'
-            self.I.write_summary(file, suppl_descr = des, suppl_values = val)
-            first_time = False
+            self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=VCA.first_time)
+            VCA.first_time = False
 
         if root:
             pyqcm.banner('VCA ended normally', '*')
@@ -724,6 +728,8 @@ class VCA:
 
         """
 
+        global current_instance
+    
         ftol = 10*pyqcm.qcm.get_global_parameter('accur_SEF')
         nvar_max = len(names) - var_max_start
         nvar_min = var_max_start
@@ -797,7 +803,7 @@ class VCA:
             if hartree != None:
                 hartree_converged = True
                 for C in hartree:
-                    C.update(pr=True)
+                    C.update(current_instance, pr=True)
                     hartree_converged  = hartree_converged and C.converged()
 
             diff = sol - X0

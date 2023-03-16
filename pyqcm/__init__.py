@@ -345,11 +345,12 @@ class lattice_model:
     def set_target_sectors(self, sec):
         """Define the Hilbert space sectors in which to look for the ground state
 
-        :param [str] sec: the target sectors
+        :param (str) sec: the target sectors
 
         :return: None
 
         """
+        if is_sequence(sec) == False: sec = (sec,)
         qcm.set_target_sectors(sec)
 
     #-----------------------------------------------------------------------------------------------
@@ -552,6 +553,7 @@ class lattice_model:
         self.is_closed = True
 
     from ._loop import loop_from_file, linear_loop, controlled_loop, fixed_density_loop, fade, Hartree_procedure
+    from ._draw import draw_operator, draw_cluster_operator
 
 ####################################################################################################
 class model_instance:
@@ -1241,7 +1243,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     # methods from _spectral.py
     
-    from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile
+    from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile
 
 ####################################################################################################
 class hartree:
