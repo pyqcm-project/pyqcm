@@ -240,7 +240,7 @@ namespace ED{
    param2 : second set of parameters
    sec : Hilbert space sector
    */
-  double fidelity(const string& model_name, map<string, double> &param1, map<string, double> &param2, const string &sec);
+  double fidelity(const int label1, const int label2);
   
   
   

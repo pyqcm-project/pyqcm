@@ -69,7 +69,8 @@ struct model_instance : model_instance_base
   void set_hopping_matrix(bool spin_down);
   string GS_string() const;
   void build_bases_and_HS_operators(const sector& GS_sector, bool spin_down);
-  
+  double fidelity(model_instance<HilbertField>& label);
+
   // realization of virtual base class methods
   pair<double, string> low_energy_states();
   pair<double, double> cluster_averages(shared_ptr<Hermitian_operator> h);
@@ -84,7 +85,6 @@ struct model_instance : model_instance_base
   matrix<Complex>  hybridization_function(Complex w, bool spin_down);
   vector<Complex>  susceptibility(shared_ptr<Hermitian_operator> h, const vector<Complex> &w);
   vector<pair<double,double>> susceptibility_poles(shared_ptr<Hermitian_operator> h);
-  double fidelity(model_instance<HilbertField>& inst);
   void Green_function_density();
   void print(ostream& fout);
   void write(ostream& fout);
@@ -953,7 +953,6 @@ pair<double, string> model_instance<HilbertField>::one_body_solve()
 
   return {GS_energy, "uncorrelated"};
 }
-
 
 
 
