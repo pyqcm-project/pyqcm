@@ -83,7 +83,7 @@ def script_file():
 
 ####################################################################################################
 class cluster_model:
-    def __init__(self, name, n_sites, n_bath=0, generators=None, bath_irrep=False):
+    def __init__(self, n_sites, n_bath=0, name='clus', generators=None, bath_irrep=False):
         self.name = name
         self.n_sites = n_sites
         self.n_bath = n_bath
@@ -164,13 +164,17 @@ class cluster_model:
 
 ####################################################################################################
 class cluster:
-    def __init__(self, clus_model, pos, sites, ref=None):
+    def __init__(self, X, sites, pos=(0,0,0)):
         
-        self.cluster_model = clus_model
+        if isinstance(X, cluster_model):
+            self.cluster_model = X
+            self.ref = None
+        elif isinstance(X, cluster):
+            self.ref = X
+            self.cluster_model = X.cluster_model
         self.pos = pos
         self.sites = sites
         self.index = 0
-        self.ref = ref
         self.nsites = len(sites)
 
     #-----------------------------------------------------------------------------------------------
@@ -531,6 +535,21 @@ class lattice_model:
 
 
     #-----------------------------------------------------------------------------------------------
+    def fidelity(self, I1, I2, clus=0):
+        """
+        computes the fidelity between the two instances I1 and I2, i.e. the overlap squared of the ground states (or generalization thereof in case of a mixied state)
+
+        :param model_instance I1: first model instance
+        :param model_instance I2: second model instance
+        :param int clus: cluster label
+
+
+        """
+
+        return qcm.fidelity(I1.label*self.nclus + clus, I2.label*self.nclus + clus)
+    
+    
+    #-----------------------------------------------------------------------------------------------
     def finalize(self):
         """
         Sets some data for the model following the first instance declaration
@@ -552,6 +571,8 @@ class lattice_model:
         for i in range(self.nclus): self.dimGFC[i] = self.clus[i].nsites*self.nmixed
         self.is_closed = True
 
+
+
     from ._loop import loop_from_file, linear_loop, controlled_loop, fixed_density_loop, fade, Hartree_procedure
     from ._draw import draw_operator, draw_cluster_operator
 
@@ -564,6 +585,14 @@ class model_instance:
         if self.model.is_closed == False: self.model.finalize()
         self.is_complex = qcm.complex_HS(label)
 
+
+    #-----------------------------------------------------------------------------------------------
+    def reset(self):
+        """resets the model instance to the current parameters, with the same label
+
+        """
+        qcm.new_model_instance(self.label)
+        self.is_complex = qcm.complex_HS(self.label)
 
     #-----------------------------------------------------------------------------------------------
     def susceptibility_poles(self, op_name):
@@ -792,6 +821,11 @@ class model_instance:
 
         """
         ave = qcm.cluster_averages(self.label*self.model.nclus+clus)
+        s = '@' + str(clus+1)
+        
+        res = [key for key, val in ave.items() if s in key]
+        for x in res:
+            ave[x[0:-len(s)]] = ave[x]
 
         if pr:
             for x in ave:
@@ -1309,7 +1343,8 @@ class hartree:
         v = par[self.V]
         vm0 = par[self.Vm]
         if not self.lattice:
-            self.ave = I.cluster_averages()[self.Vm][0]*self.L
+            A = I.cluster_averages()
+            self.ave = A[self.Vm][0]*self.L
         else:
             self.ave = I.averages()[self.Vm]*self.L
         self.vm = self.eig*v*self.ave

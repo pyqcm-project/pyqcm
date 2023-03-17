@@ -1,6 +1,6 @@
 import pyqcm
-clusmod = pyqcm.cluster_model('clus', 4, 0)
-clus = pyqcm.cluster(clusmod, [0, 0, 0], ((0, 0, 0), ( 1, 0, 0), ( 0, 1, 0), ( 1, 1, 0)))
+CM = pyqcm.cluster_model( 4, 0)
+clus = pyqcm.cluster(CM, ((0, 0, 0), ( 1, 0, 0), ( 0, 1, 0), ( 1, 1, 0)))
 model = pyqcm.lattice_model('WSM_2x2', clus, (( 2, 0, 0), ( 0, 2, 0), (0, 0, 1)))
 model.interaction_operator('U')
 model.hopping_operator('t', (1, 0, 0), 1, tau=1, sigma=1)

@@ -329,49 +329,16 @@ namespace ED{
   
   
   
-  double fidelity(const string& model_name, map<string, double> &param1, map<string, double> &param2, const string &sec)
+  double fidelity(int label1, int label2)
   {
-    bool need_complex = false;
-    if(models.find(model_name) == models.end()) qcm_ED_throw("The model "+model_name+" is not defined and so no model instance based on it is allowed.");
-    model& mod = *models.at(model_name);
-    if(mod.is_closed == false) mod.is_closed = true;
-    
-    // first, remove values associated with non existent operators
-    auto it = param1.begin();
-    while(it != param1.end()){
-      if(mod.term.find(it->first) == mod.term.end()){
-        if(global_bool("verb_warning")) cout << "ED WARNING : operator " << it->first << " does not exist in cluster model " << mod.name << endl;
-        param1.erase(it++);
-      }
-      else ++it;
-    }
-    it = param2.begin();
-    while(it != param2.end()){
-      if(mod.term.find(it->first) == mod.term.end()){
-        if(global_bool("verb_warning")) cout << "ED WARNING : operator " << it->first << " does not exist in cluster model " << mod.name << endl;
-        param2.erase(it++);
-      }
-      else ++it;
-    }
-    
-    // need to know whether the instance is complex or real
-    for(auto& v : param1){
-      if(v.second != 0 and mod.term.at(v.first)->is_complex){
-        need_complex = true;
-        break;
-      }
-    }
-    if(need_complex){
-      auto I1 = model_instance<Complex>(0, models.at(model_name), param1, sec);
-      auto I2 = model_instance<Complex>(1, models.at(model_name), param2, sec);
-      return I1.fidelity(I2);
-    }
-    else{
-      auto I1 = model_instance<double>(0, models.at(model_name), param1, sec);
-      auto I2 = model_instance<double>(1, models.at(model_name), param2, sec);
-      return I1.fidelity(I2);
-    }
+    if(model_instances.find(label1) == model_instances.end()) qcm_ED_throw("The model instance labeled "+to_string(label1)+" is out of range.");
+    if(model_instances.find(label2) == model_instances.end()) qcm_ED_throw("The model isntance labeled "+to_string(label2)+" is out of range.");
+    auto I1 = model_instances.at(label1);
+    auto I2 = model_instances.at(label2);
+    if(!I1->complex_Hilbert) return dynamic_pointer_cast<model_instance<double>>(I1)->fidelity(*dynamic_pointer_cast<model_instance<double>>(I2));
+    else return dynamic_pointer_cast<model_instance<Complex>>(I1)->fidelity(*dynamic_pointer_cast<model_instance<Complex>>(I2));
   }
+  
   
   
   

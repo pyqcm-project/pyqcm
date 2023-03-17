@@ -50,7 +50,7 @@ def test_spectral():
     pyqcm.banner('testing cluster_spectral_function()', c='#', skip=1); I.cluster_spectral_function(file = F, plt_ax=ax)
     
     F = 'test_DoS.pdf'
-    pyqcm.banner('testing DoS()', c='#', skip=1); I.DoS(w=1, eta=0.2, file = F, plt_ax=ax)
+    pyqcm.banner('testing DoS()', c='#', skip=1); I.plot_DoS(w=1, eta=0.2, file = F, plt_ax=ax)
     
     F = 'test_G_dispersion.pdf'
     pyqcm.banner('testing G_dispersion()', c='#', skip=1); I.G_dispersion(max=20, file = F, plt_ax=ax)

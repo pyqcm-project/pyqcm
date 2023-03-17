@@ -10,7 +10,7 @@ import pyqcm.vca as vca
 import numpy as np
 
 # declare a cluster model of 9 sites, named 'clus'
-CM = pyqcm.cluster_model('clus', 9)  
+CM = pyqcm.cluster_model( 9)  
 
 sites = []
 for j in range(3):
@@ -39,8 +39,8 @@ CM.new_operator('tperim', 'one-body',[
 ])
 
 # define a physical cluster based on that model, with base position (0,0,0) and site positions
-clus1 = pyqcm.cluster(CM, (0,0,0), sites) 
-clus2 = pyqcm.cluster(CM, (3,0,0), sites) # second cluster, offset from the first
+clus1 = pyqcm.cluster(CM, sites) 
+clus2 = pyqcm.cluster(CM, sites, (3,0,0)) # second cluster, offset from the first
 
 # define a lattice model named '1D_4' made of the cluster(s) clus and superlattice vector (4,0,0)
 model = pyqcm.lattice_model('model_3x3_2C', (clus1, clus2), ((6,0,0),(1,3,0)))

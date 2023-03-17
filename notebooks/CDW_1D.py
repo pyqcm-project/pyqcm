@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # A simple 1D 4 site cluster
-CM = pyqcm.cluster_model('clus', 4, 0)
-clus = pyqcm.cluster(CM, (0,0,0), ((0,0,0),(1,0,0),(2,0,0),(3,0,0)))
+CM = pyqcm.cluster_model( 4, 0)
+clus = pyqcm.cluster(CM, ((0,0,0),(1,0,0),(2,0,0),(3,0,0)))
 model = pyqcm.lattice_model('1D_4', clus, ((4,0,0),))
 
 model.interaction_operator('U', amplitude=1) # on site interaction

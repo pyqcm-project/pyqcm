@@ -86,48 +86,6 @@ static PyObject* density_matrix_python(PyObject *self, PyObject *args)
   return out3;
 }
 //==============================================================================
-const char* fidelity_help =
-R"(
-computes the fidelity of one state compared to another one
-arguments:
-1. name of model
-2. dict of parameter values for state 1
-3. dict of parameter values for state 2
-4. Hilbert space sector(s) (string)
-returns:
-the fidelity (double)
-)";
-//------------------------------------------------------------------------------
-static PyObject* fidelity_python(PyObject *self, PyObject *args)
-{
-  char* name = nullptr;
-  char* sec = nullptr;
-  PyObject *val1;
-  PyObject *val2;
-  map<string, double> param;
-  
-  try{
-    if(!PyArg_ParseTuple(args, "sOOs", &name, &val1, &val2, &sec))
-      qcm_ED_throw("failed to read parameters in call to fidelity (python)");
-  } catch(const string& s) {qcm_ED_catch(s);}
-
-  map<string, double> param1;
-  map<string, double> param2;
-  try{
-    param1 = py_dict_to_map(val1);
-    param2 = py_dict_to_map(val2);
-  }
-  catch(const string &s){ cerr << s << "(in fidelity)" << endl; exit(1);}
-  
-  double f;
-  try{
-    f = ED::fidelity(string(name), param1, param2, string(sec));
-  }
-  catch(const string &s) {qcm_ED_catch(s);}
-
-  return Py_BuildValue("d", f);
-}
-//==============================================================================
 const char* Green_function_average_help =
 R"(
 arguments:
@@ -1041,7 +999,7 @@ static PyObject* write_instance_to_file_python(PyObject *self, PyObject *args)
   int label = 0;
   try{
     if(!PyArg_ParseTuple(args, "s|i", &op, &label))
-      qcm_ED_throw("failed to read parameters in call to qcm_ED.write_instance()");
+      qcm_ED_throw("failed to read parameters in call to qcm_ED.write_instance_to_file()");
     ofstream fout(string(op).c_str());
     if(!fout.good()) qcm_ED_throw("failed to open file "+string(op));
     ED::write_instance(fout, label);
@@ -1085,7 +1043,7 @@ static PyObject* read_instance_python(PyObject *self, PyObject *args)
   int label = 0;
   try{
     if(!PyArg_ParseTuple(args, "s|i", &op, &label))
-      qcm_ED_throw("failed to read parameters in call to susceptibility (python)");
+      qcm_ED_throw("failed to read parameters in call to read_instance (python)");
     string S(op);
     if(S.length() < 65){
       ifstream fin(string(op).c_str());
@@ -1100,5 +1058,29 @@ static PyObject* read_instance_python(PyObject *self, PyObject *args)
   return Py_BuildValue("");
 }
 
+
+
+//==============================================================================
+const char* fidelity_help =
+R"{(
+Reads the solved model instance from a text file
+argument:
+    1. name of the file
+    2. The instance label (default=0)
+returns None
+){";
+//------------------------------------------------------------------------------
+static PyObject* fidelity_python(PyObject *self, PyObject *args)
+{
+  int label1 = 0;
+  int label2 = 0;
+  double fid;
+  try{
+    if(!PyArg_ParseTuple(args, "ii", &label1, &label2))
+      qcm_ED_throw("failed to read parameters in call to fidelity (*python*)");
+      fid = ED::fidelity(label1, label2);
+  } catch(const string& s) {qcm_ED_catch(s);}
+  return Py_BuildValue("d", fid);
+}
 
 #endif

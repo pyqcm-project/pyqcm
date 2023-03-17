@@ -11,9 +11,9 @@ def create_model(L):
     param L : length of the cluster (L x 2)
     """
 
-    CM = pyqcm.cluster_model('clus'.format(L), 2*L, 0)
+    CM = pyqcm.cluster_model(2*L, 'clus'.format(L), 0)
     sites = [(i,0,0) for i in range(L)] + [(i,1,0) for i in range(L)]
-    clus = pyqcm.cluster(CM, (0,0,0), sites)
+    clus = pyqcm.cluster(CM, sites)
     model = pyqcm.lattice_model('{:d}x2_AFM'.format(L), clus, ((L, L%2, 0), (0, 2, 0)))
     model.hopping_operator('t', [1,0,0], -1)
     model.hopping_operator('t', [0,1,0], -1)
@@ -22,17 +22,18 @@ def create_model(L):
     model.set_target_sectors(['R0:N{:d}:S0'.format(2*L)])
     return model
 
-L = 2 # length of cluster
-model = create_model(L)
+for L in [1,2,3,4,5]:
+    pyqcm.model_reset()
+    model = create_model(L)
 
-# Setting model parameters
-model.set_parameters("""
-    U = 8
-    mu = 0.5*U
-    t = 1
-    M = 0
-    M_1 = 0.1
-""")
+    # Setting model parameters
+    model.set_parameters("""
+        U = 8
+        mu = 0.5*U
+        t = 1
+        M = 0
+        M_1 = 0.1
+    """)
 
-# Running the VCA
-V = vca.VCA(model, varia='M_1', steps=0.01, accur=2e-4, max=10.0, method='altNR', file = 'vca_L{:d}.tsv'.format(L)) 
+    # Running the VCA
+    V = vca.VCA(model, varia='M_1', steps=0.01, accur=2e-4, max=10.0, method='altNR', file = 'vca_L{:d}.tsv'.format(L)) 

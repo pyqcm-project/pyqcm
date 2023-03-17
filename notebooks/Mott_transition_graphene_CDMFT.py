@@ -13,7 +13,7 @@ import os
 ns = 2 # number of physical sites
 nb = 4 # number of bath sites
 no = ns+nb # total number of sites
-CM = pyqcm.cluster_model('clus', ns, nb)
+CM = pyqcm.cluster_model( ns, nb)
 
 # Defining the bath hopping operators
 CM.new_operator('tb1', 'one-body', [
@@ -46,7 +46,7 @@ CM.new_operator('eb2', 'one-body', [
 ])
 
 # define a physical cluster based on that model, with base position (0,0,0) and site positions
-clus = pyqcm.cluster(CM, (0,0,0), ((0,0,0), (1,0,0))) 
+clus = pyqcm.cluster(CM, ((0,0,0), (1,0,0))) 
 
 # define a lattice model named '2x2' made of the cluster(s) clus and superlattice vectors (3,0,0) & (0,3,0)
 # the lattice vectors are (1,-1,0) and (2,1,0), different from the default ones (1,0,0) & (0,1,0)

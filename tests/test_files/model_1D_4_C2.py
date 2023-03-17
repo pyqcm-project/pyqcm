@@ -1,7 +1,7 @@
 import pyqcm
 
-clusmod = pyqcm.cluster_model('L4', 4, 0, [[4,3,2,1]])
-clus = pyqcm.cluster(clusmod, (0,0,0), ((0,0,0), (1,0,0), (2,0,0), (3,0,0)))
+CM = pyqcm.cluster_model(4, generators=((4,3,2,1),))
+clus = pyqcm.cluster(CM, ((0,0,0), (1,0,0), (2,0,0), (3,0,0)))
 model = pyqcm.lattice_model('1D_L4', clus, ((4, 0, 0),))
 
 model.interaction_operator('U')

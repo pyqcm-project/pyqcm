@@ -26,10 +26,10 @@ import pyqcm
 import numpy as np
 
 # declare a cluster model of 8 sites, named 'clus'
-CM = pyqcm.cluster_model('clus', 8)
+CM = pyqcm.cluster_model( 8)
 
 # define a physical cluster based on that model, with base position (0,0,0) and site positions
-clus = pyqcm.cluster(CM, (0,0,0), ((0,0,0), (1,0,0), (0,1,0), (1,1,0), (0,0,1), (1,0,1), (0,1,1), (1,1,1))) 
+clus = pyqcm.cluster(CM, ((0,0,0), (1,0,0), (0,1,0), (1,1,0), (0,0,1), (1,0,1), (0,1,1), (1,1,1))) 
 
 # define a lattice model named '2x2' made of the cluster(s) clus and superlattice vectors (2,0,0) & (0,2,0)
 model = pyqcm.lattice_model('2x2x2', clus, ((2,0,0), (0,2,0), (0,0,2)))

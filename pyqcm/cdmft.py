@@ -231,7 +231,7 @@ class CDMFT:
                 diff_hartree = 0
                 diff_hartree_rel = 0
                 for C in hartree:
-                    C.update(pr=True)
+                    C.update(self.I, pr=True)
                     diff_hartree += np.abs(C.diff)
                     hartree_converged = hartree_converged and C.converged()
             #--------------------------------------------------------------------------------

@@ -15,7 +15,7 @@ pyqcm.set_global_parameter("periodic")
 CM = pyqcm.cluster_model("clus", 12, 0, ((12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),)) 
 
 # define a physical cluster based on that model, with base position (0,0,0) and site positions
-clus = pyqcm.cluster(CM, (0,0,0),[(i,0,0) for i in range(12)]) 
+clus = pyqcm.cluster(CM, ,[(i,0,0) for i in range(12)]) 
 
 # define a lattice model 
 model = pyqcm.lattice_model('periodic12', clus, ((12,0,0),))
