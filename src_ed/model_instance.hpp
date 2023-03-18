@@ -212,6 +212,8 @@ Hamiltonian<HilbertField>* model_instance<HilbertField>::create_hamiltonian(
                 H = new Hamiltonian_Operator<HilbertField>(the_model, value, s);
                 //std::cout << "Hamiltonian OTF" << std::endl;
                 break;
+            case H_format_factorized:
+                break;
             //implementation with dependencies
             case H_format_eigen:
 #ifdef EIGEN_HAMILTONIAN
