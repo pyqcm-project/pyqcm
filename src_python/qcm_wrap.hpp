@@ -25,9 +25,7 @@ vector3D<double> vector_from_Py(PyArrayObject *k_pyobj);
 vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj);
 vector<string> strings_from_PyList(PyObject* lst);
 
-extern shared_ptr<parameter_set> param_set;
 extern shared_ptr<lattice_model> qcm_model;
-extern vector<string> target_sectors;
 // extern unordered_map<string, global_parameter<bool>> GP_bool;
 extern map<string, global_parameter<bool>> GP_bool;
 void qcm_catch(const string& s);
@@ -347,7 +345,7 @@ static PyObject*  CDMFT_variational_set_python(PyObject *self, PyObject *args)
   try{
     if(!PyArg_ParseTuple(args, "O", &v))
       qcm_throw("failed to read parameters in call to CPT_Green_function (python)");
-    param_set->CDMFT_variational_set(strings_from_PyList(v));
+    qcm_model->param_set->CDMFT_variational_set(strings_from_PyList(v));
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
 }
@@ -1037,9 +1035,9 @@ static PyObject* set_target_sectors_python(PyObject *self, PyObject *args)
     size_t n = PySequence_Size(py_sectors);
     if(n != qcm_model->clusters.size())
       qcm_throw("The number of strings in argument of 'set_target_sectors' ("+to_string(n)+") should be the number of clusters in the repeated unit ("+to_string(qcm_model->clusters.size())+")");
-    target_sectors.resize(n);
+    qcm_model->sector_strings.resize(n);
     for(size_t i=0; i<n; i++){
-      target_sectors[i] = Py2string(PySequence_GetItem(py_sectors,i));
+      qcm_model->sector_strings[i] = Py2string(PySequence_GetItem(py_sectors,i));
     }
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
@@ -1101,7 +1099,7 @@ Print the parameter set to the screen
 //------------------------------------------------------------------------------
 static PyObject* print_parameter_set_python(PyObject *self, PyObject *args)
 {
-  param_set->print(cout);
+  qcm_model->param_set->print(cout);
   return Py_BuildValue("");
 }
 
@@ -1123,11 +1121,11 @@ static PyObject* parameter_set_python(PyObject *self, PyObject *args)
   int opt=0;
 
   try{
-    if(param_set == nullptr)
+    if(qcm_model->param_set == nullptr)
       qcm_throw("The parameter set has not been defined yet");
     
     lst = PyDict_New();
-    for(auto& x : param_set->param){
+    for(auto& x : qcm_model->param_set->param){
       string name;
       if(x.second->ref){
         name = x.second->ref->name;

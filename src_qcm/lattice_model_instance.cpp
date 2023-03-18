@@ -9,8 +9,6 @@
   #include <omp.h>
 #endif
 
-extern shared_ptr<parameter_set> param_set;
-
 string strip_at(const string& s)
 {
   string name = s;
@@ -30,13 +28,11 @@ string strip_at(const string& s)
 /** 
  default constructor
  @param _model [in] : lattice model
- @param _params [in] : values of the model parameters, as a map
- @param _sectors [in] : sectors to look for the ground state 
  @param _label [in] : label given to the instance 
  */
 
-lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model, const map<string, double>& _params, const vector<string>& _sectors, int _label)
-: label(_label), model(_model), params(_params), sectors(_sectors), complex_HS(false)
+lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model, int _label)
+: label(_label), model(_model), complex_HS(false)
 {
   n_clus = model->clusters.size();
   vector<map<string,double>> cluster_values(n_clus);
@@ -47,7 +43,8 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
   PE_solved = false;
   E_pot = 0.0;
   E_kin = 0.0;
-  if(sectors.size() == 0) qcm_throw("target sectors were not specified!");
+  if(model->sector_strings.size() == 0) qcm_throw("target sectors were not specified!");
+  params = model->param_set->value_map();
   
   model->close_model();
   
@@ -64,7 +61,7 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
 
   for(size_t i=0; i<n_clus; i++){
     if(cluster_values[i].size() == 0) qcm_throw("cluster "+to_string(i)+" has no nonzero operators");
-    ED::new_model_instance(model->clusters[i].name, cluster_values[i], sectors[i], label*n_clus+i);
+    ED::new_model_instance(model->clusters[i].name, cluster_values[i], model->sector_strings[i], label*n_clus+i);
     model->clusters[i].mixing = ED::mixing(label*n_clus+i);
   }
 	if(model->GF_offset.size() == 0) model->post_parameter_consolidate(label);
@@ -506,10 +503,10 @@ void lattice_model_instance::print_parameters(ostream& out, print_format format)
   bool print_variances = global_bool("print_variances");
 
   out << setprecision((int)global_int("print_precision"));
-  if(param_set == nullptr) return;
+  if(model->param_set == nullptr) return;
   switch(format){
     case print_format::names :
-      for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << x.first << '\t';
+      for(auto& x : params) if(model->param_set->is_dependent(x.first) ==  false or print_all==true) out << x.first << '\t';
       for(auto& x : ave) out << "ave_" << x.first << '\t';
       for(size_t i = 0; i<n_clus; i++){
         if(model->clusters[i].ref != i) continue;
@@ -521,7 +518,7 @@ void lattice_model_instance::print_parameters(ostream& out, print_format format)
       }
       break;
     case print_format::values :
-      for(auto& x : params) if(param_set->is_dependent(x.first) ==  false or print_all==true) out << chop(x.second, 1e-10) << '\t';
+      for(auto& x : params) if(model->param_set->is_dependent(x.first) ==  false or print_all==true) out << chop(x.second, 1e-10) << '\t';
       for(auto& x : ave) out << chop(x.second, 1e-10) << '\t';
       for(size_t i = 0; i<n_clus; i++){
         if(model->clusters[i].ref != i) continue;

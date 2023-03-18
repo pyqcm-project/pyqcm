@@ -24,9 +24,7 @@
 // global variables
 
 shared_ptr<lattice_model> qcm_model = nullptr; // pointer to the unique lattice model of the library
-shared_ptr<parameter_set> param_set = nullptr; // pointer to the unique parameter_set of the library
 map<int, unique_ptr<lattice_model_instance>> lattice_model_instances; // list of instances
-vector<string> target_sectors; // target GS sectors of the different clusters
 
 extern map<string, shared_ptr<model>> models;
 
@@ -41,8 +39,8 @@ void great_reset(){
   lattice_model_instances.clear();
   for(auto& x:models) x.second.reset();
   models.clear();
-  target_sectors.clear();
-  param_set.reset();
+  qcm_model->sector_strings.clear();
+  qcm_model->param_set.reset();
   parameter_set::parameter_set_defined = false;
   lattice_model::model_consolidated = false;
   qcm_model.reset();
@@ -76,8 +74,8 @@ void great_reset(){
    */
   void new_model_instance(int label)
   {
-    if(param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    lattice_model_instances[label] = unique_ptr<lattice_model_instance>(new lattice_model_instance(qcm_model, param_set->value_map(), target_sectors, label));
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    lattice_model_instances[label] = unique_ptr<lattice_model_instance>(new lattice_model_instance(qcm_model, label));
   }
   
 
@@ -90,7 +88,7 @@ void great_reset(){
 \   */
   void set_parameters(vector<pair<string,double>>& val, vector<tuple<string, double, string>>& equiv)
   {
-    param_set = make_shared<parameter_set>(qcm_model, val, equiv);
+    qcm_model->param_set = make_shared<parameter_set>(qcm_model, val, equiv);
   }
 
   
@@ -99,8 +97,8 @@ void great_reset(){
    */
   void set_parameter(const string& name, double value)
   {
-    if(param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    param_set->set_value(name, value);
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    qcm_model->param_set->set_value(name, value);
   }
   
   
@@ -110,7 +108,7 @@ void great_reset(){
    */
   map<string,double> parameters()
   {
-    return param_set->value_map();
+    return qcm_model->param_set->value_map();
   }
   
     
@@ -839,8 +837,8 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
   }
 
   void CDMFT_variational_set(vector<string>& varia){
-    if(param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    param_set->CDMFT_variational_set(varia);
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    qcm_model->param_set->CDMFT_variational_set(varia);
   }
 
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label)

@@ -23,7 +23,6 @@ struct lattice_model_instance{
 	vector<pair<double,string>> gs; //!< ground state energies and sectors of the clusters
 	vector<vector<tuple<string,double,double>>> clus_ave; //!< cluster averages and variances of all operators
 	vector<pair<string,double>> ave; //!< lattice averages of all operators
-	vector<string> sectors; //!< Hilbert space sectors of the different clusters
 	vector<double> GS_energy; //!< ground state energies of the clusters + total (component 0)
 	size_t n_clus; //!< number of cluster instances in model (derived)
 	double omega; //!< value of the Potthoff functional
@@ -46,7 +45,7 @@ struct lattice_model_instance{
 	double Potthoff_functional();
 	double spectral_average(const string& name, const complex<double> w);
 	Green_function cluster_Green_function(Complex w, bool sig, bool spin_down);
-	lattice_model_instance(shared_ptr<lattice_model> _model, const map<string, double>& _params, const vector<string>& _sectors, int label);
+	lattice_model_instance(shared_ptr<lattice_model> _model, int label);
 	matrix<complex<double>> cluster_Green_function(size_t i, complex<double> w, bool spin_down, bool blocks);
 	matrix<complex<double>> cluster_hopping_matrix(size_t i, bool spin_down);
 	matrix<complex<double>> cluster_self_energy(size_t i, complex<double> w, bool spin_down);

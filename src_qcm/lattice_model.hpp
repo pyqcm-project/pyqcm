@@ -67,7 +67,9 @@ struct lattice_model{
 	vector<vector<vector<Complex>>> pauli; //!< Pauli matrices
 	vector<vector3D<double>> Green_to_position; // position associated (in superlattice basis) with each Green function index
 	vector<vector3D<int64_t>> neighbor; //!< list of neighboring superclusters
-	
+	shared_ptr<parameter_set> param_set; //!< parameter set structure
+	vector<string> sector_strings; //!< Hilbert space sectors to explore in the different clusters
+
 	static bool model_consolidated;
 	
 	lattice_model();

@@ -17,9 +17,7 @@
 #include "parameter_set.hpp"
 #include "lattice_model.hpp"
 
-extern shared_ptr<parameter_set> param_set;
 extern shared_ptr<lattice_model> qcm_model;
-extern vector<string> target_sectors;
 
 void check_signals();
 string Py2string(PyObject* PyObj);
