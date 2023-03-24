@@ -171,7 +171,7 @@ namespace ED{
    output : the hopping matrix
    */
   matrix<complex<double>> hopping_matrix(bool spin_down, const size_t label);
-  matrix<complex<double>> hopping_matrix_full(bool spin_down, const size_t label);
+  matrix<complex<double>> hopping_matrix_full(bool spin_down, bool diag, const size_t label);
   
   /**
    function that evaluates the matrix of density-density interactions

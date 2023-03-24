@@ -203,17 +203,6 @@ class cluster:
         self.index = 0
         self.nsites = len(sites)
 
-    #-----------------------------------------------------------------------------------------------
-    def print_graph(self):
-        """prints a graphiz (dot) program for the cluster 
-
-        :param str name:  name of the cluster model
-        :param [[int]] sites: list of positions of sites (2D array of ints)
-        :return: None
-
-        """
-
-        qcm.print_graph(self.cluster_model.name, self.sites)
 
 ####################################################################################################
 class lattice_model:
@@ -348,6 +337,8 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     def set_basis(self, B):
         """
+        Define the working basis in terms of a physical basis, i.e., provides a transformation matrix between
+        the two.
 
         :param B: the basis (a (D x 3) real matrix)
         :return: None
@@ -363,7 +354,7 @@ class lattice_model:
 
         :param str name: name of the operator
         :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
-        :param list link: link of the operator (None by default)
+        :param [int] link: link of the operator (None by default)
 
         :Keyword Arguments:
 
@@ -382,7 +373,12 @@ class lattice_model:
 
     #-----------------------------------------------------------------------------------------------
     def set_target_sectors(self, sec):
-        """Define the Hilbert space sectors in which to look for the ground state
+        """
+        Sets the Hilbert space sectors in which to look for the ground state. Each sector is specified by 
+        a string of the form 'Rx:Ny:Sz' where x is the irreducible representation label (starts at 0), y
+        is the number of electrons and z is twice the total spin projection. For instance, 'R0:N7:S1' means
+        7 electrons and total spin projection 1/2, in the trivial representation. If more than one sector
+        must be explored, their corresponding strings are separated by '/', e.g. 'R0:N7:S1/R0:N7:S-1'.
 
         :param (str) sec: the target sectors
 
@@ -397,7 +393,7 @@ class lattice_model:
         """
         Defines a new set of parameters, including dependencies
 
-        :param tuple/str params: the values/dependence of the parameters (array of 2- or 3-tuples), or string containing syntax (preferred method)  
+        :param tuple/str params: the values/dependence of the parameters (array of 2- or 3-tuples), or string containing syntax (preferred method). See section in the documentation or examples for more details.
         """
         if self.is_closed: raise ValueError('WARNING : The function set_parameters() can only be called once')
 
@@ -447,9 +443,9 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     def parameter_string(self, lattice=True, CR=False):
         """
-        Returns a string with the model parameters. 
+        Returns a string with the model parameters. Used for including in plots.
         :param boolean lattice : if True, only indicates the independent lattice parameters.
-        :param boolean CR : if True, put each parameter on a line.
+        :param boolean CR : if True, puts each parameter on a line.
         """
         par = qcm.parameter_set()
         S = ''
@@ -472,7 +468,7 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     def parameters(self):
         """
-        returns the values of the parameters in the parameter set
+        returns the values of the parameters in the parameter set, in the form of a dict.
 
         :return: a dict {string,float}
 
@@ -511,15 +507,6 @@ class lattice_model:
             return P
             
     #-----------------------------------------------------------------------------------------------
-    def print_parameter_set(self):
-        """
-        prints the content of the parameter set
-
-        """
-        qcm.print_parameter_set()
-
-
-    #-----------------------------------------------------------------------------------------------
     def print_model(self, filename):
         """Prints a description of the model into a file
 
@@ -529,21 +516,11 @@ class lattice_model:
         """
         qcm.print_model(filename)
 
-    #-----------------------------------------------------------------------------------------------
-    def print_parameters(self, P):
-        """
-        Prints the parameters nicely on the screen
-            
-        :param dict P: the dictionary of parameters
-        
-        """
-        for x in P:
-            print(x, ' = ', P[x])
 
     #-----------------------------------------------------------------------------------------------
     def set_params_from_file(self, out_file, n=0):
         """
-        reads an output file for parameters
+        sets the parameters in the parameter_set object from a file
 
         :param str out_file: name of output file from which parameters are read
         :param int n: line number of data in output file (excluding titles)
@@ -572,12 +549,11 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     def fidelity(self, I1, I2, clus=0):
         """
-        computes the fidelity between the two instances I1 and I2, i.e. the overlap squared of the ground states (or generalization thereof in case of a mixied state)
+        computes the fidelity between the two instances I1 and I2, i.e. the overlap squared of the ground states (or generalization thereof in case of a mixed state)
 
         :param model_instance I1: first model instance
         :param model_instance I2: second model instance
         :param int clus: cluster label
-
 
         """
 
@@ -588,7 +564,7 @@ class lattice_model:
     def finalize(self):
         """
         Sets some data for the model following the first instance declaration
-        e.g. sets the mixing state of the system:
+        e.g.  the mixing state of the system:
 
         * 0 -- normal.  GF matrix is n x n, n being the number of sites
         * 1 -- anomalous. GF matrix is 2n x 2n
@@ -606,11 +582,13 @@ class lattice_model:
         for i in range(self.nclus): self.dimGFC[i] = self.clus[i].nsites*self.nmixed
         self.is_closed = True
 
-
+    #-----------------------------------------------------------------------------------------------
+    # imports further functions from other source files
 
     from ._loop import loop_from_file, linear_loop, controlled_loop, fixed_density_loop, Hartree_procedure, fade
 
     from ._draw import draw_operator, draw_cluster_operator
+
 
 ####################################################################################################
 class model_instance:
@@ -618,7 +596,7 @@ class model_instance:
     Describes a particular instance of the lattice model, i.e., for a given set of parameters
 
     :param lattice_model model: the (unique) lattice model
-    :param int label: a unique label for the model instance. Most of the time the default is fine. Exception: when two concurrent instances are needed.
+    :param int label: a unique label for the model instance. Most of the time the default is fine. Exception when two concurrent instances are needed.
 
     :ivar boolean is_complex: True if the instance has a complex-valued state, as opposed to real
 
@@ -634,7 +612,8 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def reset(self):
-        """resets the model instance to the current parameters, with the same label
+        """
+        Resets the model instance to the current parameters, with the same label
 
         """
         qcm.new_model_instance(self.label)
@@ -642,7 +621,8 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def susceptibility_poles(self, op_name):
-        """computes the dynamic susceptibility of an operator
+        """
+        Computes the Lehmann representation of the dynamic susceptibility of an operator
 
         :param str name: name of the operator
         :returns [(float,float)]: array of 2-tuple (pole, residue)
@@ -653,12 +633,13 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def susceptibility(self, op_name, freqs):
-        """computes the dynamic susceptibility of an operator
+        """
+        Computes the dynamic susceptibility of an operator point by point
 
-            :param str op_name: name of the operator
-            :param [complex] freqs: array of complex frequencies
-            :param int label: label of cluster model instance
-            :return: array of complex susceptibilities
+        :param str op_name: name of the operator
+        :param [complex] freqs: array of complex frequencies
+        :param int label: label of cluster model instance
+        :return: array of complex susceptibilities
 
         """
 
@@ -666,11 +647,12 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def qmatrix(self):
-        """Returns the Lehmann representation of the Green function
+        """
+        Returns the Lehmann representation of the Green function
 
-            :return: 2-tuple made of
-                1. the array of M real eigenvalues, M being the number of poles in the representation
-                2. a rectangular (L x M) matrix (real of complex), L being the dimension of the Green function
+        :return: 2-tuple made of
+            1. the array of M real eigenvalues, M being the number of poles in the representation
+            2. a rectangular (L x M) matrix (real of complex), L being the dimension of the Green function
 
         """	
 
@@ -678,7 +660,8 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def write(self, filename):
-        """Writes the solved cluster model instance to a text file
+        """
+        Writes the solved cluster model instance to a text file
         
         :param str filename: name of the file
         :return: None
@@ -690,7 +673,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def parameters(self):
         """
-        returns the values of the parameters of the instance
+        Returns the values of the parameters of the instance (as opposed to the parameter_set object)
 
         :return: a dict {string,float}
 
@@ -703,7 +686,8 @@ class model_instance:
         Computes the lattice averages of the operators present in the model
 
         :param str file: name of the file in which the information is appended
-        :return {str,float}: a dict giving the values of the averages for each parameter
+        :return: a dict giving the values of the averages for each parameter
+        :rtype: {str,float}
 
         """
         ave = qcm.averages(ops, self.label)
@@ -717,10 +701,11 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def cluster_Green_function(self, z, clus=0, spin_down=False, blocks=False):
-        """Computes the cluster Green function
+        """
+        Computes the cluster Green function at a given complex frequency
 
-        :param int clus: label of the cluster (0 to the number of clusters-1)
         :param complex z: frequency
+        :param int clus: label of the cluster (0 to the number of clusters-1)
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
         :param boolean blocks: true if returned in the basis of irreducible representations
         :return: a complex-valued matrix
@@ -733,21 +718,81 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def cluster_hopping_matrix(self, clus=0, spin_down=False, full=0):
         """
-        returns the one-body matrix of cluster no i
+        Returns the one-body matrix of cluster no i
 
         :param clus: label of the cluster (0 to the number of clusters - 1)
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param boolean full: if True, returns the full hopping matrix, including bath
         :return: a complex-valued matrix
+
         """
+        
         if full:
             return qcm.hopping_matrix(spin_down, clus, True)
         else:
             return qcm.cluster_hopping_matrix(clus, spin_down, self.label)
 
     #-----------------------------------------------------------------------------------------------
-    def read_cluster_model_instance(self, S, clus=0):
-        """reads the solution from a string 
+    def write_impurity_problem(self, clus=0, bath_diag=False, file='impurity.tsv'):
+        """
+        Writes to a file the data defining the impurity problem
+
+        :param clus: label of the cluster (0 to the number of clusters - 1)
+        :param file: name of the output file
+
+        """
+        
+        lab = self.label*self.model.nclus + clus
+        CM = self.model.clus[clus].cluster_model
+        with open(file,'w') as f:
+            f.writelines('n_sites: {:d}\nn_bath: {:d}\nmixing: {:d}\n'.format(CM.n_sites, CM.n_bath, self.model.mixing))
+            if self.is_complex: f.writelines('complex\n')
+            f.writelines('sites:\n')
+            for x in self.model.clus[clus].sites: 
+                f.writelines('{:d}\t{:d}\t{:1.8g}\n'.format(x[0],x[1],x[2]))
+            f.writelines('tij:\n')
+            T = qcm.hopping_matrix(False, bath_diag, lab, True)
+            if self.is_complex == False : T = np.real(T)
+            np.savetxt(f, T, delimiter='\t', fmt='%1.8g')
+            if self.model.mixing == 4:
+                T = qcm.hopping_matrix(True, bath_diag, lab, True)
+                if self.is_complex == False : T = np.real(T)
+                f.writelines('tij_down:\n')
+                np.savetxt(f, T, delimiter='\t', fmt='%1.8g')
+            f.writelines('interactions:\n')
+            U = self.interactions(clus)
+            for x in U:
+                f.writelines('{:d}\t{:d}\t{:1.8g}\n'.format(x[0],x[1],x[2]))
+                
+    #-----------------------------------------------------------------------------------------------
+    def write_Green_function(self, clus=0, file='GF.tsv'):
+        """
+        Writes the Lehmann representation of the Green function to a file 
+
+        :param clus: label of the cluster (0 to the number of clusters - 1)
+        :param str S: long string containing the solution 
+
+        :param clus: label of the cluster (0 to the number of clusters - 1)
+        :param file: name of the output file
+
+        """
+
+        W,Q = self.qmatrix()
+        if self.is_complex:
+            Z = np.empty((W.shape[0], Q.shape[1]+1), dtype=complex)
+            Z[:,1:] = np.round(Q, 8)
+        else:
+            Z = np.empty((W.shape[0], Q.shape[1]+1), dtype=float)
+            Z[:,1:] = np.round(np.real(Q), 8)
+        Z[:,0] = W
+        np.savetxt(file, Z, delimiter='\t', fmt='%1.8g')
+
+    #-----------------------------------------------------------------------------------------------
+    def read(self, S, clus=0):
+        """
+        Reads the solution from a string or a file. If the string is less than 32 characters
+        long, it is interpreted as the name of a file in which the solution is read. Otherwise
+        it is interpreted as the solution itself.
 
         :param clus: label of the cluster (0 to the number of clusters - 1)
         :param str S: long string containing the solution 
@@ -755,11 +800,19 @@ class model_instance:
         :return: None
 
         """
+        if len(S) <= 32:
+            try:
+                f = open(S, 'r')
+                S = f.read()
+            except:
+                raise("The file ", S, " could not be found")
+            
         qcm.read_instance(S, self.label*self.model.nclus + clus)
 
     #-----------------------------------------------------------------------------------------------
     def cluster_self_energy(self, z, clus=0, spin_down=False):
-        """Computes the cluster self-energy
+        """
+        Computes the cluster self-energy
 
         :param int clus: label of the cluster (0 to the number of clusters -1)
         :param complex z: frequency
@@ -773,7 +826,8 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def Green_function_average(self, clus=0, spin_down=False):
-        """Computes the cluster Green function average (integral over frequencies)
+        """
+        Computes the cluster Green function average (integral over frequencies)
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
@@ -785,31 +839,35 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def interactions(self, clus=0):
         """
-        returns the density-density interactions in cluster no i for instance 'label'
+        returns the density-density interactions on a specific cluster
 
-        :param clus: label of the cluster (0 to the number of clusters - 1)
+        :param clus: label of the cluster (starts at 0)
         :return: a list of matrix elements tuples (i,j,v)
+
         """
+
         return qcm.interactions(self.label*self.model.nclus + clus)
 
 
     #-----------------------------------------------------------------------------------------------
     def CPT_Green_function(self, z, k, spin_down=False):
         """
-        computes the CPT Green function at a given frequency
+        Computes the CPT Green function at a given frequency
 
         :param z: complex frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :return: a single or an array of complex-valued matrices
+        
         """
+        
         return qcm.CPT_Green_function(z, k, spin_down, self.label)
 
 
     #-----------------------------------------------------------------------------------------------
     def dispersion(self, k, spin_down=False, label=0):
         """
-        computes the dispersion relation for a single or an array of wavevectors
+        Computes the dispersion relation for a single or an array of wavevectors
 
         :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
@@ -844,6 +902,8 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def ground_state(self, file=None, pr=False):
         """
+        Computes the ground state of the cluster(s).
+
         :return: a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
 
         """
@@ -882,7 +942,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def Lehmann_Green_function(self, k, orb=1, spin_down=False):
         """
-        computes the Lehmann representation of the periodized Green function for a set of wavevectors
+        Computes the Lehmann representation of the periodized Green function for a set of wavevectors
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
         :param int orb: orbital index (starts at 1)
@@ -895,7 +955,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def hybridization_function(self, z, clus=0, spin_down=False):
         """
-        returns the hybridization function for cluster 'cluster' and instance 'label'
+        Returns the hybridization function for cluster 'cluster' and instance 'label'
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param complex z: frequency
@@ -908,7 +968,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def momentum_profile(self, name, k):
         """
-        computes the momentum-resolved average of an operator
+        Computes the momentum-resolved average of an operator
 
         :param str name: name of the lattice operator
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
@@ -922,7 +982,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def instance_parameters(self):
         """
-        returns the values of the parameters in a given instance
+        Returns the values of the parameters in a given instance
 
         :return: a dict {string,float}
 
@@ -934,7 +994,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def periodized_Green_function(self, z, k, spin_down=False):
         """
-        computes the periodized Green function at a given frequency and wavevectors
+        Computes the periodized Green function at a given frequency and wavevectors
 
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
@@ -948,7 +1008,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def periodized_Green_function_element(self, r, c, z, k, spin_down=False):
         """
-        computes the element (r,c) of the periodized Green function at a given frequency and wavevectors (starts at 0)
+        Computes the element (r,c) of the periodized Green function at a given frequency and wavevectors (starts at 0)
 
         :param int r: a row index (starts at 0)
         :param int c: a column index (starts at 0)
@@ -964,7 +1024,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def band_Green_function(self, z, k, spin_down=False):
         """
-        computes the periodized Green function at a given frequency and wavevectors, in the band basis (defined
+        Computes the periodized Green function at a given frequency and wavevectors, in the band basis (defined
         in the noninteracting model). It only differs from the periodized Green function in multi-band models.
 
         :param complex z: frequency
@@ -979,7 +1039,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def self_energy(self, z, k, spin_down=False):
         """
-        computes the self-energy associated with the periodized Green function at a given frequency and wavevectors
+        Computes the self-energy associated with the periodized Green function at a given frequency and wavevectors
 
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
@@ -993,7 +1053,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def potential_energy(self):
         """
-        computes the potential energy for a given instance, as the functional trace of Sigma x G
+        Computes the potential energy for a given instance, as the functional trace of Sigma x G
 
         :param int label: label of the model instance
         :return: the value of the potential energy
@@ -1004,7 +1064,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def spectral_average(self, name, z):
         """
-        returns the contribution of a frequency to the average of an operator
+        Returns the contribution of a frequency to the average of an operator
 
         :param name: name of the operator
         :param z: complex frequency
@@ -1027,11 +1087,13 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def density_matrix(self, sites, clus=0):
-        """Computes the density matrix of subsystem A, defined by the array of site indices "sites"
+        """
+        Computes the density matrix of subsystem A, defined by the array of site indices "sites"
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param [int] sites: list of sites defining subsystem A
-        :return [complex], [int32], [int32]: the density matrix, the left and right bases (spins up and down)
+        :return: the density matrix, the left and right bases (spins up and down)
+        :rtype:  [complex], [int32], [int32]
 
         """
         rho, basis = qcm.density_matrix(sites, self.label*self.model.nclus+clus)
@@ -1052,7 +1114,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def Potthoff_functional(self, hartree=None, file='sef.tsv', symmetrized_operator=None):
         """
-        computes the Potthoff functional for a given instance
+        Computes the Potthoff functional for a given instance
 
         :param int label: label of the model instance
         :param str file: name of the file to append with the result
@@ -1119,12 +1181,14 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def print_wavefunction(self, clus=0, pr=True):
-        """prints the ground state wavefunction(s) on the screen
+        """
+        Prints the ground state wavefunction(s) on the screen
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param bool pr: prints wavefunction to screen if pr=True
 
-        :return str: the wavefunction
+        :return: the wavefunction
+        :rtype: str
 
         """
         wavefunction = qcm.print_wavefunction(self.label*self.model.nclus+clus)
@@ -1138,7 +1202,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def QP_weight(self, k, eta=0.01, orb=1, spin_down=False):
         """
-        computes the k-dependent quasi-particle weight from the self-energy derived from the periodized Green function
+        Computes the k-dependent quasi-particle weight from the self-energy derived from the periodized Green function
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
@@ -1163,7 +1227,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def projected_Green_function(self, z, spin_down=False):
         """
-        computes the projected Green function at a given frequency, as used in CDMFT.
+        Computes the projected Green function at a given frequency, as used in CDMFT.
 
         :param complex z: frequency
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
@@ -1191,12 +1255,13 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def tk(self, k, spin_down=False):
         """
-        computes the k-dependent one-body matrix of the lattice model
+        Computes the k-dependent one-body matrix of the lattice model
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param int label:  label of the model instance
         :return: a single or an array of complex-valued matrices
+
         """
         return qcm.tk(k, spin_down, self.label)
 
@@ -1204,7 +1269,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def cluster_QP_weight(self, clus=0, eta=0.01, orb=1, spin_down=False):
         """
-        computes the cluster quasi-particle weight from the cluster self-energy
+        Computes the cluster quasi-particle weight from the cluster self-energy
 
         :param int clus: cluster label (starts at 0)
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
@@ -1224,7 +1289,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def spin_spectral_function(self, freq, k, orb=None):
         """
-        computes the k-dependent spin-resolved spectral function
+        Computes the k-dependent spin-resolved spectral function
 
         :param freq: complex freqency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
@@ -1270,6 +1335,15 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def write_summary(self, f, suppl_descr=None, suppl_values=None, first_of_series=False):
+        """
+        Writes a summary of the properties of the model instance in a file
+        
+        :param str f: name of the output file
+        :param str suppl_descr: additional description fields compared to the standard ones
+        :param str suppl_values: additional values compared to the standard ones
+        :param boolean first_of_series: True if the header (description fields) are to be written
+
+        """
         first_in_file =False
         des, val = self.properties()
         try:
@@ -1298,24 +1372,21 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def double_counting_correct(self, DC):
-        """Modifies some kinetic parameters in view of the presence of interactions and averages values,
+        """
+        Modifies some kinetic parameters in view of the presence of interactions and averages values,
         in order to account minimally for double counting.
 
         :param [(str,str,str,float,float)] DC: list of recipes for the correction: (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)
 
         """
         
-        ave = self.averages()
-        P = self.parameters()
         if type(DC) is tuple: DC = [DC]
         corr = {}
         for x in DC:
-            if len(x) != 5:
-                raise ValueError(f'in double_counting_correct(), tuples should have 5 elements')
-            if x[0] in corr:
-                corr[x[0]] += P[x[1]]*ave[x[2]]*x[3]
+            if x.e in corr:
+                corr[x.e] += x.correction()
             else:
-                corr[x[0]] = x[4] + P[x[1]]*ave[x[2]]*x[3]
+                corr[x.e] = x.e0 + x.correction()
 
         for x in corr:
             self.model.set_parameter(x, corr[x], pr=True)
@@ -1325,9 +1396,46 @@ class model_instance:
     
     from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile
 
+
+####################################################################################################
+class double_counting:
+    """
+    Class used to correct the value of band energies and chemical potential as a function of interaction strength
+    .. math::  \delta e = c V \\langle n\\rangle    
+
+
+    :param str e: name of the kinetic operator to shift (e.g. a band energy)
+    :param str V: name of the interaction operator causing the shift
+    :param str n: name of the operator whose average will cause the shift
+    :param float coeff: coefficient c in the correction formula above
+    :param float e0: bare value of the kinetic operator (before correction)
+
+    """
+
+    def __init__(self, e, V, n, coeff, e0):
+        self.e = e
+        self.V = V
+        self.n = n
+        self.coeff = coeff
+        self.e0 = e0
+
+    #-----------------------------------------------------------------------------------------------
+    def correction(self, I):
+        """
+        Applies the double counting corretion to the model instance I. Changes the parameter_set taking into account the average values within the instance I
+
+        :param I: instance of the lattice model
+
+        """
+        
+        ave = I.averages()
+        P = I.parameters()
+        return P[self.V]*ave[self.n]*self.coeff
+
 ####################################################################################################
 class hartree:
-    """This class contains the elements needed to perform the Hartree approximation for the inter-cluster components of an
+    """
+    This class contains the elements needed to perform the Hartree approximation for the inter-cluster components of an
     extended interaction. The basic self-consistency relation is
 
     .. math:: v_m = ve\langle V_m\\rangle    
@@ -1373,7 +1481,8 @@ class hartree:
 
     #-----------------------------------------------------------------------------------------------
     def update(self, I, pr=False):
-        """Updates the value of the mean-field operator based on its average
+        """
+        Updates the value of the mean-field operator based on its average
         
         :param model_instance I: instance of the lattice model
         :param boolean pr: if True, progress is printed on the screen
@@ -1405,9 +1514,11 @@ class hartree:
 
     #-----------------------------------------------------------------------------------------------
     def omega(self, I):
-        """returns the constant contribution, added to the Potthoff functional
+        """
+        Returns the constant contribution, added to the Potthoff functional
         
         :param I model_instance: the current model_instance
+        
         """
 
         par = self.model.parameters()
@@ -1421,7 +1532,8 @@ class hartree:
 
     #-----------------------------------------------------------------------------------------------
     def omega_var(self):
-        """returns the constant contribution, added to the Potthoff functional
+        """
+        Returns the constant contribution, added to the Potthoff functional
         
         """
 
@@ -1432,9 +1544,10 @@ class hartree:
 
     #-----------------------------------------------------------------------------------------------
     def converged(self):
-        """Tests whether the mean-field procedure has converged
+        """
+        Tests whether the mean-field procedure has converged
 
-        :return boolean: True if the mean-field procedure has converged
+        :return: True if the mean-field procedure has converged
         
         """
 
@@ -1466,7 +1579,7 @@ class hartree:
 #---------------------------------------------------------------------------------------------------
 def set_global_parameter(name, value=None):
     """
-    sets the value of a global parameter. 
+    Sets the value of a global parameter. 
     If the global parameter is Boolean, then value is True by default and should not be specified.
 
     :param str name: name of the global option
@@ -1482,7 +1595,7 @@ def set_global_parameter(name, value=None):
 #---------------------------------------------------------------------------------------------------
 def get_global_parameter(name, value=None):
     """
-    gets the value of a global parameter. 
+    Gets the value of a global parameter. 
 
     :param str name: name of the global option
     :return: the value, according to type
@@ -1708,9 +1821,9 @@ def wavevector_path(n=32, shape='triangle'):
 
 
 #---------------------------------------------------------------------------------------------------
-# produces a set of wavevectors for an mdc
 def wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp = 0, plane='z'):
-    """Produces a set of wavevectors for a MDC
+    """
+    Produces a set of wavevectors for a MDC
 
     :param int n: number of wavevectors on the side
     :param [float] orig: origin (in multiples of pi)
@@ -1779,9 +1892,11 @@ def orbital_pair_manager(orbitals):
         nbands = qcm.model_size()[1]
         orb_list = [i for i in range(1, nbands+1)]
         return orb_list, orb_list
+
 #---------------------------------------------------------------------------------------------------
 def print_options(opt=0):
-    """Prints the list of global options and parameters on the screen
+    """
+    Prints the list of global parameters on the screen
 
       :param int opt: 0 -> prints to screen. 1 -> prints to latex. 2 -> prints to RST
 
@@ -1790,7 +1905,8 @@ def print_options(opt=0):
 
 #---------------------------------------------------------------------------------------------------
 def banner(s, c='-', skip=0):
-    """Pretty-prints a banner (one line across) on the screen with a message
+    """
+    Pretty-prints a banner (one line across) on the screen with a message
     
     :param str s: message
     :param char c: character used in the non-text part of the banner
@@ -1820,6 +1936,7 @@ def varia_table(var, val, prefix = ''):
     :param [str] var: list of parameter names
     :param [float] val: list of associated values
     :param str prefix: prefix string to each line
+
     """
     s = prefix
     for i,p in enumerate(var):
@@ -1831,11 +1948,13 @@ def varia_table(var, val, prefix = ''):
 
 #---------------------------------------------------------------------------------------------------
 def epsilon(y, pr=False):
-    """Performs the epsilon algorithm for accelerated convergence (e.g. in CDMFT)
+    """
+    Performs the epsilon algorithm for accelerated convergence (e.g. in CDMFT)
 
     :param [float] y: sequence to be extrapolated
     :param boolean pr: if True, prints the resulting extrapolation
-    :return [float]: the extrapolated values
+    :return: the extrapolated values
+    :rtype: [float]
 
     """
     
@@ -1854,12 +1973,15 @@ def epsilon(y, pr=False):
 
 #---------------------------------------------------------------------------------------------------
 def general_interaction_matrix_elements(e, n):
-    """Translates a list of matrix elements (i,j,k,l,v) for a general interaction into a list of compound elements (I,J,v)
+    """
+    Translates a list of matrix elements (i,j,k,l,v) for a general interaction into a list of compound elements (I,J,v)
     where I = i+n*j and J = k+n*l and v is the value of the matrix element
-    Also checks that only non redundant elements are given
+    Also checks that only non redundant elements are given.
+    A sum over spin for the Coulomb interaction est performed.
+
     :param (int,int,int,int,float) e: list of matrix elements
     :param int n: number of orbitals in the impurity model (excluding spin; 2*n with spin)
-    Here a sum over spin for the Coulomb interaction est performed
+
     """
 
     E = []
@@ -1880,18 +2002,25 @@ def general_interaction_matrix_elements(e, n):
 #---------------------------------------------------------------------------------------------------
 def switch_cluster_model(name):
     """
-    switches cluster model to 'name'. Hack used in DCA (yet to be developped)
+    Switches cluster model to 'name'. Hack used in DCA (yet to be developped)
 
     """
     return qcm.switch_cluster_model(name)
 
 #---------------------------------------------------------------------------------------------------
 def is_sequence(obj):
+    """
+    Tests whether an object is a sequence (list, tuple or ndarray)
+    """
     if isinstance(obj, list) or isinstance(obj, tuple) or isinstance(obj, np.ndarray): return True
     else: return False
 
 #---------------------------------------------------------------------------------------------------
-def model_reset():
+def reset_model():
+    """
+    Resets the lattice model. In other words, all cluster models, clusters and the content of the lattice_model object (including the parameter_set) are reset to void. Useful if one wants to conduct simulations with a new model without
+    quitting Python.
+    """
     banner("RESETTING THE MODEL", c='#', skip=1)
     lattice_model.defined = False
     qcm.great_reset()

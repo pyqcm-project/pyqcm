@@ -37,7 +37,7 @@ I.spectral_function(path='line')
 cdmft = CDMFT(model, ('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
 
 ############# new model definition #################
-pyqcm.model_reset()
+pyqcm.reset_model()
 
 ns = 2
 nb = 4

@@ -80,7 +80,7 @@ struct model_instance : model_instance_base
   void Green_function_average();
   matrix<Complex>  self_energy(const Complex &z, bool spin_down);
   matrix<Complex>  hopping_matrix(bool spin_down);
-  matrix<Complex>  hopping_matrix_full(bool spin_down);
+  matrix<Complex>  hopping_matrix_full(bool spin_down, bool diag);
   vector<tuple<int,int,double>> interactions();
   matrix<Complex>  hybridization_function(Complex w, bool spin_down);
   vector<Complex>  susceptibility(shared_ptr<Hermitian_operator> h, const vector<Complex> &w);
@@ -1063,8 +1063,8 @@ void model_instance<HilbertField>::read(istream& fin)
     vector<string> input = read_strings(fin);
     if(input.size()==0) break;
     if(input.size()!=2) qcm_ED_throw("failed to read a parameter in input. Need two columns per parameter");
-    // if(value.find(input[0])==value.end()) qcm_ED_throw("unkown parameter "+input[0]+" in solutions file");
-    // value[input[0]] = from_string<double>(input[1]);
+    if(value.find(input[0])==value.end()) qcm_ED_throw("unkown parameter "+input[0]+" in solutions file");
+    if(abs(value[input[0]] - from_string<double>(input[1])) > SMALL_VALUE) qcm_ED_throw("The value of "+input[0]+" from the solution read differs from the expected value");
   }
   
   string tmp;
@@ -1092,9 +1092,9 @@ void model_instance<HilbertField>::read(istream& fin)
   if(mixing&HS_mixing::up_down) M_down.set_size(dim_GF);
   Green_function_average();
   Green_function_density();
-  cout << " ******** " << M << '\n' << GF_density << endl; 
   gf_read = true;
 }
+
 
 
 
@@ -1165,20 +1165,36 @@ void model_instance<HilbertField>::print_wavefunction(ostream& fout)
 
 
 template<typename HilbertField>
-matrix<Complex> model_instance<HilbertField>::hopping_matrix_full(bool spin_down)
+matrix<Complex> model_instance<HilbertField>::hopping_matrix_full(bool spin_down, bool diag)
 {
   matrix<Complex> H(tc.r+tb.r);
-  if(spin_down){
-    tc_down.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
-    tb_down.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
-    tcb_down.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
-    tcb_down.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+  if(diag){
+    if(spin_down){
+      tc_down.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
+      tb_down.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
+      tcb_down.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
+      tcb_down.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+    }
+    else{
+      tc.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
+      tb.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
+      tcb.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
+      tcb.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+    }
   }
   else{
-    tc.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
-    tb.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
-    tcb.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
-    tcb.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+    if(spin_down){
+      tc_down.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
+      tb_nd_down.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
+      tcb_nd_down.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
+      tcb_nd_down.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+    }
+    else{
+      tc.move_sub_matrix(tc.r, tc.c, 0, 0, 0, 0, H);
+      tb_nd.move_sub_matrix(tb.r, tb.c, 0, 0, tc.r, tc.c, H);
+      tcb_nd.move_sub_matrix(tcb.r, tcb.c, 0, 0, 0, tc.c, H);
+      tcb_nd.move_sub_matrix_HC(tcb.r, tcb.c, 0, 0, tc.r, 0, H);
+    }
   }
   return H;
 }

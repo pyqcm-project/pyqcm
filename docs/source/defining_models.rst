@@ -136,7 +136,7 @@ There is a call to ``cluster_model()`` to define a :math:`2\times2` plaquette wi
 #. An array of integer positions of the different cluster sites. This is where the geometry of the cluster appears.
 #. The base position of the cluster within the super unit cell ( ``[0,0,0]`` by default). This is just added for convenience when complex super unit cells are built out of the same cluster, shifted in position.
 
-Once the different clusters (or the single cluster) have been defined, one can construct an object of type ``lattice_model'' that contains the different clusters arranged in a super-lattice. The constructor takes the following arguments:
+Once the different clusters (or the single cluster) have been defined, one can construct an object of type ``lattice_model`` that contains the different clusters arranged in a super-lattice. The constructor takes the following arguments:
 
 #. The name of the model, for reporting purposes
 #. The cluster (or sequence of clusters) forming the repeated unit.
@@ -146,7 +146,7 @@ Once the different clusters (or the single cluster) have been defined, one can c
 Note that all vectors used in these specifications have three components (even for lower dimensional models) and have **integer** components. They are in fact coefficients of basis vectors generating a working Bravais lattice and are therefore integers by definition (not all vectors of this working Bravais lattice need belong to the actual Bravais lattice of the model; the case of the graphene lattice is illustrated below). They can be tuples, lists or numpy arrays.
 We recommend using tuples for simplicity.
 
-Once the geometry of the model is defined, operators can be added to the model via various functions. The Hubbard on-site interaction is added with a call to the ``lattice_model'' member function  ``interaction_operator('U')``, whose sole argument in this case is the name we choose for that operator (more arguments are needed for other types of interactions, multi-band models, etc; see the detailed documents in the reference section on functions).
+Once the geometry of the model is defined, operators can be added to the model via various functions. The Hubbard on-site interaction is added with a call to the ``lattice_model`` member function  ``interaction_operator('U')``, whose sole argument in this case is the name we choose for that operator (more arguments are needed for other types of interactions, multi-band models, etc; see the detailed documents in the reference section on functions).
 
 Nearest-neighbor hopping is defined with a call to the member function ``hopping_operator()``, which has three mandatory arguments:
 
@@ -201,7 +201,7 @@ Of possible set of function calls to define the Hubbard model on this system is:
     model.hopping_operator('t', [0,1,0], -1, orbitals=(2,1))
     model.hopping_operator('t', [-1,-1,0], -1, orbitals=(2,1))
 
-The first statement, ``from cluster_h4_6b_C3 import CM``, imports a cluster definition file, for instance the one associated with Fig. 2 above, in which the ``cluster_model'' object named ``CM'' was defined. 
+The first statement, ``from cluster_h4_6b_C3 import CM``, imports a cluster definition file, for instance the one associated with Fig. 2 above, in which the ``cluster_model`` object named ``CM`` was defined. 
 Two copies of the clusters are added to the super unit cell. The positions associated with the two copies are different, but the cluster model is the same, which means that only one copy of the Hilbert space operators and bases necessary for the exact diagonalization will be constructed. The origin has been placed exactly between the two clusters. The positions in each cluster are defined relative to the base position of each cluster.
 
 The integer positions are defined in terms of the basis defined by the call to ``set_basis()``. The argument of that function is a set of real-valued vectors defining the basis vectors of the working Bravais lattice.
@@ -213,7 +213,7 @@ The lattice basis vectors only serve to attribute orbital labels to the differen
 Given that the model has two bands, the definition of the hopping operator ``t`` must contain orbital information: the keywords ``orbitals`` (a tuple) is used to specify the orbital numbers associated with the two sites separated by the bond vector (link) given in argument. Internally, a loop is done over all sites of the super unit cell; the bond vector is used to identify a second site; if that site exists and if the orbitals associated with the two sites agree with ``orbitals``, then a matrix element is added to the operator. In the above example, three calls are needed because of the three directions (bonds). 
 
 The greatest risk in such calls is to mislabel the orbitals. In order to check that operators were defined properly, a 
-submodule called ``draw_operator'' is provided, that can draw on the screen a schematic view of each operator defined on the lattice or in a particular cluster model.
+submodule called ``draw_operator`` is provided, that can draw on the screen a schematic view of each operator defined on the lattice or in a particular cluster model.
 
 Other examples
 --------------

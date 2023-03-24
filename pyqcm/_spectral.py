@@ -97,7 +97,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
 
@@ -216,7 +216,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
     if plt_ax is None:
@@ -280,7 +280,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param color: matplotlib color of the curves
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: the array of frequencies, the spectral weight
+    :return: the array of frequencies, the spectral weight
 
     """
     if plt_ax is None:
@@ -360,7 +360,7 @@ def spectral_function_Lehmann(self, path='triangle', nk=32, orb=1, offset=0.1, l
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
     
@@ -425,6 +425,7 @@ def gap(self, k, orb = 1, threshold=1e-3):
         print('k = ', k[i], '  x2 = ', x2, ', x1 = ', x1, ', gap = ', x2-x1)
         if(np.abs(g[i])> 1e6):
             g[i] = None
+    if len(g) == 1: g = g[0]
     return g
 
 
@@ -441,7 +442,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
     
     """
     from cycler import cycler
@@ -548,7 +549,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, quadrant=False, opt='G
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: the contour plot object
+    :return: the contour plot object
     
     """
     if spin_down and self.model.mixing != 4:
@@ -672,7 +673,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, quadrant=False, opt='spin', freq =
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: The contour plot object
+    :return: The contour plot object
     
     """
 
@@ -790,7 +791,7 @@ def mdc_anomalous(self, nk=200, w=0.1j, orbitals=(1,1), selfenergy=False, im_par
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
     
     """
     if plt_ax is None:
@@ -868,7 +869,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param tuple view_angle: optional projection angle to pass to view_init() in the format of (elevation, azimuth) in degrees
     :param kwargs: keyword arguments passed to the matplotlib 'plot_surface' function
-    :returns: None
+    :return: None
 
     """
     orbs = pyqcm.orbital_manager(orb, from_zero=True)
@@ -930,7 +931,7 @@ def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, **k
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
     
@@ -981,7 +982,7 @@ def Fermi_surface(self, nk=64, orb=None, quadrant=False, plane='xy', k_perp=0.0,
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
     orbs = pyqcm.orbital_manager(orb, from_zero=True)
@@ -1031,7 +1032,7 @@ def G_dispersion(self, nk=64, orb=None, period = 'G', contour=False, inv=False, 
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
     
     """
 
@@ -1114,7 +1115,7 @@ def Luttinger_surface(self, nk=200, orb=1, quadrant=False, k_perp = 0, plane = '
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
 
@@ -1156,7 +1157,7 @@ def plot_momentum_profile(self, op, nk=50, quadrant=False, k_perp=0.0, plane='xy
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
     
     """
 
@@ -1189,7 +1190,8 @@ def plot_momentum_profile(self, op, nk=50, quadrant=False, k_perp=0.0, plane='xy
 
 #---------------------------------------------------------------------------------------------------
 def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
-    """plots a comparison between the host function and the hybridization function
+    """
+    Plots a comparison between the host function and the hybridization function
 
     :param [float] w : array of frequencies used
     :param (int,int) e: matrix element to plot
@@ -1197,9 +1199,10 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns: None
+    :return: None
 
     """
+
     H = pyqcm.qcm.get_CDMFT_host(clus, self.label)
     assert(H.shape[0] == w.shape[0])
 
@@ -1351,7 +1354,8 @@ def monopole(self, k, a=0.01, nk=20, orb=None, subdivide=False):
     :param int nk: number of divisions along the side of the cube
     :param int orb: orbital to compute the charge of (if None, sums over all bands)
     :param booleean subdivide: True if subdivision is allowed (False by default)
-    :return float: the monopole charge
+    :return: the monopole charge
+    :rtype: float
 
     """
 

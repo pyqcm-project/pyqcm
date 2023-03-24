@@ -14,7 +14,7 @@ f = np.empty((len(lrange), len(urange)))
 
 with open('fid.tsv', 'w') as fout:
     for i,L in enumerate(lrange):
-        pyqcm.model_reset()
+        pyqcm.reset_model()
         model = model1D(int(L))
         model.interaction_operator('U')
         model.hopping_operator('t', (1,0,0), -1)

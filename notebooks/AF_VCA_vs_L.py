@@ -23,7 +23,7 @@ def create_model(L):
     return model
 
 for L in [1,2,3,4,5]:
-    pyqcm.model_reset()
+    pyqcm.reset_model()
     model = create_model(L)
 
     # Setting model parameters

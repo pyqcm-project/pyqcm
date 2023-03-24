@@ -294,16 +294,17 @@ static PyObject* hopping_matrix_python(PyObject *self, PyObject *args)
   int label=0;
   int spin_down=0;
   int full=0;
+  int diag=0;
   
   try{
-    if(!PyArg_ParseTuple(args, "|iii", &spin_down, &label, &full))
+    if(!PyArg_ParseTuple(args, "|iiii", &spin_down, &diag, &label, &full))
       qcm_ED_throw("failed to read parameters in call to hopping_matrix (python)");
   } catch(const string& s) {qcm_ED_catch(s);}
   
   size_t d;
   vector<complex<double>> g;
   if(full){
-    g = ED::hopping_matrix_full((bool)spin_down, (size_t)label).v;
+    g = ED::hopping_matrix_full((bool)spin_down, (bool)diag, (size_t)label).v;
     d = (size_t)sqrt(g.size());
   }
   else{
