@@ -22,10 +22,10 @@ except:
 
 try:
     from . import qcm_git_hash
-    version = qcm_git_hash.version
+    __version__ = qcm_git_hash.version
 except:
     print('version number not found. Will not be able to record version number in output files')
-    version = 'NA'
+    __version__ = 'NA'
 
 np.set_printoptions(precision=6, linewidth=200, suppress=True, sign=' ')
 
@@ -1159,7 +1159,7 @@ class model_instance:
         """
         des, data = qcm.properties(self.label)
         des += 'githash\tversion\t'
-        data += git_hash + '\t' + version + '\t'
+        data += git_hash + '\t' + __version__ + '\t'
         return des, data
 
     #-----------------------------------------------------------------------------------------------
