@@ -518,6 +518,7 @@ def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartr
 			raise RuntimeError('Maximum number of Hartree iterations exceeded! Aborting...')
 
 	pyqcm.banner('Hartree procedure has converged', c='*')
+	return I
 	
 
 
