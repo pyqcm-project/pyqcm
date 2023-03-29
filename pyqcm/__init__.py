@@ -1376,17 +1376,17 @@ class model_instance:
         Modifies some kinetic parameters in view of the presence of interactions and averages values,
         in order to account minimally for double counting.
 
-        :param [(str,str,str,float,float)] DC: list of recipes for the correction: (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)
+        :param [double_counting] DC: list of recipes for the correction: 
 
         """
         
-        if type(DC) is tuple: DC = [DC]
+        if is_sequence(DC) is False: DC = [DC]
         corr = {}
         for x in DC:
             if x.e in corr:
-                corr[x.e] += x.correction()
+                corr[x.e] += x.correction(self)
             else:
-                corr[x.e] = x.e0 + x.correction()
+                corr[x.e] = x.e0 + x.correction(self)
 
         for x in corr:
             self.model.set_parameter(x, corr[x], pr=True)

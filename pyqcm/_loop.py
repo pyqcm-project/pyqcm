@@ -488,7 +488,7 @@ def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartr
 	while True:
 		I = task()
 		if double_counting_correct != None:
-			pyqcm.double_counting_correct(double_counting_correct)
+			I.double_counting_correct(double_counting_correct)
 		iter += 1
 		pyqcm.banner('Hartree iteration {:d}'.format(iter), '-')
 		diff_tot = 0
