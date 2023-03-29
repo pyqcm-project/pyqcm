@@ -41,7 +41,6 @@ class hartree:
         self.eig = eig
         self.lattice = lattice
         self.diff = 1e6
-        self.diff_rel = 1e6
         self.ave = 0
         self.accur = accur
         self.epsilon = False
@@ -74,7 +73,6 @@ class hartree:
         self.vm = self.eig*v*self.ave
         pyqcm.set_parameter(self.Vm, self.vm)
         self.diff = self.vm-vm0
-        self.diff_rel = np.abs(self.diff)/(np.abs(self.vm)+1e-6)
         meta_pr = ''
         if self.epsilon:
             eps_length = 2*self.epsilon + 1
@@ -84,7 +82,7 @@ class hartree:
                 meta_pr = ' (epsilon algo)'
         self.iter += 1
         if pr:
-            print('delta {:s} = {:1.3g} ( {:1.3g}%)'.format(self.Vm, self.diff, 100*self.diff_rel), meta_pr)
+            print('delta {:s} = {:1.3g})'.format(self.Vm, self.diff), meta_pr)
 
     def omega(self):
         """returns the constant contribution, added to the Potthoff functional
@@ -128,7 +126,7 @@ class hartree:
 
 
     def print(self):
-        print('<{:s}> = {:g}\t{:s} = {:g} (diff = {:g}, {:g}%)'.format(self.Vm, self.ave, self.Vm, self.vm, self.diff, 100*self.diff_rel))
+        print('<{:s}> = {:g}\t{:s} = {:g} (diff = {:g})'.format(self.Vm, self.ave, self.Vm, self.vm, self.diff))
 
     def init_epsilon(self, n, eps_length):
         self.data = np.empty(n+1)
