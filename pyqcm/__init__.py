@@ -855,7 +855,7 @@ class model_instance:
         Computes the CPT Green function at a given frequency
 
         :param z: complex frequency
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :return: a single or an array of complex-valued matrices
         
@@ -944,7 +944,7 @@ class model_instance:
         """
         Computes the Lehmann representation of the periodized Green function for a set of wavevectors
 
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: orbital index (starts at 1)
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :return: a list of pairs {poles, residues}, each of poles and residues being itself a list.
@@ -971,7 +971,7 @@ class model_instance:
         Computes the momentum-resolved average of an operator
 
         :param str name: name of the lattice operator
-        :param k: array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :return: an array of values
 
         """
@@ -997,7 +997,7 @@ class model_instance:
         Computes the periodized Green function at a given frequency and wavevectors
 
         :param complex z: frequency
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
@@ -1013,7 +1013,7 @@ class model_instance:
         :param int r: a row index (starts at 0)
         :param int c: a column index (starts at 0)
         :param complex z: frequency
-        :param k: array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
         :param int label:  label of the model instance
         :return: a vector of complex numbers
@@ -1028,7 +1028,7 @@ class model_instance:
         in the noninteracting model). It only differs from the periodized Green function in multi-band models.
 
         :param complex z: frequency
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
         :param int label:  label of the model instance
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
@@ -1042,7 +1042,7 @@ class model_instance:
         Computes the self-energy associated with the periodized Green function at a given frequency and wavevectors
 
         :param complex z: frequency
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
@@ -1204,7 +1204,7 @@ class model_instance:
         """
         Computes the k-dependent quasi-particle weight from the self-energy derived from the periodized Green function
 
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
@@ -1243,7 +1243,7 @@ class model_instance:
         Computes the matrix :math:`V=G_0^{-1}-G^{c-1}_0` at a given frequency and wavevectors, where :math:`G_0` is the noninteracting Green function on the infinite lattice and :math:`G^c_0` is the noninteracting Green function on the cluster.
 
         :param complex z: frequency
-        :param wavevector k: wavevector (ndarray(3)) in units of :math:`\pi`
+        :param wavevector k: wavevector (ndarray(3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param int label:  label of the model instance
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
@@ -1257,7 +1257,7 @@ class model_instance:
         """
         Computes the k-dependent one-body matrix of the lattice model
 
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param int label:  label of the model instance
         :return: a single or an array of complex-valued matrices
@@ -1292,7 +1292,7 @@ class model_instance:
         Computes the k-dependent spin-resolved spectral function
 
         :param freq: complex freqency
-        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: if None, sums all the orbitals. Otherwise just shows the weight for that orbital (starts at 1)
         :param int label:  label of the model instance
         :return: depending on the shape of k, a nd.array(3) of nd.array(N,3)
@@ -1449,6 +1449,7 @@ class hartree:
     :param float eig: eigenvalue
     :param float accur: required accuracy of the self-consistent procedure
     :param boolean lattice: if True, the lattice average is used, otherwise the cluster average
+    :param float alpha: damping factor (0 if no damping)
 
     :ivar str Vm: mean-field operator
     :ivar str V: extended interaction
@@ -1461,7 +1462,7 @@ class hartree:
     """
 
     #-----------------------------------------------------------------------------------------------
-    def __init__(self, model, Vm, V, eig, accur=1e-4, lattice=False):
+    def __init__(self, model, Vm, V, eig, accur=1e-4, lattice=False, alpha=0.0):
         self.model = model
         self.Vm = Vm
         self.V = V
@@ -1473,6 +1474,7 @@ class hartree:
         self.accur = accur
         self.epsilon = False
         self.iter = 0
+        self.alpha = alpha
 
         self.L = self.model.nsites
         if lattice == False:
@@ -1498,7 +1500,7 @@ class hartree:
         else:
             self.ave = I.averages()[self.Vm]*self.L
         self.vm = self.eig*v*self.ave
-        self.model.set_parameter(self.Vm, self.vm)
+        self.model.set_parameter(self.Vm, (1-self.alpha)*self.vm + self.alpha*vm0)
         self.diff = self.vm-vm0
         self.diff_rel = np.abs(self.diff)/(np.abs(self.vm)+1e-6)
         meta_pr = ''
@@ -1697,7 +1699,7 @@ def wavevector_path(n=32, shape='triangle'):
             k[2*n+i, 1] = -2 * i * 0.19245 / n
         ticks = np.array([0, n, 2*n, 3*n])
         tick_labels = [r'$K$', r'$\Gamma$', r'$M$', r'$K^\prime$']
-    elif shape == 'tri':  # triangular lattice (2D) gamma-M-K'-gamma
+    elif shape == 'tri':  # triangular lattice (2D) gamma-M-X-gamma
         k = np.zeros((5 * n // 2 + 1, 3))
         sq3 = np.sqrt(3.0)
         for i in range(n):
@@ -1709,7 +1711,7 @@ def wavevector_path(n=32, shape='triangle'):
             k[-i - 1, 1] = i * 0.6666667*sq3 / n
             k[-i - 1, 0] = -2 * i * 0.19245*sq3 / n
         ticks = np.array([0, n, 3 * n // 2, 5 * n // 2])
-        tick_labels = [r'$\Gamma$', r'$M$', r'$K$', r'$\Gamma$']
+        tick_labels = [r'$\Gamma$', r'$M$', r'$X$', r'$\Gamma$']
     elif shape == 'cubic':  # cubic lattice (100)-(000)-(111)-(110)-(000)
         k = np.zeros((4*n+1, 3))
         for i in range(n):
