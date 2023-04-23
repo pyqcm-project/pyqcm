@@ -580,9 +580,11 @@ template<typename HilbertField>
 void model_instance<HilbertField>::Green_function_density()
 {
   int I = the_model->n_sites;
-  if(mixing&HS_mixing::spin_flip or mixing&HS_mixing::anomalous) I *= 2; 
-  double nG = 0;
+  double nG = 0.0;
   for(int i=0; i<I; i++) nG += M(i,i).real();
+  if(mixing&HS_mixing::spin_flip) for(int i=0; i<I; i++) nG += M(i+I,i+I).real();
+  else if(mixing&HS_mixing::anomalous) for(int i=0; i<I; i++) nG += 1-M(i+I,i+I).real();
+
   if(mixing&HS_mixing::up_down){
     for(int i=0; i<I; i++) nG += M_down(i,i).real();
   }

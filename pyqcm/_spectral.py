@@ -1194,7 +1194,7 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
     Plots a comparison between the host function and the hybridization function
 
     :param [float] w : array of frequencies used
-    :param (int,int) e: matrix element to plot
+    :param (int,int) e: matrix element to plot (zero based)
     :param int clus: cluster label (starts at 0)
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
@@ -1219,8 +1219,8 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
 
     ax.plot(w, -H[:,e[0],e[1]].real,'bo-',label='host (real)', lw=1, **kwargs)
     ax.plot(w, -H[:,e[0],e[1]].imag,'bo--',label='host (imag)', lw=1, **kwargs)
-    ax.plot(w, hyb[:,e[0],e[1]].real,'rs-',label='hyb. (real)', lw=1, **kwargs)
-    ax.plot(w, hyb[:,e[0],e[1]].imag,'rs--',label='hyb. (imag)', lw=1, **kwargs)
+    ax.plot(w, hyb[:,e[0],e[1]].real,'rs-',label='hyb. (real)', lw=1, ms=4, **kwargs)
+    ax.plot(w, hyb[:,e[0],e[1]].imag,'rs--',label='hyb. (imag)', lw=1, ms=4, **kwargs)
     if plt_ax is None:
         ax.legend()
         ax.set_xlabel('$i\omega_n$')
