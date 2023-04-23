@@ -1398,6 +1398,7 @@ class model_instance:
 
         """
 
+        self.Green_function_solve()
         GS_cons = ''
         for i in range(self.model.nclus):
             if self.model.clus[i].ref != None: continue

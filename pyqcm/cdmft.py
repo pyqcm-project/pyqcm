@@ -306,7 +306,7 @@ class CDMFT:
                     z = pyqcm.epsilon(var_data[i,superiter-eps_length:superiter])
                     var_data[i,superiter] = z
                     self.model.set_parameter(var[i], z)
-                var_val = pyqcm.__varia_table(var,var_data[:,superiter])
+                var_val = pyqcm.varia_table(var,var_data[:,superiter])
                 print(var_val)
             #-------------------------------------------------------------------------------
 
