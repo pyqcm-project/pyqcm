@@ -183,7 +183,7 @@ class cluster:
     """
     Class describing a geometric cluster, part of the repeated unit (or super unit cell)
 
-    :param cluster_model X: abstract cluster model the geometric cluster is hosting
+    :param cluster_model X: abstract cluster model the current cluster is hosting OR other cluster object to which the current cluster is equivalent
     :param [[int]] sites: sequence of 3-component integer vectors, the geometric sites of the cluster
     :param [int] pos: base position of the cluster; all site vectors are added this position (for convenience)
 
@@ -1066,10 +1066,10 @@ class model_instance:
         """
         Returns the contribution of a frequency to the average of an operator
 
-        :param name: name of the operator
-        :param z: complex frequency
+        :param str name: name of the operator
+        :param complex z: complex frequency
         :param int label:  label of the model instance
-        :return: float
+        :return float: the contribution of frequency z to the average of the operator
 
         """
         return qcm.spectral_average(name, z, self.label)
@@ -1081,8 +1081,10 @@ class model_instance:
         Computes the density from the Green function average
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
-        return (float) : the density
+        :return (float): the density
+
         """
+
         return qcm.Green_function_density(self.label*self.model.nclus+clus)
 
     #-----------------------------------------------------------------------------------------------

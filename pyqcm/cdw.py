@@ -244,7 +244,7 @@ class superlattice:
         for v in _V:
             V.append((np.array(v[0], dtype=int), v[1]))
 
-        if silent == False: print('-'*80)
+        if silent == False: print('-'*100)
         for v in V:
             for i,x in enumerate(self.sites):  # loop over site 1
                 j, S, R = self.fold(self.sites[i] + v[0])

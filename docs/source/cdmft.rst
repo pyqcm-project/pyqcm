@@ -2,9 +2,16 @@ Cluster Dynamical Mean Field Theory
 ###################################
 
 This submodule provides functions that perform the CDMFT algorithm.
+The class `CDMFT` contains the CDMFT algorithm *per se* and implements it.
+Some auxiliary classes are also defined:
 
-List of classes
----------------
+* `frequency_grid` defines a grid of imaginary frequencies for computing the CDMFT distance function.
+
+* `hybridization` defines the hybridization function, mostly for import/export.
+
+* `general_bath` defines general cluster models with bath, with automatic bath parameter definitions, etc.
+
+* `observable` defines quantities that can be used to assess the convergence of the CDMFT procedure, if the latter is not base on the bath parameters themselves
 
 .. autoclass:: pyqcm.cdmft.CDMFT
     :members:

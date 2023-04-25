@@ -6,17 +6,18 @@ Boolean options
     :header: "name", "default", "description"
     :widths: 15, 10, 50
 
-    "CSR_sym_store", "false", "stores CSR matrices fully for openMP application"
     "check_lanczos_residual", "false", "checks the Lanczos residual at the end of the eigenvector computation"
     "continued_fraction", "false", "Uses the continued fraction solver for the Green function instead of the band Lanczos method"
     "dual_basis", "false", "uses the dual basis for wavevector computations"
     "no_degenerate_BL", "false", "forbids band lanczos to proceed when the eigenstates have degenerate energies"
     "nosym", "false", "does not take cluster symmetries into account"
     "one_body_solution", "false", "Only solves the one-body part of the problem, for the Green function"
+    "parallel_sectors", "false", "uses openMP to parallelize the computation of the Green function structures across the different sectors (uses more memory)"
     "periodic", "false", "considers the cluster(s) as periodic"
     "periodized_averages", "false", "computes lattice averages using the periodized Green function"
     "print_Hamiltonian", "false", "Prints the Hamiltonian on the screen, if small enough"
     "print_all", "false", "prints dependent parameters as well"
+    "print_variances", "false", "prints the variance of the operators in files"
     "strip_anomalous_self", "false", "sets to zero the anomalous part of the self-energy"
     "verb_ED", "false", "prints ED information and progress"
     "verb_Hilbert", "false", "prints progress information on bases and operators in the Hilbert space"
@@ -38,9 +39,9 @@ Integer-valued options
     "PRIMME_preconditionning", "0", "Choose of preconditionner to solve ground state (if qcm_wed was compiled with PRIMME): 0 (No preconditionning), 1 (Jacobi preconditionner)"
     "cuba2D_mineval", "1024", "minimum number of integrand evaluations in CUBA (2D)"
     "cuba3D_mineval", "16000", "minimum number of integrand evaluations in CUBA (3D)"
-    "dim_max_print", "64", "Maximum dimension for printing vectors and matrices"
     "kgrid_side", "32", "number of wavevectors on the side in a fixed wavevector grid"
     "max_dim_full", "256", "Maximum dimension for using full diagonalization"
+    "max_dim_print", "64", "Maximum dimension for printing vectors and matrices"
     "max_iter_BL", "600", "Maximum number of iterations in the band Lanczos procedure"
     "max_iter_CF", "400", "Maximum number of iterations in the continuous fraction Lanczos procedure"
     "max_iter_QN", "60", "maximum number of iterations in the quasi-Newton method"
@@ -82,8 +83,8 @@ Char-valued options
     :header: "name", "default", "description"
     :widths: 15, 10, 50
 
-    "Ground_state_method", "L", "Desired method to compute the ground state: L (Lanczos method - default), M (modified Lanczos method), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
-    "Hamiltonian_format", "S", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix), P (MPI Distributed matrix with PETSc)"
+    "Ground_state_method", "L", "Desired method to compute the ground state: L (Lanczos method - default), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
+    "Hamiltonian_format", "E", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix))"
     "periodization", "G", "periodization scheme: G, S, M, C or N (None)"
 
 

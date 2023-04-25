@@ -61,4 +61,8 @@ Here `model` is the lattice model object and `lab` is a non-negative integer tha
 
 Computations on a model instance are **lazy**. For instance, computing the ground state of the cluster is done only when needed, for instance when asking for the ground state averages or the Green function; computing the cluster Green function representation (either Lehmann or through continued fractions) is done only when a Green-function related quantity is needed, etc.
 
+.. autoclass:: pyqcm.model_instance 
+    :members:
+
+
 

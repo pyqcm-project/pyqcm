@@ -30,10 +30,11 @@ import subprocess
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.intersphinx',
+extensions = [  # 'sphinx.ext.intersphinx'
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.autodoc']
+    'sphinx.ext.autodoc'
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -96,7 +97,7 @@ toc_object_entries_show_parents = 'hide'
 # documentation.
 #
 html_theme_options = {
-    'sidebarwidth' : '20%'
+    'sidebarwidth' : '25%'
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

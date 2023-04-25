@@ -36,11 +36,5 @@ The variation of parameter :math:`h_a` the yields
 The Hartree procedure consists in starting with trial values of :math:`_a` and iteratively performing the above assignation until convergence.
 
 
-.. automodule:: pyqcm
-    :noindex:
-
-The hartree class
------------------
-
-.. autoclass:: hartree
+.. autoclass:: pyqcm.hartree
     :members: 

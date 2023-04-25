@@ -271,7 +271,7 @@ def fixed_density_loop(
 					pyqcm.set_parameter(v, poly_predictor(loop_values, var[v], i, 2))
 			print('**** predictor: U =', loop_values[i-3:i], '  & mu = ', mu_list[i-3:i], ' --->  (U, mu) = (', loop_values[i], ',', mu, ')')
 
-		print('*'*80)
+		print('*'*100)
 		print(loop_param, ' = {:1.4f}'.format(loop_values[i]))
 
 		# density search:

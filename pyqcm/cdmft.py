@@ -139,7 +139,7 @@ class CDMFT:
         print('fictitious inverse temperature = ', beta)
         print('frequency cutoff = ', wc)
         print('damping factor = ', alpha)
-        print('-'*80)
+        print('-'*100)
 
         params_array = np.zeros(len(var))
         

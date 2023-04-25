@@ -2,20 +2,18 @@
 The Variational Cluster Approximation
 #####################################
 
-This submodule provides functions that implements the Variational Cluster Approximation (VCA)
-
----------------
-List of classes
----------------
+This submodule provides functions that implements the Variational Cluster Approximation (VCA).
+The class `VCA` implements the VCA method. Defining an instance of this class performs the
+VCA procedure.
 
 .. autoclass:: pyqcm.vca.VCA
     :members:
 
------------------
-List of functions
------------------
+--------------------------------------
+Other VCA-related functions
+--------------------------------------
 
 .. automodule:: pyqcm.vca
-    :noindex: pyqcm.vca.VCA
     :members:
+    :exclude-members: VCA
 

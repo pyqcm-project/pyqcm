@@ -12,13 +12,13 @@ pyqcm : documentation (|version|)
 
    intro
    models
+   defining_cluster_models
    defining_models
    parameters
-   model_classes
-   instances
    cdmft
    vca
    hartree
+   other_functions
    options
    parallel
 
