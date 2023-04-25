@@ -6,7 +6,12 @@ import numpy as np
 import re
 import time
 import copy
-from . import qcm
+try:
+    from . import qcm
+except:
+    print("pyqcm was unable to load the QCM library. You will not be able to run simulations...")
+    print("Please reinstall pyqcm!")
+    qcm = None
 
 des_dict = {}  # use to store description lines in output files. filename->current description line
 
