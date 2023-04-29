@@ -137,7 +137,7 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 #---------------------------------------------------------------------------------------------------
 # performs a loop for VCA or CDMFT with an external loop parameter and an optional control on an order parameter
 
-def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, control_func=None,adjust=False,predict=True):
+def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, control_func=None, retry=None,max_retry=4, predict=True):
 	"""
 	Performs a controlled loop for VCA or CDMFT with a predictor.  The definition of each
 	model instance must be done and returned by 'task'; it is not done by this looping function.
@@ -147,10 +147,13 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 	:param str loop_param: name of the parameter looped over
 	:param (float, float, float) loop_range: range of the loop (start, end, step)
 	:param control_func: (optional) name of the function that controls the loop (returns boolean). Takes a model instance as argument
-	:param boolean adjust: if True, adjusts the steps depending on control or status of convergence
+	:param char retry: If None, stops on failure. If 'refine', adjusts the step (divide by 2) and retry. If 'skip', skip to next value.
+	:param int max_retry: Maximum number of retries of either type
 	:param boolean predict: if True, uses a linear or quadratic predictor
 
 	"""
+	if retry not in (None, 'skip', 'refine'): 
+		raise ValueError('"retry" argument must be None, "refine" or "skip".')
 
 	pyqcm.banner('controlled loop over '+loop_param, '%', skip=1)
 	if loop_param is None:
@@ -168,28 +171,65 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 	sol = np.empty((4, nvar))  # current solution + 3 previous solutions
 	prm = np.empty(4)  # current loop parameter + 3 previous values
 
-	prm[0] = loop_range[0] - loop_range[2]
+	# prm[0] = loop_range[0] - loop_range[2]
+	prm[0] = loop_range[0]
 	step = loop_range[2]
-	first = True
 	loop_counter = 0
-	retry = False
+	try_again = False
 	nretry = 0
-	max_retry = 4
+	fac = 1
 	start = [0]*nvar
 	while True:  # main loop here
-		if retry:
-			step = step / 2
-			retry = False
+		self.set_parameter(loop_param, prm[0])
+		try:
+			pyqcm.banner('loop index = {:d}, {:s} = {:1.4f}'.format(loop_counter + 1, loop_param, prm[0]), '=', skip=1)
+			I = task()
+
+		except pyqcm.OutOfBoundsError as E:
+			if loop_counter == 0 or not retry:
+				raise ValueError('Out of bound on starting values in controlled_loop(), aborting')
+			else:
+				try_again = True
+
+		except pyqcm.TooManyIterationsError as E:
+			if loop_counter == 0 or not retry:
+				raise ValueError('Cannot converge on starting values in controlled_loop(), aborting')
+			else:
+				try_again = True
+
+		if control_func is not None:
+			if not control_func(I):
+				if loop_counter < 2 and retry == None:
+					print('Control failed on starting. Maybe try with different starting point')
+					break
+				elif retry == None:
+					print('Control failed. Aborting loop.')
+					break
+				try_again = True
+	
+		if try_again:
+			if retry == 'refine':
+				step = step / 2
+				pyqcm.banner('retrying with half the step', '=')
+			elif retry == 'skip':
+				fac += 1
+				pyqcm.banner('skipping to next value', '=')
+			try_again = False
 			nretry += 1
 			if nretry > max_retry:
 				break
-			print('retrying with half the step')
 		else:
 			prm = np.roll(prm, 1)  # cycles the values of the loop parameter
 			sol = np.roll(sol, 1, 0)  # cycles the solutions
+			nretry = 0
+			fac = 1
 
-		prm[0] = prm[1] + step  # updates the loop parameter
-		self.set_parameter(loop_param, prm[0])
+		prm[0] = prm[1] + fac*step  # updates the loop parameter
+
+		P = I.parameters()
+		for i in range(len(varia)):
+			sol[0, i] = P[varia[i]]
+
 		if loop_range[1] >= loop_range[0] and prm[0] > loop_range[1]:
 			break
 		if loop_range[1] <= loop_range[0] and prm[0] < loop_range[1]:
@@ -218,29 +258,8 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 			for i in range(len(varia)):
 				self.set_parameter(varia[i], start[i])
 				print(' ---> ', varia[i], ' = ', start[i])
-		try:
-			pyqcm.banner('loop index = {:d}, {:s} = {:1.4f}'.format(loop_counter + 1, loop_param, prm[0]), '=', skip=1)
-			I = task()
-			P = I.parameters()
-			for i in range(len(varia)):
-				sol[0, i] = P[varia[i]]
 
-		except pyqcm.OutOfBoundsError as E:
-			if loop_counter == 0 or not adjust:
-				print('Out of bound on starting values in controlled_loop(), aborting')
-				return
-			else:
-				retry = True
-				continue
-		except pyqcm.TooManyIterationsError as E:
-			if loop_counter == 0 or not adjust:
-				print('Cannot converge on starting values in controlled_loop(), aborting')
-				return 
-			else:
-				retry = True
-				continue
-
-		if loop_counter > 2 and not retry and adjust:
+		if loop_counter > 2 and not retry and retry:
 			if(_predict_good(sol[0, :], start, 0.01) and step <  loop_range[2]):
 				step *= 1.5
 				print('readjusting step to ', step)
@@ -250,13 +269,6 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 
 		loop_counter += 1
 
-		if control_func is not None:
-			if not control_func(I):
-				if loop_counter < 2 or not adjust:
-					print('control failed on starting. aborting. Maybe try with different starting point')
-					break
-				retry = True
-				continue
 	if nretry > max_retry:
 		pyqcm.banner('controlled loop ended on signal by control function', '%')
 	else:
