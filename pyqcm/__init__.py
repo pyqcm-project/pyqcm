@@ -63,7 +63,10 @@ class SolverError(Exception):
         return 'The impurity solver failed to converge to a solution'
 
 class TooManyIterationsError(Exception):
-    pass
+    def __init__(self, max_iteration):
+        self.max_iteration = max_iteration
+    def __str__(self):
+        return 'the number of iterations has exceeded {:d}'.format(self.max_iteration)
 
 class VarParamMismatchError(Exception):
     pass

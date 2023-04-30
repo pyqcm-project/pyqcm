@@ -137,7 +137,7 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 #---------------------------------------------------------------------------------------------------
 # performs a loop for VCA or CDMFT with an external loop parameter and an optional control on an order parameter
 
-def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, control_func=None, retry=None,max_retry=4, predict=True):
+def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, control_func=None, retry=None, max_retry=4, predict=True):
 	"""
 	Performs a controlled loop for VCA or CDMFT with a predictor.  The definition of each
 	model instance must be done and returned by 'task'; it is not done by this looping function.
@@ -519,7 +519,7 @@ def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartr
 			des=''
 			val=''
 			if SEF:
-				sef = pyqcm.Potthoff_functional(hartree=couplings)
+				sef = I.Potthoff_functional(hartree=couplings)
 				val = '{:.8g}\t'.format(sef)
 				des = 'omegaH\t'
 			I.write_summary(file, suppl_descr = des, suppl_values = val)

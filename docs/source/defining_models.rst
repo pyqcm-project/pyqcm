@@ -118,5 +118,5 @@ The distribution contains a folder (`notebooks`) that contains many examples of 
 Class lattice_model
 -------------------
 
-.. autoclass:: pyqcm.cluster_model 
+.. autoclass:: pyqcm.lattice_model 
     :members:
