@@ -27,7 +27,7 @@ def test_vca():
     vca = V.VCA(M.model, varia=['M_1', 't_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='NR')
 
     pyqcm.banner('testing vca() with explicit starting values', c='#', skip=1)
-    vca = V.VCA(M.model, varia=['M_1', 't_1'], start=[0.1, 1.1], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
+    vca = V.VCA(M.model, varia=['M_1', 't_1'], start=[0.1, 1.3], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='SYMR1')
 
     pyqcm.banner('testing vca() with minimax', c='#', skip=1)
     vca = V.VCA(M.model, varia=['M_1', 'mu_1'], accur=[5e-4, 5e-4], steps=[5e-5, 5e-5], max=[10,10], method='minimax', var_max_start=1)

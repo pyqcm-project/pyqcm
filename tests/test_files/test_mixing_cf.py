@@ -1,12 +1,11 @@
-from pyqcm import *
-from pyqcm._spectral import *
-import model_1D_4_C2
-
+import pyqcm
+from model_1D_4 import model
+import matplotlib.pyplot as plt
 mixing = 3
 
 if mixing == 4:
-    set_target_sectors(['R0:N4:S0'])
-    set_parameters("""
+    model.set_target_sectors(['R0:N4:S0'])
+    model.set_parameters("""
     U=1
     t=1
     H = -1
@@ -14,8 +13,8 @@ if mixing == 4:
     """)
 
 elif mixing == 3:
-    set_target_sectors(['R0'])
-    set_parameters("""
+    model.set_target_sectors(['R0'])
+    model.set_parameters("""
     U=1
     t=1
     S = 0.4
@@ -25,8 +24,8 @@ elif mixing == 3:
     """)
 
 elif mixing == 2:
-    set_target_sectors(['R0:N4'])
-    set_parameters("""
+    model.set_target_sectors(['R0:N4'])
+    model.set_parameters("""
     U=1
     t=1
     H = -1
@@ -35,8 +34,8 @@ elif mixing == 2:
     """)
 
 elif mixing == 1:
-    set_target_sectors(['R0:S0'])
-    set_parameters("""
+    model.set_target_sectors(['R0:S0'])
+    model.set_parameters("""
     U=1
     t=1
     S = 0.4
@@ -45,17 +44,19 @@ elif mixing == 1:
     """)
 
 elif mixing == 0:
-    set_target_sectors(['R0:N4:S0'])
-    set_parameters("""
+    model.set_target_sectors(['R0:N4:S0'])
+    model.set_parameters("""
     U=1
     t=1
     mu = 1
     """)
 
-new_model_instance()
-cluster_spectral_function(wmax = 4, plt_ax=plt.gca(), file="test_mixing_nocf.pdf")
-set_global_parameter('continued_fraction')
-set_parameter('U', 1)
-new_model_instance()
-cluster_spectral_function(wmax = 4, plt_ax=plt.gca(), file="test_mixing_cf.pdf", color='r')
-plt.show()
+I = pyqcm.model_instance(model)
+I.spectral_function(wmax = 6, nk = 32, path='line', file='test_mixing_{:d}.pdf'.format(mixing))
+
+I.cluster_spectral_function(wmax = 4, plt_ax=plt.gca())
+pyqcm.set_global_parameter('continued_fraction')
+model.set_parameter('U', 1)
+I = pyqcm.model_instance(model)
+I.cluster_spectral_function(wmax = 4, plt_ax=plt.gca(), color='r')
+plt.savefig("test_mixing_cf.pdf")
