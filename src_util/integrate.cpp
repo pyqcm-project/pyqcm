@@ -3,6 +3,7 @@
  They provide resources to integrate over frequency and wavevector, or over wavevector alone.
  */
 
+#include <chrono>
 #include "global_parameter.hpp"
 #include "integrate.hpp"
 #include "vector3D.hpp"
@@ -14,6 +15,18 @@
 #endif
 #define CUBA_FLAG 0
 #define GLS_INTERVALS 128
+
+//How does Cuhre parallel integration work ?
+//Cuhre integration rule require multiple evaluation of the integrand
+//depending of the dimension and the rule chosen per sample.
+//In one example, there is 127 evaluations per Cuhre sample
+//The parallelization is achieved by passing the min(127,MAX_EVAL_PER_CORE*OMP_NUM_THREADS)
+//parameters to the integrand function which use OpenMP to evaluate them in parallel.
+//However! Convergence is achieved for a high number of samples, such as
+//30000, which induce a large OpenMP overhead for thread fork/join.
+//Try using another integration lib / algo, such as: 
+// https://github.com/marcpaterno/gpuintegration/tree/master
+#define MAX_EVAL_PER_CORE 100000
 
 
 double small_scale;
@@ -136,13 +149,17 @@ void QCM::wk_integral(int dim, function<void (Complex w, vector3D<double> &k, co
 	w_domain = small_scale;
 	double accur = accuracy*M_PI/w_domain;
 	double fac = w_domain*M_1_PI;
+	auto t1 = std::chrono::high_resolution_clock::now();
 	if(ndim==1){
 		gauss_kronrod(ncomp, low_freq_cuba_integrand, 0, 1, accur, value.data(), false, neval);
 	}
 	else{
-		Cuhre(ndim, ncomp, (integrand_t)low_freq_cuba_integrand, nullptr, cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
+		Cuhre(ndim, ncomp, (integrand_t)low_freq_cuba_integrand, nullptr, MAX_EVAL_PER_CORE*cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
 	}
-	if(verb) cout << "region 1 : " << neval << " evaluations" << endl;
+	auto t2 = std::chrono::high_resolution_clock::now();
+	double seconds = (double) std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() / 1000;
+	if(verb) cout << "region 1 : " << neval << " evaluations in " << seconds << " seconds" << endl;
+
 	for(int i=0; i<ncomp; ++i) Iv[i] += value[i]*fac;
 	
 	//------------------------------------------------------------------------------
@@ -154,13 +171,17 @@ void QCM::wk_integral(int dim, function<void (Complex w, vector3D<double> &k, co
 	fac = w_domain*M_1_PI;
   to_zero(value);
 
+	t1 = std::chrono::high_resolution_clock::now();
 	if(ndim==1){
 		gauss_kronrod(ncomp, mid_freq_cuba_integrand, 0, 1, accur, value.data(), false, neval);
 	}
 	else{
-		Cuhre(ndim, ncomp, (integrand_t)mid_freq_cuba_integrand, nullptr, cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
+		Cuhre(ndim, ncomp, (integrand_t)mid_freq_cuba_integrand, nullptr, MAX_EVAL_PER_CORE*cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
 	}
-	if(verb) cout << "region 2 : " << neval << " evaluations" << endl;
+	t2 = std::chrono::high_resolution_clock::now();
+	seconds = (double) std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() / 1000;
+	if(verb) cout << "region 2 : " << neval << " evaluations in " << seconds << " seconds" << endl;
+
 	for(int i=0; i<ncomp; ++i) Iv[i] += value[i]*fac;
 	
 	//------------------------------------------------------------------------------
@@ -172,13 +193,17 @@ void QCM::wk_integral(int dim, function<void (Complex w, vector3D<double> &k, co
   fac = w_domain*M_1_PI;
   to_zero(value);
   
+	t1 = std::chrono::high_resolution_clock::now();
   if(ndim==1){
     gauss_kronrod(ncomp, high_freq_cuba_integrand, 0, 1, accur, value.data(), false, neval);
   }
   else{
-    Cuhre(ndim, ncomp, (integrand_t)high_freq_cuba_integrand, nullptr, cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
+    Cuhre(ndim, ncomp, (integrand_t)high_freq_cuba_integrand, nullptr, MAX_EVAL_PER_CORE*cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
   }
-  if(verb) cout << "region 3 : " << neval << " evaluations" << endl;
+	t2 = std::chrono::high_resolution_clock::now();
+	seconds = (double) std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() / 1000;
+  if(verb) cout << "region 3 : " << neval << " evaluations in " << seconds << " seconds" << endl;
+
   for(int i=0; i<ncomp; ++i) Iv[i] += value[i]*fac;
 }
 
@@ -211,6 +236,7 @@ void QCM::k_integral(int dim, function<void (vector3D<double> &k, const int *nv,
   
   k_integrand = f;
   
+	auto t1 = std::chrono::high_resolution_clock::now();
   if(dim==1) gauss_kronrod(ncomp, k_cuba_integrand, 0.0, 1.0, accur, value.data(), true, neval);
   else{
     vector<double> prob(ncomp,0);
@@ -222,8 +248,10 @@ void QCM::k_integral(int dim, function<void (vector3D<double> &k, const int *nv,
       cuba_mineval=(int)global_int("cuba3D_mineval");
       cuba_maxpoints=4000000;
     }
-    Cuhre(dim, ncomp, (integrand_t)k_cuba_integrand, nullptr, cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
-	if(verb) cout << "Cuhre  : " << neval << " points in " << nregions << "regions" << endl;
+    Cuhre(dim, ncomp, (integrand_t)k_cuba_integrand, nullptr, MAX_EVAL_PER_CORE*cuba_threads, 1e-10, accur, CUBA_FLAG, cuba_mineval, cuba_maxpoints, 0, "", nullptr, &nregions, &neval, &fail, value.data(), err.data(), prob.data());
+	auto t2 = std::chrono::high_resolution_clock::now();
+	double seconds = (double) std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() / 1000;
+	if(verb) cout << "Cuhre  : " << neval << " points in " << nregions << "regions in " << seconds << " seconds" << endl;
   }
   for(int i=0; i<ncomp; ++i) Iv[i] += value[i];
 }
@@ -306,10 +334,14 @@ void ED::w_integral(function<void (Complex w, const int *nv, double I[])> f, vec
  @param userdata		parameters (not used)
  */
 
-int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, double I[],void *userdata, const int *nvec, const int *core)
+int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, double I[], void* userdata, const int *nvec, const int *core)
 {
+
+  //function<void (Complex w, vector3D<double> &k, const int *nv, double I[])> wk_integrand;
+  //wk_integrand = (function<void (Complex w, vector3D<double> &k, const int *nv, double I[])>) userdata;
+  
   if(*dim==1){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       Complex w(0,x[i]*w_domain);
       vector3D<double> k(0.0,0.0,0.0);
@@ -318,7 +350,7 @@ int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
   }
 
   else if(*dim==2){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[2*i]*w_domain);
 			vector3D<double> k(x[2*i+1],0.0,0.0);
@@ -327,7 +359,7 @@ int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 	}
 	
 	else if(*dim==3){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[3*i]*w_domain);
 			vector3D<double> k(x[3*i+1],x[3*i+2],0.0);
@@ -336,7 +368,7 @@ int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 	}
 	
 	else if(*dim==4){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[4*i]*w_domain);
 			vector3D<double> k(x[4*i+1],x[4*i+2],x[4*i+3]);
@@ -358,7 +390,7 @@ int low_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 int mid_freq_cuba_integrand(const int *dim, const double x[], const int *nv, double I[],void *userdata, const int *nvec, const int *core)
 {
   if(*dim==1){
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       Complex w(0,x[i]*w_domain+small_scale);
       vector3D<double> k(0.0,0.0,0.0);
@@ -367,7 +399,7 @@ int mid_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
   }
 
   else if(*dim==2){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[2*i]*w_domain+small_scale);
 			vector3D<double> k(x[2*i+1],0.0,0.0);
@@ -376,7 +408,7 @@ int mid_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 	}
 	
 	else if(*dim==3){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[3*i]*w_domain+small_scale);
 			vector3D<double> k(x[3*i+1],x[3*i+2],0.0);
@@ -385,7 +417,7 @@ int mid_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 	}
 	
 	else if(*dim==4){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static)
 		for(int i=0; i< *nvec; i++){
 			Complex w(0,x[4*i]*w_domain+small_scale);
 			vector3D<double> k(x[4*i+1],x[4*i+2],x[4*i+3]);
@@ -408,7 +440,7 @@ int mid_freq_cuba_integrand(const int *dim, const double x[], const int *nv, dou
 int high_freq_cuba_integrand(const int *dim, const double x[], const int *nv, double I[], void *userdata, const int *nvec, const int *core){
   
   if(*dim==1){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       double iw = x[i]*w_domain;
       if(iw < iw_cutoff){
@@ -424,7 +456,7 @@ int high_freq_cuba_integrand(const int *dim, const double x[], const int *nv, do
   }
   
   else if(*dim==2){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       double iw = x[2*i]*w_domain;
       if(iw < iw_cutoff){
@@ -440,7 +472,7 @@ int high_freq_cuba_integrand(const int *dim, const double x[], const int *nv, do
   }
   
   else if(*dim==3){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       double iw = x[3*i]*w_domain;
       if(iw < iw_cutoff){
@@ -456,7 +488,7 @@ int high_freq_cuba_integrand(const int *dim, const double x[], const int *nv, do
   }
   
   else if(*dim==4){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       double iw = x[4*i]*w_domain;
       if(iw < iw_cutoff){
@@ -481,21 +513,21 @@ int high_freq_cuba_integrand(const int *dim, const double x[], const int *nv, do
 int k_cuba_integrand(const int *dim, const double x[], const int *nv, double I[], void *userdata, const int *nvec, const int *core){
   
   if(*dim==1){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       vector3D<double> k(x[i],0.0,0.0);
       k_integrand(k,nv,&I[(*nv)*i]);
     }
   }
   else if(*dim==2){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       vector3D<double> k(x[2*i],x[2*i+1],0.0);
       k_integrand(k,nv,&I[(*nv)*i]);
     }
   }
   else if(*dim==3){
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
     for(int i=0; i< *nvec; i++){
       vector3D<double> k(x[3*i],x[3*i+1],x[3*i+2]);
       k_integrand(k,nv,&I[(*nv)*i]);
@@ -518,7 +550,7 @@ int k_cuba_integrand(const int *dim, const double x[], const int *nv, double I[]
 
 int low_freq_w_integrand(const int *dim, const double x[], const int *nv, double I[],void *userdata, const int *nvec, const int *core)
 {
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(static)
 	for(int i=0; i< *nvec; i++){
 		Complex w(0,x[i]*w_domain);
 		w_integrand(w,nv,&I[(*nv)*i]);
@@ -534,7 +566,7 @@ int low_freq_w_integrand(const int *dim, const double x[], const int *nv, double
  */
 int mid_freq_w_integrand(const int *dim, const double x[], const int *nv, double I[],void *userdata, const int *nvec, const int *core)
 {
-  #pragma omp parallel for
+  #pragma omp parallel for schedule(static)
 	for(int i=0; i< *nvec; i++){
 		Complex w(0,x[i]*w_domain+small_scale);
 		w_integrand(w,nv,&I[(*nv)*i]);
@@ -552,7 +584,7 @@ int mid_freq_w_integrand(const int *dim, const double x[], const int *nv, double
  */
 int high_freq_w_integrand(const int *dim, const double x[], const int *nv, double I[], void *userdata, const int *nvec, const int *core){
   
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
 	for(int i=0; i< *nvec; i++){
 		double iw = x[i]*w_domain;
 		if(iw < iw_cutoff){

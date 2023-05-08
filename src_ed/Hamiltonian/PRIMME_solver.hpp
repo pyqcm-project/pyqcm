@@ -152,12 +152,13 @@ void PRIMME_state_solver(
            std::cout << "However, the subspace of evecs is accurate to the required tolerance." << std::endl;
        }
    }
-
-   if (ret != 0) {
-      std::cout << "Error: primme returned with nonzero exit status: " << ret << std::endl;
-   }
    
    primme_free(&primme);
+
+   if (ret != 0) {
+      qcm_ED_throw("Error: primme returned with nonzero exit status: " + to_string(ret));
+   }
+   
 }
 
 
