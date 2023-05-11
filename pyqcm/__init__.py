@@ -609,13 +609,15 @@ class model_instance:
     :ivar boolean is_complex: True if the instance has a complex-valued state, as opposed to real
 
     """
-    
-    def __init__(self, model, label=0):
-        self.label = label
+    count = 0
+
+    def __init__(self, model):
+        self.label = model_instance.count
+        model_instance.count += 1
         self.model = model
-        qcm.new_model_instance(label)
+        qcm.new_model_instance(self.label)
         if self.model.is_closed == False: self.model.finalize()
-        self.is_complex = qcm.complex_HS(label)
+        self.is_complex = qcm.complex_HS(self.label)
 
     #-----------------------------------------------------------------------------------------------
     def __del__(self):
