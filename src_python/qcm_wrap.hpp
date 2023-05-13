@@ -371,7 +371,7 @@ static PyObject*  CDMFT_host_python(PyObject *self, PyObject *args)
       qcm_throw("failed to read parameters in call to CDMFT_host (python)");
     vector<double> _freqs = doubles_from_Py(freqs);
     vector<double> _weights = doubles_from_Py(weights);
-    QCM::CDMFT_host(_freqs, _weights, 0);
+    QCM::CDMFT_host(_freqs, _weights, label);
   }catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("");
 }
@@ -442,7 +442,7 @@ static PyObject*  CDMFT_distance_python(PyObject *self, PyObject *args)
     if(!PyArg_ParseTuple(args, "O|i", &val, &label))
       qcm_throw("failed to read parameters in call to CPT_Green_function (python)");
     vector<double> _val = doubles_from_Py(val);;
-    d = QCM::CDMFT_distance(_val, 0);
+    d = QCM::CDMFT_distance(_val, label);
   }catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("d", d);
 }

@@ -175,7 +175,7 @@ if (DOWNLOAD_CUBA)
 else()
     find_library(CUBA_LIBRARY
         NAMES libcuba.a
-        HINTS "/usr/local/lib" "$ENV{HOME}/lib" "${CMAKE_SOURCE_DIR}/external/cuba/"
+        HINTS "${CUBA_DIR}" "/usr/local/lib" "$ENV{HOME}/lib" "${CMAKE_SOURCE_DIR}/external/cuba/"
     )
 endif()
 
