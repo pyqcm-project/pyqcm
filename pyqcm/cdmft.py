@@ -198,7 +198,7 @@ class CDMFT:
             time_ED += t2 - t1
 
             # optimization of the bath parameters
-            sol, iter_done = optimize(lambda x : qcm.CDMFT_distance(x, 0), params_array, method, initial_step, accur, accur_dist, max_function_eval)
+            sol, iter_done = optimize(lambda x : qcm.CDMFT_distance(x, self.I.label), params_array, method, initial_step, accur, accur_dist, max_function_eval)
             t3 = timeit.default_timer()
             time_MIN += t3 - t2
 
