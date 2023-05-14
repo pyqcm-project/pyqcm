@@ -108,7 +108,7 @@ void model_instance<double>::build_cf(state<double> &Omega, bool spin_down)
 template<>
 void model_instance<Complex>::build_cf(state<Complex> &Omega, bool spin_down)
 {
-  qcm_throw("the use of continued fractions with complex-valued Hamiltonians is not yet ready");
+  // qcm_throw("the use of continued fractions with complex-valued Hamiltonians is not yet ready");
   auto& sym_orb = the_model->sym_orb[mixing];
 
   auto cf = make_shared<continued_fraction_set>(Omega.sec, the_model->group, mixing, true);
@@ -116,8 +116,9 @@ void model_instance<Complex>::build_cf(state<Complex> &Omega, bool spin_down)
   else Omega.gf = cf;
   
   for(size_t r=0; r<sym_orb.size(); r++){
-    for(int pm = -1; pm<2; pm += 2){ // loop over destruction (pm = -1) and creation (pm = +1)
-                                     // constructing the target sector
+    // loop over destruction (pm = -1) and creation (pm = +1)
+    for(int pm = -1; pm<2; pm += 2){ 
+      // constructing the target sector
       sector target_sec = the_model->group->shift_sector(Omega.sec, pm, spin_down, r);
       if(!the_model->group->sector_is_valid(target_sec)) continue; // target sector is null
       
@@ -127,7 +128,7 @@ void model_instance<Complex>::build_cf(state<Complex> &Omega, bool spin_down)
       
       vector<symmetric_orbital>& sorb = sym_orb[r];
       
-      // building the list of pairs
+      // building the list of pairs (for easier parallelization)
       vector<pair<size_t,size_t> > sorb_pair;
       sorb_pair.reserve(sorb.size()*sorb.size());
       
@@ -138,7 +139,7 @@ void model_instance<Complex>::build_cf(state<Complex> &Omega, bool spin_down)
       }
 
       #pragma omp parallel for schedule(dynamic,1) // TEMPO
-      for(size_t s=0; s< sorb_pair.size(); s++){ // double loop over symmetric operators
+      for(size_t s=0; s< sorb_pair.size(); s++){ // single loop over symmetric operators pairs
         size_t o1 = sorb_pair[s].first;
         size_t o2 = sorb_pair[s].second;
         vector<Complex> psi(H->B->dim);
@@ -155,7 +156,7 @@ void model_instance<Complex>::build_cf(state<Complex> &Omega, bool spin_down)
         }
         else if(o1 < o2){
           if(pm==1) the_model->create_or_destroy(pm, sorb2, Omega, psi, Complex(0.0,1.0));
-          else the_model->create_or_destroy(pm, sorb1, Omega, psi, Complex(0.0,-1.0));
+          else the_model->create_or_destroy(pm, sorb2, Omega, psi, Complex(0.0,-1.0));
         }
         
         // normalisation of |x> and storing its norm in "norm"
