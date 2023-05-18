@@ -1030,7 +1030,7 @@ void lattice_model::density_wave(const string &name, vector3D<int64_t> &cdw_link
   }
   
   // loop over sites (bond CDWs)
-  if(dw_type=='L'){
+  if(dw_type=='L' or tmp_op->mixing&HS_mixing::anomalous){
     for(int s1=0; s1 < (int)sites.size(); s1++){
       if(orb >= 0 && sites[s1].orb != orb) continue; // wrong lattice orbital
       vector3D<int64_t>& r = sites[s1].position;

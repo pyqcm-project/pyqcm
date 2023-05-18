@@ -926,13 +926,14 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
         plt.show()
 
 #---------------------------------------------------------------------------------------------------
-def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, **kwargs):
+def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, orb = None, **kwargs):
     """Plots the dispersion relation in the Brillouin zone along a wavevector path
 
     :param str path: wavevector path, as used by the function wavevector_path()
     :param int nk: number of wavevectors on each side of the grid
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param orb: orbital (or sequence of orbitals) to plot. None for all.
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: None
 
@@ -950,13 +951,16 @@ def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, **k
     d = self.model.dimGF_red
     e = self.dispersion(k)
 
-    for i in range(d):
-        ax.plot(e[:,i], **kwargs)
+    if orb == None:
+        orb = range(1,d+1)
+
+    for i in orb:
+        ax.plot(e[:,i-1], label=str(i+1), **kwargs)
 
     if self.model.mixing == 4:
         e = self.dispersion(k, True)
-        for i in range(d):
-            ax.plot(e[:,i], **kwargs)
+        for i in orb:
+            ax.plot(e[:,i-1], label=str(i+1), **kwargs)
 
     
     for x in tick_pos:

@@ -1673,7 +1673,7 @@ def wavevector_path(n=32, shape='triangle'):
 
     """
     if type(shape) is tuple:
-        return __wavevector_line(shape[0], shape[1], n=32)
+        return __wavevector_line(shape[0], shape[1], n)
 
     elif (shape == 'triangle'):
         k = np.zeros((3 * n + 1, 3))
