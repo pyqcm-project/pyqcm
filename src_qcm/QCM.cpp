@@ -49,8 +49,7 @@ void great_reset(){
 
 
 void erase_lattice_model_instance(size_t label){
-    if(lattice_model_instances.find(label) == lattice_model_instances.end()) qcm_throw("The instance # "+to_string(label)+" does not exist.");
-    // lattice_model_instances.at(label).reset();
+    // if(lattice_model_instances.find(label) != lattice_model_instances.end()) lattice_model_instances.erase(label);
     lattice_model_instances.erase(label);
 }
 

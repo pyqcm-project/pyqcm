@@ -29,7 +29,7 @@ with open('fid.tsv', 'w') as fout:
         I1 = pyqcm.model_instance(model) 
         for j,u in enumerate(urange):
             model.set_parameter('U', u)
-            I2 = pyqcm.model_instance(model, label = 1) # call to constructor of class "model_instance"
+            I2 = pyqcm.model_instance(model) # call to constructor of class "model_instance"
             f[i,j] = model.fidelity(I1,I2)
             S = '{:d}\t{:1.2f}\t{:g}'.format(L, u, f[i,j])
             print(S)

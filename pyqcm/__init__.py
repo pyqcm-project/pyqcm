@@ -621,7 +621,6 @@ class model_instance:
 
     #-----------------------------------------------------------------------------------------------
     def __del__(self):
-        print('Erasing model instance with label ', self.label)
         qcm.erase_model_instance(self.label)
 
     #-----------------------------------------------------------------------------------------------

@@ -32,7 +32,7 @@ tb2_1 = 0.5
 """)
 
 I = pyqcm.model_instance(model) # call to constructor of class "model_instance"
-I.spectral_function(path='line')
+I.spectral_function(path='line', file='test_reset1.pdf')
 
 cdmft = CDMFT(model, ('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
 
@@ -68,6 +68,6 @@ tb2_1 = 0.5
 """)
 
 I = pyqcm.model_instance(model) # call to constructor of class "model_instance"
-I.spectral_function(path='line')
+I.spectral_function(path='line', file='test_reset2.pdf')
 
 cdmft = CDMFT(model, ('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
