@@ -469,7 +469,7 @@ def fade(self, task, p1, p2, n):
 
 
 #---------------------------------------------------------------------------------------------------
-def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartree.tsv', SEF=False,double_counting_correct = None, pr = False):
+def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartree.tsv', SEF=False, pr = False):
 	"""
 	Performs the Hartree approximation
 	
@@ -477,7 +477,6 @@ def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartr
 	:param [hartree] couplings: sequence of couplings (or single coupling)
 	:param int maxiter: maximum number of iterations
 	:param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
-	:param [(str,str,str,float,float)] double_counting_correct: double counting corrections (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)    
 	:returns: None
 
 	"""
@@ -499,8 +498,6 @@ def Hartree_procedure(self, task, couplings, maxiter=10, eps_algo=0, file='hartr
 	iter = 0
 	while True:
 		I = task()
-		if double_counting_correct != None:
-			I.double_counting_correct(double_counting_correct)
 		iter += 1
 		pyqcm.banner('Hartree iteration {:d}'.format(iter), '-')
 		diff_tot = 0

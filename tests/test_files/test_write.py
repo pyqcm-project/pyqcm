@@ -1,6 +1,5 @@
 import pyqcm
 from pyqcm.cdmft import CDMFT
-
 from model_graphene_bath import model
 
 # Imposing half-filling at 6 particles in cluster + bath sites and setting total spin to 0
@@ -18,12 +17,18 @@ model.set_parameters("""
     eb2_1=-1.0*eb1_1
 """)
 
+import matplotlib.pyplot as plt
+plt.subplot(2,1,1)
+
 I = pyqcm.model_instance(model)
+I.spectral_function(path='graphene', plt_ax=plt.gca())
+
 I.write_impurity_problem(clus=0, file='impurity.tsv')
 I.write_Green_function(clus=0, file='GF.tsv')
-
 I.write('test.out')
-I.reset()
+plt.subplot(2,1,2)
+I = pyqcm.model_instance(model)
 I.read('test.out')
-
+I.spectral_function(path='graphene', plt_ax=plt.gca())
+plt.savefig('test_write.pdf')
 I.write_Green_function(clus=0, file='GF2.tsv')

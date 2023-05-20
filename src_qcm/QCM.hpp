@@ -28,6 +28,7 @@ struct lattice_matrix_element;
  Interface per se
  */
 namespace QCM{
+  void check_instance(int label);
   void great_reset();
   void erase_lattice_model_instance(size_t label);
   bool complex_HS(size_t label);

@@ -39,8 +39,7 @@ class CDMFT:
     :param boolean verb: If True, prints debugging information
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
     :param boolean compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
-    :param [(str,str,str,float,float)] double_counting_correct: list of recipes for double counting corrections: (kinetic operator, interaction operator, density operator, coefficient, value of the kinetic operator without interaction)    :returns: None
-
+    :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -73,7 +72,7 @@ class CDMFT:
         verb=False,
         max_function_eval = 5000000,
         compute_potential_energy = False,
-        double_counting_correct = None
+        pre_host = None
     ):
 
         self.model =model
@@ -190,8 +189,8 @@ class CDMFT:
             # initializes G_host
             t1 = timeit.default_timer()
             self.grid = frequency_grid(self.I, grid_type, beta, wc)
-            if double_counting_correct != None:
-                self.I.double_counting_correct(double_counting_correct)
+            if pre_host != None:
+                pre_host(self.I)
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
             self.set_Hyb()
             t2 = timeit.default_timer()

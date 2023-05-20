@@ -67,7 +67,7 @@ if cluster:
 else:
     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line')
 
-I = pyqcm.model_instance(model, 1)
+I = pyqcm.model_instance(model)
 pyqcm.set_global_parameter('continued_fraction')
 I = pyqcm.model_instance(model)
 if cluster:

@@ -36,11 +36,12 @@ np.set_printoptions(precision=6, linewidth=200, suppress=True, sign=' ')
 
 ####################################################################################################
 # GLOBAL MODULE VARIABLES
-solver = 'ED'
+
+solver = None
 
 # special wavevectors
-wavevector_M = (2/3)*np.array(( 1, 0, 0))
-wavevector_K = (2/3)*np.array([1,1/np.sqrt(3),0])
+graphene_M = (2/3)*np.array(( 1, 0, 0))
+graphene_K = (2/3)*np.array([1,1/np.sqrt(3),0])
 
 ####################################################################################################
 # EXCEPTIONS
@@ -618,6 +619,10 @@ class model_instance:
         qcm.new_model_instance(self.label)
         if self.model.is_closed == False: self.model.finalize()
         self.is_complex = qcm.complex_HS(self.label)
+
+        # special solver (the function solver(...) must use I.read() at the end)
+        if solver != None:
+            solver(self.I)
 
     #-----------------------------------------------------------------------------------------------
     def __del__(self):
@@ -1391,7 +1396,7 @@ class model_instance:
         Modifies some kinetic parameters in view of the presence of interactions and averages values,
         in order to account minimally for double counting.
 
-        :param [double_counting] DC: list of recipes for the correction: 
+        :param [double_counting] DC: list of recipes for the correction. Each member is an object of the double_counting type.
 
         """
         
@@ -1438,8 +1443,8 @@ class model_instance:
 class double_counting:
     """
     Class used to correct the value of band energies and chemical potential as a function of interaction strength
-    .. math::  \delta e = c V \\langle n\\rangle    
-
+    
+    .. math::  e = e_0 + c V \\langle n\\rangle    
 
     :param str e: name of the kinetic operator to shift (e.g. a band energy)
     :param str V: name of the interaction operator causing the shift
