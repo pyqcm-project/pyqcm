@@ -627,6 +627,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     def __del__(self):
         qcm.erase_model_instance(self.label)
+        print("lattice model instance #", self.label, " deleted")
 
     #-----------------------------------------------------------------------------------------------
     def reset(self):

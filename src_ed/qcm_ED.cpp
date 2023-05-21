@@ -60,7 +60,13 @@ namespace ED{
     qcm_ED_throw("The cluster instance label "+to_string(label)+" is out of range.");
   }
   
-  
+  void erase_model_instance(size_t label){
+    // if(lattice_model_instances.find(label) != lattice_model_instances.end()) lattice_model_instances.erase(label);
+    model_instances.erase(label);
+}
+
+
+
   
   void new_operator(const string &model_name, const string &_name, const string &_type, const vector<matrix_element<double>> &elements)
   {
@@ -122,8 +128,11 @@ namespace ED{
     if(models.find(model_name) == models.end()) qcm_ED_throw("The model "+model_name+" is not defined and so no model instance based on it is allowed.");
     model& mod = *models.at(model_name);
     if(mod.is_closed == false) mod.is_closed = true;
+
+    // check_instance(label);
+    model_instances.erase(label);
     
-    // first, remove values associated with non existent
+    // first, remove values associated with non existent operators
     auto it = param.begin();
     while(it != param.end()){
       if(mod.term.find(it->first) == mod.term.end()){
@@ -133,35 +142,19 @@ namespace ED{
     }
     
     // need to know whether the instance is complex or real
-    if(model_instances.find(label) != model_instances.end()) need_complex = model_instances[label]->complex_Hilbert;
-    else{
-      for(auto& v : param){
-        if(v.second != 0 and mod.term.at(v.first)->is_complex){
-          need_complex = true;
-          break;
-        }
+    for(auto& v : param){
+      if(v.second != 0 and mod.term.at(v.first)->is_complex){
+        need_complex = true;
+        break;
       }
     }
     // decides whether the sector set requires a complex Hilbert space
     if(mod.group->has_complex_irrep) need_complex = true;
     
-    bool identical = false;
-    if(model_instances.find(label) != model_instances.end()){
-      auto I = model_instances.at(label);
-      if(I->gf_solved){
-        bool identical = true;
-        // comparing parameters with previous instance of the same label
-        for(auto &x : param){
-          if(abs(I->value[x.first] - param[x.first]) > SMALL_VALUE) {identical = false; break;}
-        }
-        if(identical) cout << "No new instance needed for cluster " << I->the_model->name << ". Same instance re-used" << endl;
-      }
-      if(!identical) model_instances[label].reset();
-    }
-    if(!identical){
-      if(need_complex) model_instances[label] = make_shared<model_instance<Complex>>(label, models.at(model_name), param, sec);
-      else model_instances[label] = make_shared<model_instance<double>>(label, models.at(model_name), param, sec);
-    }
+    if(need_complex) 
+      model_instances[label] = make_shared<model_instance<Complex>>(label, models.at(model_name), param, sec);
+    else model_instances[label] = make_shared<model_instance<double>>(label, models.at(model_name), param, sec);
+    cout << "cluster instance #" << label << " created" << endl; // TEMPO
   }
   
   

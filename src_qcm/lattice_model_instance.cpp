@@ -67,8 +67,6 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
 	if(model->GF_offset.size() == 0) model->post_parameter_consolidate(label);
 }
 
-
-
 //==============================================================================
 /** 
  finds the ground states of all clusters

@@ -19,6 +19,7 @@
 #include "qcm_ED.hpp"
 #include "parameter_set.hpp"
 #include "model.hpp"
+#include "model_instance_base.hpp"
 
 //==============================================================================
 // global variables
@@ -27,6 +28,7 @@ shared_ptr<lattice_model> qcm_model = nullptr; // pointer to the unique lattice 
 map<int, unique_ptr<lattice_model_instance>> lattice_model_instances; // list of instances
 
 extern map<string, shared_ptr<model>> models;
+extern map<size_t, shared_ptr<model_instance_base>> model_instances;
 
 //==============================================================================
 namespace QCM{
@@ -49,7 +51,8 @@ void great_reset(){
 
 
 void erase_lattice_model_instance(size_t label){
-    // if(lattice_model_instances.find(label) != lattice_model_instances.end()) lattice_model_instances.erase(label);
+    size_t n_clus = qcm_model->clusters.size();
+    for(size_t i=0; i < n_clus; i++) model_instances.erase(label*n_clus+i);
     lattice_model_instances.erase(label);
 }
 

@@ -80,6 +80,8 @@ namespace ED{
    */
   void new_model_instance(const string &model_name, map<string, double> &param, const string &sec, size_t label);
   
+  void erase_model_instance(size_t label);
+
   
   /**
    function that returns the mixing state of the instance
