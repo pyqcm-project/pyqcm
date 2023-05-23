@@ -65,8 +65,18 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
     model->clusters[i].mixing = ED::mixing(label*n_clus+i);
   }
 	if(model->GF_offset.size() == 0) model->post_parameter_consolidate(label);
+  #ifdef QCM_DEBUG
+  cout << "lattice model instance " << label << " created" << endl;
+  #endif
 }
 
+
+lattice_model_instance::~lattice_model_instance()
+{
+  #ifdef QCM_DEBUG
+    cout << "lattice model instance #" << label << " deleted." << endl;
+  #endif
+}
 //==============================================================================
 /** 
  finds the ground states of all clusters
@@ -651,7 +661,7 @@ vector<pair<vector<double>, vector<double>>> lattice_model_instance::Lehmann_Gre
 //==============================================================================
 /** 
  upgrades a cluster Green function g from its native mixing clus_mix to the 
- lattice model's mixing latt_mix. No additional anomalous component required. 
+ lattice model mixing latt_mix. No additional anomalous component required. 
  @param latt_mix [in] mixing state of the lattice model
  @param clus_mix [in] mixing state of the cluster
  @param g [in] the cluster Green function 

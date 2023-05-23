@@ -101,10 +101,19 @@ model_instance_base::model_instance_base(size_t _label, shared_ptr<model> _the_m
     }
   }catch(const string& s) {qcm_ED_catch(s);}
   
+  #ifdef QCM_DEBUG
+  cout << "cluster model instance " << label << " created" << endl;
+  #endif
 
 }
 
 
+model_instance_base::~model_instance_base()
+{
+  #ifdef QCM_DEBUG
+    cout << "cluster model instance #" << label << " deleted." << endl;
+  #endif
+}
 
 
 /**

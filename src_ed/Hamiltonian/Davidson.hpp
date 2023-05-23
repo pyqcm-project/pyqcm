@@ -13,7 +13,6 @@
 
 #define FACTOR 4
 #define TINY 1e-14
-// #define DEBUGD // uncomment this line for debugging the method
 
 //! Davidson algorithm for finding multiple eigenpairs
 /**
@@ -94,7 +93,7 @@ void Davidson(T &hamil, size_t dim, size_t K, vector<double> &val, vector<vector
 		// STEP B
 		// eigenvalues and eigenvectors of bhb
 		
-#ifdef DEBUGD
+#ifdef DAVIDSON_DEBUG
 		cout << "--------------------------------------------\n";
 		cout << "iteration " << iter << endl;
 		cout << "b vectors:\n";
@@ -114,7 +113,7 @@ void Davidson(T &hamil, size_t dim, size_t K, vector<double> &val, vector<vector
 			for(size_t p=0; p<b.size(); p++) mult_add(a(p,k), b[p], x[k]);
 		}
 		
-#ifdef DEBUGD
+#ifdef DAVIDSON_DEBUG
 		cout << "bhb eigenvalues: " << mu << endl;
 		cout << "bhb eigenvectors:\n" << a << endl;
 		cout << "current eigenvectors:\n";
@@ -133,7 +132,7 @@ void Davidson(T &hamil, size_t dim, size_t K, vector<double> &val, vector<vector
 			for(size_t p=0; p<b.size(); p++) mult_add(a(p,k), h[p], r_tmp);
 			mult_add(-mu[k]*HilbertField(1.0), x[k], r_tmp);
 			residuals[k] = norm(r_tmp);
-#ifdef DEBUGD
+#ifdef DAVIDSON_DEBUG
 			cout << "no " << k << "\tnorm = " << residuals[k]  << endl;
 #endif
 			if(residuals[k] > accuracy){
@@ -186,7 +185,7 @@ void Davidson(T &hamil, size_t dim, size_t K, vector<double> &val, vector<vector
 		
 		if(b.size() == K) break;
 		
-#ifdef DEBUGD
+#ifdef DAVIDSON_DEBUG
 		matrix<HilbertField> bb(b.size());
 		for(size_t i=0; i<b.size(); i++){
 			bb(i,i) = b[i]*b[i];

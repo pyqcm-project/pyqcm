@@ -25,6 +25,10 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -ftree-vectorize")
 endif()
 
+if(QCM_DEBUG)
+    add_definitions(-DQCM_DEBUG)
+endif()
+
 #------------------
 # Define target 
 #------------------

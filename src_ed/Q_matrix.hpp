@@ -73,6 +73,9 @@ Q_matrix<HilbertField>::Q_matrix(const vector<double>& _e, const matrix<HilbertF
   assert(e.size() == v.r);
   L = v.c;
   M = e.size();
+  #ifdef QCM_DEBUG
+    cout << "Q-matrix built from array with " << L << " sites and " << M << " lines" << endl;
+  #endif
 }
 
 /**
@@ -93,6 +96,9 @@ Q_matrix<HilbertField>::Q_matrix(std::istream &flux){
     flux >> e[i];
     for(j=0; j<L; ++j) flux >> v(j,i);
   }
+  #ifdef QCM_DEBUG
+    cout << "Q-matrix read from file with " << L << " sites and " << M << " lines" << endl;
+  #endif
 }
 
 

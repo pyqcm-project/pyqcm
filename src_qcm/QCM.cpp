@@ -52,7 +52,10 @@ void great_reset(){
 
 void erase_lattice_model_instance(size_t label){
     size_t n_clus = qcm_model->clusters.size();
-    for(size_t i=0; i < n_clus; i++) model_instances.erase(label*n_clus+i);
+    for(size_t i=0; i < n_clus; i++){
+      model_instances.erase(label*n_clus+i);
+      // cout << "cluster instance " << label*n_clus+i << " deleted" << endl;
+    }
     lattice_model_instances.erase(label);
 }
 
@@ -137,7 +140,9 @@ void erase_lattice_model_instance(size_t label){
    */
   map<string,double> instance_parameters(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->params;
   }
 
@@ -148,7 +153,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<double> momentum_profile(const string& op, const vector<vector3D<double>> &k_set, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     if(qcm_model->term.find(op) == qcm_model->term.end()) qcm_throw("The lattice operator "+op+" does not exist.");
     return lattice_model_instances.at(label)->momentum_profile_per(*qcm_model->term.at(op), k_set);
   }
@@ -161,7 +168,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<pair<double,string>> ground_state(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->ground_state();
   }
   
@@ -173,7 +182,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> cluster_Green_function(size_t i, complex<double> w, bool spin_down, int label, bool blocks)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->cluster_Green_function(i, w, spin_down, blocks);
   }
   
@@ -184,7 +195,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> cluster_self_energy(size_t i, complex<double> w, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->cluster_self_energy(i, w, spin_down);
   }
   
@@ -196,7 +209,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> cluster_hopping_matrix(size_t i, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->cluster_hopping_matrix(i, spin_down);
   }
   
@@ -210,7 +225,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> hybridization_function(complex<double> w, bool spin_down, size_t i, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->hybridization_function(i, w, spin_down);
   }
   
@@ -222,7 +239,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> CPT_Green_function(const complex<double> w, const vector3D<double> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances.at(label)->model;
     vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
@@ -238,7 +257,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<matrix<complex<double>>> CPT_Green_function(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances[label]->model;
     vector<vector3D<double>> K(k.size());
     for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
@@ -259,7 +280,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> V_matrix(const complex<double> w, const vector3D<double> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances.at(label)->model;
     vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
@@ -275,7 +298,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<matrix<complex<double>>> CPT_Green_function_inverse(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances[label]->model;
     vector<vector3D<double>> K(k.size());
     for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
@@ -299,7 +324,9 @@ void erase_lattice_model_instance(size_t label){
  */
   matrix<complex<double>> tk(const vector3D<double> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances.at(label)->model;
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(Complex(0,0.1), false, spin_down);
     Green_function_k M(G, k);
@@ -316,7 +343,9 @@ void erase_lattice_model_instance(size_t label){
  */
   vector<matrix<complex<double>>> tk(const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances[label]->model;
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(Complex(0., 0.1), false, spin_down);
     vector<matrix<Complex>> R(k.size());
@@ -334,7 +363,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<double> dos(const complex<double> w, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->dos(w);
   }
   
@@ -344,7 +375,9 @@ void erase_lattice_model_instance(size_t label){
    */
   double spectral_average(const string& name, const complex<double> w, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->spectral_average(name, w);
   }
 
@@ -356,7 +389,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> periodized_Green_function(const complex<double> w, const vector3D<double> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     vector3D<double> K = qcm_model->superdual.to(qcm_model->physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     Green_function_k M(G, K);
@@ -371,7 +406,9 @@ void erase_lattice_model_instance(size_t label){
    */
   matrix<complex<double>> band_Green_function(const complex<double> w, const vector3D<double> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     vector3D<double> K = qcm_model->superdual.to(qcm_model->physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     Green_function_k M(G, K);
@@ -389,7 +426,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<matrix<complex<double>>> periodized_Green_function(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     vector<vector3D<double>> K(k.size());
     for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
@@ -410,7 +449,9 @@ void erase_lattice_model_instance(size_t label){
    */
   vector<matrix<complex<double>>> band_Green_function(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     vector<vector3D<double>> K(k.size());
     for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
@@ -431,7 +472,9 @@ void erase_lattice_model_instance(size_t label){
   */
 vector<complex<double>> periodized_Green_function_element(int r, int c, const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
 {
-  check_instance(label);
+  #ifdef QCM_DEBUG
+check_instance(label);
+#endif
   vector<vector3D<double>> K(k.size());
   for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
   Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
@@ -454,9 +497,13 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   vector<vector<double>> dispersion(const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances.at(label)->model;
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model_instance& inst = *lattice_model_instances.at(label);
     
     vector<vector3D<double>> K(k.size());
@@ -481,7 +528,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   vector<matrix<complex<double>>> self_energy(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model& mod = *lattice_model_instances.at(label)->model;
     vector<vector3D<double>> K(k.size());
     for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
@@ -504,7 +553,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   double Potthoff_functional(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->Potthoff_functional();
   }
   
@@ -515,7 +566,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   double potential_energy(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->potential_energy();
   }
   
@@ -594,7 +647,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   double Berry_flux(vector<vector3D<double>>& k, int orb, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->Berry_flux(k, orb, false);
   }
 
@@ -613,7 +668,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   vector<double> Berry_curvature(vector3D<double>& k1, vector3D<double>& k2, int nk, int orb, bool rec, int dir, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->Berry_curvature(k1, k2, nk, orb, rec, dir);
   }
   
@@ -628,7 +685,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   pair<string,string> properties(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = *lattice_model_instances[label];
     M.print_info();
     return {M.line_info_names, M.line_info_values};
@@ -834,7 +893,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
    */
   pair<vector<array<double,9>>, vector<array<complex<double>, 11>>> site_and_bond_profile(int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = *lattice_model_instances[label];
     return M.site_and_bond_profile();
   }
@@ -846,14 +907,18 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
  */
   vector<pair<vector<double>, vector<double>>> Lehmann_Green_function(vector<vector3D<double>> &k, int orb, bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     for(size_t i = 0; i< k.size(); i++) k[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
     return lattice_model_instances[label]->Lehmann_Green_function(k, orb, spin_down);
   }
 
 
   void Green_function_solve(int label){
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model_instances.at(label)->Green_function_solve();  
   }
 
@@ -864,13 +929,17 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
 
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     lattice_model_instances.at(label)->CDMFT_Host(freqs, weights); 
   }
 
   vector<vector<matrix<Complex>>> get_CDMFT_host(bool spin_down, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->get_CDMFT_host(spin_down); 
   }
 
@@ -878,14 +947,18 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
 
   double CDMFT_distance(const vector<double>& p, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->CDMFT_distance(p); 
   }
 
 
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->monopole(k, a, nk, orb, rec); 
   }
 
@@ -903,7 +976,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
 
     bool complex_HS(size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return lattice_model_instances.at(label)->complex_HS;
   }
 

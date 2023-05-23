@@ -47,40 +47,16 @@ struct state
     sec = sector(input[0]);
     energy = from_string<double>(input[1]);
     weight = from_string<double>(input[2]);
-    if(GF_solver == GF_format_BL) gf = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(fin, group, mixing));
-    else gf = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
+    // if(GF_solver == GF_format_BL) gf = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(fin, group, mixing));
+    if(GF_solver == GF_format_BL) gf = make_shared<Q_matrix_set<HilbertField>>(fin, group, mixing);
+    else if(GF_solver == GF_format_CF) gf = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
+    else qcm_ED_throw("unkown Green function solver (GF_solver)");
     if(mixing&HS_mixing::up_down){
       if(GF_solver == GF_format_BL) gf_down = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(fin, group, mixing));
-      else gf_down = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
+      else if(GF_solver == GF_format_CF) gf_down = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
     }
   }
   
-
-  /**
-  constructor from a continued fraction solution from a previous computation
-   */
-  state(shared_ptr<symmetry_group> group , int mixing, const double ener, const double _weight, const string& _sec, const vector<vector<double>> &a, const vector<vector<double>> &b)
-  : energy(ener), weight(_weight), sec(sector(_sec))
-  {
-    gf = shared_ptr<continued_fraction_set>(new continued_fraction_set(sec, group, mixing, a, b, typeid(HilbertField) == typeid(Complex)));
-    if(mixing&HS_mixing::up_down){
-      // TEMPO : completer pour down. Arguments supplementaires ou integres dans A et B ?
-      gf_down = shared_ptr<continued_fraction_set>(new continued_fraction_set(sec, group, mixing, a, b, typeid(HilbertField) == typeid(Complex)));
-    }
-  }
-
-
-  /**
-  constructor from a q-matrix solution from a previous computation
-   */
-  state(shared_ptr<symmetry_group> group , int mixing, const double ener, const double _weight, const string& _sec, const vector<vector<double>> &e, const vector<matrix<HilbertField>> &q)  : energy(ener), weight(_weight), sec(sector(_sec))
-  {
-    gf = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(sec, group, mixing, e, q));
-    if(mixing&HS_mixing::up_down){
-      // TEMPO : completer pour down. Arguments supplementaires ou integres dans A et B ?
-      gf_down = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(sec, group, mixing, e, q));
-    }
-  }
 
 
   /**

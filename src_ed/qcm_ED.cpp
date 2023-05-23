@@ -129,7 +129,6 @@ namespace ED{
     model& mod = *models.at(model_name);
     if(mod.is_closed == false) mod.is_closed = true;
 
-    // check_instance(label);
     model_instances.erase(label);
     
     // first, remove values associated with non existent operators
@@ -154,7 +153,6 @@ namespace ED{
     if(need_complex) 
       model_instances[label] = make_shared<model_instance<Complex>>(label, models.at(model_name), param, sec);
     else model_instances[label] = make_shared<model_instance<double>>(label, models.at(model_name), param, sec);
-    cout << "cluster instance #" << label << " created" << endl; // TEMPO
   }
   
   
@@ -168,7 +166,9 @@ namespace ED{
     
   bool complex_HS(size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return model_instances.at(label)->complex_Hilbert;
   }
   
@@ -176,7 +176,9 @@ namespace ED{
 
   pair<double, string> ground_state_solve(size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     
     pair<double, string> gs;
     gs = model_instances.at(label)->low_energy_states();
@@ -187,7 +189,9 @@ namespace ED{
   
   vector<tuple<string,double,double>>  cluster_averages(size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     
     auto& M = model_instances.at(label);
     if(!M->gs_solved) M->low_energy_states();
@@ -198,7 +202,9 @@ namespace ED{
   
   pair<matrix<Complex>, vector<uint64_t>>  density_matrix(const vector<int> &sites, size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
 
     assert(M->complex_Hilbert == false);
@@ -211,7 +217,9 @@ namespace ED{
 
   void Green_function_solve(size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     model_instances.at(label)->Green_function_solve();
   }
   
@@ -219,7 +227,9 @@ namespace ED{
   
   matrix<complex<double>> Green_function(const Complex &z, bool spin_down, const size_t label, bool blocks)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     return model_instances.at(label)->Green_function(z, spin_down, blocks);
   }
 
@@ -227,7 +237,9 @@ namespace ED{
 
   matrix<complex<double>> Green_function_average(bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     Green_function_solve(label);
     if(spin_down) return model_instances.at(label)->M_down;
     else return model_instances.at(label)->M;
@@ -274,7 +286,9 @@ namespace ED{
   
   vector<complex<double>> susceptibility(const string &op, const vector<Complex> &w, const size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     if(M->the_model->term.find(op) == M->the_model->term.end()) qcm_ED_throw("Operator "+op+" is not defined in the model.");
     return model_instances.at(label)->susceptibility(M->the_model->term.at(op), w);
@@ -283,7 +297,9 @@ namespace ED{
   
   
   vector<pair<double,double>> susceptibility_poles(const string &op, const size_t label){
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     if(M->the_model->term.find(op) == M->the_model->term.end()) qcm_ED_throw("Operator "+op+" is not defined in the model.");
     return model_instances.at(label)->susceptibility_poles(M->the_model->term.at(op));
@@ -348,15 +364,22 @@ namespace ED{
   
   void read_instance(istream& fin, int label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     M->read(fin);
+    #ifdef QCM_DEBUG
+    cout << "cluster instance " << label << " read from file" << endl;
+    #endif
   }
   
   
   pair<vector<double>, vector<complex<double>>> qmatrix(bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     if(!M->complex_Hilbert){
       return dynamic_pointer_cast<model_instance<double>>(M)->qmatrix(spin_down);
@@ -367,7 +390,9 @@ namespace ED{
   
   pair<vector<double>, vector<complex<double>>> hybridization(bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     if(!M->complex_Hilbert){
       dynamic_pointer_cast<model_instance<double>>(M)->hybridization(spin_down);
@@ -377,7 +402,9 @@ namespace ED{
 
   string print_wavefunction(const size_t label)
   {
+    #ifdef QCM_DEBUG
     check_instance(label);
+    #endif
     auto& M = model_instances.at(label);
     ostringstream sout;
     M->print_wavefunction(sout);

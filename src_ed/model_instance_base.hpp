@@ -43,7 +43,8 @@ struct model_instance_base
   double GF_density; //!> density from the Green function
 
   model_instance_base(size_t _label, shared_ptr<model> _the_model, const map<string,double> _value, const string &_sectors);
-  
+  ~model_instance_base();
+
   string full_name();
   size_t dimension();
   

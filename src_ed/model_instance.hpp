@@ -560,7 +560,7 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
 template<typename HilbertField>
 void model_instance<HilbertField>::Green_function_average()
 {
-  // if(!gf_solved and !gf_read) Green_function_solve();
+  // if(!gf_solved) Green_function_solve();
   block_matrix<Complex> G(the_model->group->site_irrep_dim*n_mixed);
   for(auto& x : states) x->gf->integrated_Green_function(G);
   the_model->group->to_site_basis(G, M, n_mixed);
@@ -1121,8 +1121,15 @@ void model_instance<HilbertField>::read(istream& fin)
   M.set_size(dim_GF);
   if(mixing&HS_mixing::up_down) M_down.set_size(dim_GF);
   Green_function_average();
+  #ifdef QCM_DEBUG
+  cout << "Green_function_average() done" << endl;
+  #endif
   Green_function_density();
+  #ifdef QCM_DEBUG
+  cout << "Green_function_density() done" << endl;
+  #endif
   gf_read = true;
+  gf_solved = true;
 }
 
 
