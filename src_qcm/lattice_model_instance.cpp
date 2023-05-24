@@ -576,7 +576,7 @@ void lattice_model_instance::print_info()
     ostr2 << setprecision(print_precision) << gs[i].first << '\t' << gs[i].second << '\t';
     if(gf_solved){
       ostr1 << "n_" << i+1 << '\t';
-      ostr2 << setprecision(print_precision) << ED::Green_function_density(i) << '\t';
+      ostr2 << setprecision(print_precision) << ED::Green_function_density(n_clus*label+i) << '\t';
     }
   }
   line_info_names = ostr1.str();

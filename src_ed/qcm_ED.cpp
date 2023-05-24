@@ -248,30 +248,45 @@ namespace ED{
   
   double Green_function_density(const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->GF_density;
   }
 
 
   matrix<complex<double>> self_energy(const Complex &z, bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->self_energy(z, spin_down);
   }
   
   
   matrix<complex<double>> hopping_matrix(bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->hopping_matrix(spin_down);
   }
   
   
   matrix<complex<double>> hopping_matrix_full(bool spin_down, bool diag, const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->hopping_matrix_full(spin_down, diag);
   }
   
   
   vector<tuple<int,int,double>> interactions(const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->interactions();
   }
 
@@ -279,6 +294,9 @@ namespace ED{
 
   matrix<complex<double>> hybridization_function(const Complex w, bool spin_down, const size_t label)
   {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
     return model_instances.at(label)->hybridization_function(w, spin_down);
   }
   
