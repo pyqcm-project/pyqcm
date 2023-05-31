@@ -2,19 +2,25 @@
 
 ## Default installation using pip
 
-This is the easiest installation of PyQCM suitable for all user.
-It builds the PyQCM library and download runtime dependencies automatically using default system compiler and library.
+This is the easiest installation of PyQCM suitable for all users.
+It builds the PyQCM library and downloads runtime dependencies automatically using the default system compiler and libraries.
 
-0. Install build system CMake (may change depending of your system):
+1. Install CMake (may change depending of your system):
+On Ubuntu:
 ```
-sudo apt install cmake #for Ubuntu
+sudo apt install cmake
+```
+On MacOS:
+```
+brew install cmake
 ```
 
-1. Open a terminal and clone PyQCM Git repository:
+
+2. Open a terminal and clone the Pyqcm Git repository:
 
 ```
 git clone https://bitbucket.org/dsenechQCM/qcm_wed.git
-cd qcm_wed #enter cloned repository
+cd qcm_wed
 ```
 
 2. Configure Pyqcm to use whether or not optional dependencies (optional, see below):
@@ -34,7 +40,7 @@ The code's documentation can be built by going to the "docs" directory and typin
 By default this produces a web site within the "html" folder. Open the file "html/index.html".
 Alternatively, one can acccess the documentation at
 
-https://dsenech.github.io/qcm_wed_doc/
+https://qcm-wed.readthedocs.io/en/latest/
 
 ## Build options
 
@@ -42,7 +48,7 @@ Additional options for building the code are described in the introduction secti
 
 * ``-DDOWNLOAD_CUBA=0/1``: Specify to download and compile automatically the CUBA integration library.
 * ``-DCUBA_DIR=[path_to_CUBA_root_dir]``: If CUBA not downloaded from above, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library ``libcuba.a`` along with the header ``cuba.h``).
-* ``-DBLA_VENDOR=[value]``: BLAS implementation to use. See `CMake vendor documentation <https://cmake.org/cmake/help/latest/module/FindBLAS.html?highlight=bla_vendor#blas-lapack-vendors>`_ for more information (recommended: do not specify or ``FlexiBLAS`` on Alliance cluster).
+* ``-DBLA_VENDOR=[value]``: BLAS implementation to use. See `CMake vendor documentation <https://cmake.org/cmake/help/latest/module/FindBLAS.html?highlight=bla_vendor#blas-lapack-vendors>`_ for more information (recommended: do not specify or ``FlexiBLAS`` on Digital Alliance clusters in Canada). Otherwise install LAPACK/BLAS on your system and cmake will probably find it. For MacOS : will use the Accelerate Framework automatically.
 * ``-DEIGEN_HAMILTONIAN=0/1``: Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine (require `Eigen library <https://eigen.tuxfamily.org/index.php?title=Main_Page>`_).
 * ``-DWITH_PRIMME=0/1``: Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs ``-DEIGEN_HAMILTONIAN=1``).
 * ``-DDOWNLOAD_PRIMME=0/1``: Specify to download and compile automatically the PRIMME eigensolver library (needs ``-DWITH_PRIMME=1``).
@@ -54,30 +60,6 @@ Additional options for building the code are described in the introduction secti
 These instructions allow a finely tunned compilation of the qcm library and dependencies for better performance.
 Library and dependencies compilation and installation are no more handled automatically.
 
-### Pyqcm
-
-1. Clone PyQCM:
-
-```
-git clone https://bitbucket.org/dsenechQCM/qcm_wed.git
-```
-
-3. Configure and compile QCM library:
-
-```
-cd qcm_wed 
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCUBA_DIR=../Cuba-4.2.2 [...] #see build options above
-make -j4
-cp ./qcm.so.1.0 ../pyqcm/qcm.so
-```
-
-4. Run `setup.py` script to install the python library:
-
-```
-cd .. #exit build and go in source qcm dirs
-python setup.py --skip-cmake install --user
-```
 
 ### CUBA numerical integration library
 
@@ -120,6 +102,29 @@ Or, on MacOS with:
 brew install eigen
 ```
 
+### Pyqcm
+
+1. Clone PyQCM:
+
+```
+git clone https://bitbucket.org/dsenechQCM/qcm_wed.git
+```
+
+3. Configure and compile QCM library:
+
+```
+cd qcm_wed 
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCUBA_DIR=../Cuba-4.2.2 [...] #see build options above
+cmake --build .
+cp ./qcm* ../pyqcm/.
+```
+
+4. Add the source directory (qcm_wed) to your PYTHONPATH:
+
+```
+export PYTHONPATH="$HOME/qcm_wed:$PYTHONPATH"
+```
 
 ## Tips for compilation on Compute Canada server (not up to date)
 

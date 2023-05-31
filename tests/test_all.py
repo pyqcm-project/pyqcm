@@ -20,7 +20,7 @@ for file in os.listdir(f"{SCRIPT_DIR}/test_files"): # finds all test files in th
 def run_file(test_name):
     """Runs a file of a given name inside the testing directory. Mostly aesthetic.
     """
-    return os.system(f"python {SCRIPT_DIR}/test_files/{test_name}")
+    return os.system(f"python3 {SCRIPT_DIR}/test_files/{test_name}")
 
 
 class TestAll(unittest.TestCase):

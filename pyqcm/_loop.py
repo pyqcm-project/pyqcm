@@ -34,7 +34,7 @@ def _poly_predictor(X,Y,i,n):
 
 #---------------------------------------------------------------------------------------------------
 def loop_from_file(self, task, file):
-	"""Performs a task 'task' over a set of instances defined in a file. The definition of each
+	"""Performs a task 'task' over a set of model parameters defined in a file. The definition of each
 	model instance must be done in the task 'task'; it is not done by this looping function.
 
 	:param task: function (task) to perform

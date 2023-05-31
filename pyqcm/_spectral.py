@@ -969,7 +969,7 @@ def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, orb
     
     ax.set_xticks(tick_pos)
     ax.set_xticklabels(tick_str)
-    ax.set_xlim(0,len(k))
+    ax.set_xlim(0,len(k)-1)
 
     if file is not None:
         plt.savefig(file)

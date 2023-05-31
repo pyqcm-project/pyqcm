@@ -638,16 +638,17 @@ class model_instance:
         self.is_complex = qcm.complex_HS(self.label)
 
     #-----------------------------------------------------------------------------------------------
-    def susceptibility_poles(self, op_name):
+    def susceptibility_poles(self, op_name, clus=0):
         """
         Computes the Lehmann representation of the dynamic susceptibility of an operator
 
         :param str name: name of the operator
+        :param int clus: label of the cluster (starts at 0)
         :returns [(float,float)]: array of 2-tuple (pole, residue)
 
         """
 
-        return qcm.susceptibility_poles(op_name, self.label)
+        return qcm.susceptibility_poles(op_name, self.label*self.model.nclus + clus)
 
     #-----------------------------------------------------------------------------------------------
     def susceptibility(self, op_name, freqs):
@@ -1653,7 +1654,7 @@ def get_global_parameter(name, value=None):
 #---------------------------------------------------------------------------------------------------
 def __wavevector_line(k1, k2, n=32):
     """
-    Builds a wavevector path and associated tick marks for a straight path between k1 and k2 with n points
+    Builds a wavevector path and associated tick marks for a straight path between k1 and k2 with n intervals (n+1 points)
     
     :param (float) k1 : starting wavevector
     :param (float) k2 : ending wavevector
@@ -1661,7 +1662,7 @@ def __wavevector_line(k1, k2, n=32):
     :returns tuple: 1) a ndarray of wavevectors 2) a list of tick positions 3) a list of tick strings
 
     """
-    ticks = np.array([0, n + 1])
+    ticks = np.array([0, n])
     tick_labels = [str(k1), str(k2)]
     k1 = np.array(k1)
     k2 = np.array(k2)
