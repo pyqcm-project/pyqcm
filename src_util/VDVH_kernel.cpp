@@ -80,7 +80,19 @@ void kernel_avx2(Complex* G, const double* V, const Complex* D, const int x, con
   double* _G = (double*) G;
   for (int j = 0; j < KERNEL_WIDTH_D; j++) {
     for (int i = 0; i < KERNEL_HEIGH_D; i++) {
-      if (x+i > y+2*j) {
+      if (x+i > y+2*j+1) {
+        _G[2*(x+i + (y+2*j+1)*L)] += res[i][j][2]; //lower triangle
+        _G[2*(x+i + (y+2*j+1)*L)+1] += res[i][j][3];
+        _G[2*(y+2*j+1 + (x+i)*L)] += res[i][j][2]; //upper triangle
+        _G[2*(y+2*j+1 + (x+i)*L)+1] += res[i][j][3];
+        _G[2*(x+i + (y+2*j)*L)] += res[i][j][0]; //lower triangle
+        _G[2*(x+i + (y+2*j)*L)+1] += res[i][j][1];
+        _G[2*(y+2*j + (x+i)*L)] += res[i][j][0]; //upper triangle
+        _G[2*(y+2*j + (x+i)*L)+1] += res[i][j][1];
+      }
+      else if (x+i == y+2*j+1) {
+        _G[2*(x+i + (y+2*j+1)*L)] += res[i][j][2]; //diagonal
+        _G[2*(x+i + (y+2*j+1)*L)+1] += res[i][j][3];
         _G[2*(x+i + (y+2*j)*L)] += res[i][j][0]; //lower triangle
         _G[2*(x+i + (y+2*j)*L)+1] += res[i][j][1];
         _G[2*(y+2*j + (x+i)*L)] += res[i][j][0]; //upper triangle
@@ -89,16 +101,6 @@ void kernel_avx2(Complex* G, const double* V, const Complex* D, const int x, con
       else if (x+i == y+2*j) {
         _G[2*(x+i + (y+2*j)*L)] += res[i][j][0]; //diagonal
         _G[2*(x+i + (y+2*j)*L)+1] += res[i][j][1];
-      }
-      if (x+i > y+2*j+1) {
-        _G[2*(x+i + (y+2*j+1)*L)] += res[i][j][2]; //lower triangle
-        _G[2*(x+i + (y+2*j+1)*L)+1] += res[i][j][3];
-        _G[2*(y+2*j+1 + (x+i)*L)] += res[i][j][2]; //upper triangle
-        _G[2*(y+2*j+1 + (x+i)*L)+1] += res[i][j][3];
-      }
-      else if (x+i == y+2*j+1) {
-        _G[2*(x+i + (y+2*j+1)*L)] += res[i][j][2]; //diagonal
-        _G[2*(x+i + (y+2*j+1)*L)+1] += res[i][j][3];
       }
     }
   }
@@ -123,7 +125,19 @@ void kernel_avx2_hor(Complex* G, const double* V, const Complex* D, const int x,
   // write the results back to G considering symmetry
   double* _G = (double*) G;
   for (int j = 0; j < KERNEL_WIDTH_D; j++) {
-    if (x > y+2*j) {
+    if (x > y+2*j+1) {
+      _G[2*(x + (y+2*j+1)*L)] += res[j][2]; //lower triangle
+      _G[2*(x + (y+2*j+1)*L)+1] += res[j][3];
+      _G[2*(y+2*j+1 + x*L)] += res[j][2]; //upper triangle
+      _G[2*(y+2*j+1 + x*L)+1] += res[j][3];
+      _G[2*(x + (y+2*j)*L)] += res[j][0]; //lower triangle
+      _G[2*(x + (y+2*j)*L)+1] += res[j][1];
+      _G[2*(y+2*j + x*L)] += res[j][0]; //upper triangle
+      _G[2*(y+2*j + x*L)+1] += res[j][1];
+    }
+    else if (x == y+2*j+1) {
+      _G[2*(x + (y+2*j+1)*L)] += res[j][2]; //diagonal
+      _G[2*(x + (y+2*j+1)*L)+1] += res[j][3];
       _G[2*(x + (y+2*j)*L)] += res[j][0]; //lower triangle
       _G[2*(x + (y+2*j)*L)+1] += res[j][1];
       _G[2*(y+2*j + x*L)] += res[j][0]; //upper triangle
@@ -133,109 +147,20 @@ void kernel_avx2_hor(Complex* G, const double* V, const Complex* D, const int x,
       _G[2*(x + (y+2*j)*L)] += res[j][0]; //diagonal
       _G[2*(x + (y+2*j)*L)+1] += res[j][1];
     }
-    if (x > y+2*j+1) {
-      _G[2*(x + (y+2*j+1)*L)] += res[j][2]; //lower triangle
-      _G[2*(x + (y+2*j+1)*L)+1] += res[j][3];
-      _G[2*(y+2*j+1 + x*L)] += res[j][2]; //upper triangle
-      _G[2*(y+2*j+1 + x*L)+1] += res[j][3];
-    }
-    else if (x == y+2*j+1) {
-      _G[2*(x + (y+2*j+1)*L)] += res[j][2]; //diagonal
-      _G[2*(x + (y+2*j+1)*L)+1] += res[j][3];
-    }
   }
 }
 
-
-/*
-#define KERNEL_HEIGH_D 3
-#define KERNEL_WIDTH_D 3
-//unrool loops by hand to count register
-//this give an gcc bug when optimizing with -O2 and -funroll-loops (res01 and res10 wrong)
-void kernel_avx2(Complex* G, const double* V, const Complex* D, const int x, const int y, const int l, const int r, const int M, const int L)
-{
-  __m256d res00, res01, res02, //each result register contains 2 complex
-          res10, res11, res12,
-          res20, res21, res22;
-  
-  for(int k=l; k<r; k++) { //k inner dim to reduce (V column, square size of D)
-    __m256d D_k = _mm256_set_pd(D[k].imag(),D[k].real(),D[k].imag(),D[k].real());
-    //__m256d D_k = _mm256_broadcast_pd((double*) &D[k]); //broacast D[k]
-    
-    //compute V(x+i,k) * D(k)
-    __m256d VD0, VD1, VD2; 
-    VD0 = _mm256_mul_pd(_mm256_broadcast_sd(&V[x+k*L]), D_k);
-    VD1 = _mm256_mul_pd(_mm256_broadcast_sd(&V[x+1+k*L]), D_k);
-    VD2 = _mm256_mul_pd(_mm256_broadcast_sd(&V[x+2+k*L]), D_k);
-    //at this point, we can even reuse D_k
-    
-    //Store V^T(k,y+j)
-    __m256d VT0, VT1, VT2; 
-    VT0 = _mm256_set_pd(V[y + k*L +1],V[y + k*L +1],V[y + k*L],V[y + k*L]);
-    VT1 = _mm256_set_pd(V[y+2 + k*L +1],V[y+2 + k*L +1],V[y+2 + k*L],V[y+2 + k*L]);
-    VT2 = _mm256_set_pd(V[y+4 + k*L +1],V[y+4 + k*L +1],V[y+4 + k*L],V[y+4 + k*L]);
-    
-    //update result
-    res00 = _mm256_fmadd_pd(VD0, VT0, res00);
-    res01 = _mm256_fmadd_pd(VD0, VT1, res01);
-    res02 = _mm256_fmadd_pd(VD0, VT2, res02);
-    res10 = _mm256_fmadd_pd(VD1, VT0, res10);
-    res11 = _mm256_fmadd_pd(VD1, VT1, res11);
-    res12 = _mm256_fmadd_pd(VD1, VT2, res12);
-    res20 = _mm256_fmadd_pd(VD2, VT0, res20);
-    res21 = _mm256_fmadd_pd(VD2, VT1, res21);
-    res22 = _mm256_fmadd_pd(VD2, VT2, res22);
-  }
-  
-  // write the results back to G
-  double* _G = (double*) G;
-  //_G[2*(x+i + (y+2*j)*L)] += res[i][j][0];
-  //_G[2*(x+i + (y+2*j)*L)+1] += res[i][j][1];
-  //_G[2*(x+i + (y+2*j+1)*L)] += res[i][j][2];
-  //_G[2*(x+i + (y+2*j+1)*L)+1] += res[i][j][3];
-  //i=0, j=0
-  _G[2*(x + y*L)]       += res00[0]; _G[2*(x + y*L)+1]       += res00[1];
-  _G[2*(x + (y+1)*L)]   += res00[2]; _G[2*(x + (y+1)*L)+1]   += res00[3];
-  //i=1, j=0
-  _G[2*(x+1 + y*L)]     += res10[0]; _G[2*(x+1 + y*L)+1]     += res10[1];
-  _G[2*(x+1 + (y+1)*L)] += res10[2]; _G[2*(x+1 + (y+1)*L)+1] += res10[3];
-  //i=2, j=0
-  _G[2*(x+2 + y*L)]     += res20[0]; _G[2*(x+2 + y*L)+1]     += res20[1];
-  _G[2*(x+2 + (y+1)*L)] += res20[2]; _G[2*(x+2 + (y+1)*L)+1] += res20[3];
-  
-  //i=0, j=1
-  _G[2*(x + (y+2)*L)]   += res01[0]; _G[2*(x + (y+2)*L)+1]   += res01[1];
-  _G[2*(x + (y+3)*L)]   += res01[2]; _G[2*(x + (y+3)*L)+1]   += res01[3];
-  //i=1, j=1
-  _G[2*(x+1 + (y+2)*L)] += res11[0]; _G[2*(x+1 + (y+2)*L)+1] += res11[1];
-  _G[2*(x+1 + (y+3)*L)] += res11[2]; _G[2*(x+1 + (y+3)*L)+1] += res11[3];
-  //i=2, j=1
-  _G[2*(x+2 + (y+2)*L)] += res21[0]; _G[2*(x+2 + (y+2)*L)+1] += res21[1];
-  _G[2*(x+2 + (y+3)*L)] += res21[2]; _G[2*(x+2 + (y+3)*L)+1] += res21[3];
-  
-  //i=0, j=2
-  _G[2*(x + (y+4)*L)]   += res02[0]; _G[2*(x + (y+4)*L)+1]   += res02[1];
-  _G[2*(x + (y+5)*L)]   += res02[2]; _G[2*(x + (y+5)*L)+1]   += res02[3];
-  //i=1, j=2
-  _G[2*(x+1 + (y+4)*L)] += res12[0]; _G[2*(x+1 + (y+4)*L)+1] += res12[1];
-  _G[2*(x+1 + (y+5)*L)] += res12[2]; _G[2*(x+1 + (y+5)*L)+1] += res12[3];
-  //i=2, j=2
-  _G[2*(x+2 + (y+4)*L)] += res22[0]; _G[2*(x+2 + (y+4)*L)+1] += res22[1];
-  _G[2*(x+2 + (y+5)*L)] += res22[2]; _G[2*(x+2 + (y+5)*L)+1] += res22[3];
-  
-}
-*/
 
 void VDVH_kernel_avx2(std::vector<Complex> &G, const std::vector<double> &V, const std::vector<Complex> &D, const int L, const int M) {
   //G is LpadH * L
   const int LpadH = (L + 2*KERNEL_WIDTH_D-1) / (2*KERNEL_WIDTH_D) * (2*KERNEL_WIDTH_D);
   
-  //padding the input matrix to fit the kernel (to remove later)
+  //padding the output matrix to fit the kernel (to remove later)
   std::vector<Complex> _G; _G.resize(L * LpadH);
   
   //using the main kernel
   for (int x = 0; x <= L-KERNEL_HEIGH_D; x += KERNEL_HEIGH_D)
-    for (int y = 0; y <= x; y += 2*KERNEL_WIDTH_D)
+    for (int y = 0; y < x+KERNEL_HEIGH_D; y += 2*KERNEL_WIDTH_D)
       kernel_avx2(_G.data(), V.data(), D.data(), x, y, 0, M, M, L);
   
   //using the 1xKERNEL_WIDTH_D kernel to finish
@@ -263,8 +188,8 @@ void kernel_avx2(void* G, Complex* V, Complex* D, int x, int y, int l, int r, in
 //
 
 // Double version
-#define KERNEL_HEIGH_D_AVX512 5
-#define KERNEL_WIDTH_D_AVX512 4
+#define KERNEL_HEIGH_D_AVX512 9
+#define KERNEL_WIDTH_D_AVX512 2
 void kernel_avx512(__restrict__ Complex* G, const double* V, const Complex* D, const int x, const int y, const int l, const int r, const int M, const int L)
 {
   __m512d res[KERNEL_HEIGH_D_AVX512][KERNEL_WIDTH_D_AVX512]{}; //hold four complex type
@@ -288,18 +213,22 @@ void kernel_avx512(__restrict__ Complex* G, const double* V, const Complex* D, c
       }
     }
   }
-  // write the results back to G
+  // write the results back to G considering symmetry
   double* _G = (double*) G;
   for (int j = 0; j < KERNEL_WIDTH_D_AVX512; j++) {
-    for (int i = 0; i < KERNEL_HEIGH_D_AVX512; i++) { //heigh inner loop becase G is column oriented
-      _G[2*(x+i + (y+4*j)*L)] += res[i][j][0];
-      _G[2*(x+i + (y+4*j)*L)+1] += res[i][j][1];
-      _G[2*(x+i + (y+4*j+1)*L)] += res[i][j][2];
-      _G[2*(x+i + (y+4*j+1)*L)+1] += res[i][j][3];
-      _G[2*(x+i + (y+4*j+2)*L)] += res[i][j][4];
-      _G[2*(x+i + (y+4*j+2)*L)+1] += res[i][j][5];
-      _G[2*(x+i + (y+4*j+3)*L)] += res[i][j][6];
-      _G[2*(x+i + (y+4*j+3)*L)+1] += res[i][j][7];
+    for (int i = 0; i < KERNEL_HEIGH_D_AVX512; i++) {
+      for (int k=0; k < 4; k++) { //loop over the 4 complex in a register
+        if (x+i > y+4*j+k) {
+          _G[2*(x+i + (y+4*j+k)*L)] += res[i][j][2*k]; //lower triangle
+          _G[2*(x+i + (y+4*j+k)*L)+1] += res[i][j][2*k+1];
+          _G[2*(y+4*j+k + (x+i)*L)] += res[i][j][2*k]; //upper triangle
+          _G[2*(y+4*j+k + (x+i)*L)+1] += res[i][j][2*k+1];
+        }
+        else if (x+i == y+4*j+k) {
+          _G[2*(x+i + (y+4*j+k)*L)] += res[i][j][2*k]; //diagonal
+          _G[2*(x+i + (y+4*j+k)*L)+1] += res[i][j][2*k+1];
+        }
+      }
     }
   }
 }
@@ -309,25 +238,22 @@ void VDVH_kernel_avx512(std::vector<Complex> &G, const std::vector<double> &V, c
   //G is LpadH * LpadV
   const int LpadH = (L + 4*KERNEL_WIDTH_D_AVX512-1) / (4*KERNEL_WIDTH_D_AVX512) * (4*KERNEL_WIDTH_D_AVX512);
   const int LpadV = (L + KERNEL_HEIGH_D_AVX512-1) / KERNEL_HEIGH_D_AVX512 * KERNEL_HEIGH_D_AVX512;
-  const int Mpad = (M + KERNEL_HEIGH_D_AVX512-1) / KERNEL_HEIGH_D_AVX512 * KERNEL_HEIGH_D_AVX512;
   
   //padding the input matrix to fit the kernel (to remove later)
   std::vector<Complex> _G; _G.resize(LpadV * LpadH);
-  std::vector<double> _V; _V.resize(LpadV * Mpad);
-  std::vector<Complex> _D; _D.resize(Mpad);
+  std::vector<double> _V; _V.resize(LpadV * M);
   
-  std::copy(D.begin(), D.end(), _D.begin());
   for (int i = 0; i < M; i++) {
     std::copy(V.begin() + i*L, V.begin() + (i+1)*L, _V.begin() + i * LpadV);
   }
   
-  for (int x = 0; x < LpadV; x += KERNEL_HEIGH_D_AVX512)
-    for (int y = 0; y < LpadH; y += 4*KERNEL_WIDTH_D_AVX512)
-      kernel_avx512(_G.data(), _V.data(), _D.data(), x, y, 0, M, Mpad, LpadV);
+  for (int x = 0; x <= L-KERNEL_HEIGH_D_AVX512; x += KERNEL_HEIGH_D_AVX512)
+    for (int y = 0; y < x+KERNEL_HEIGH_D_AVX512; y += 4*KERNEL_WIDTH_D_AVX512)
+      kernel_avx512(_G.data(), _V.data(), D.data(), x, y, 0, M, M, LpadV);
  
   for (int i = 0; i < L; i++) std::copy(_G.begin()+ i*LpadV, _G.begin()+i*LpadV+L, G.begin()+i*L);
   
-  _G.resize(0); _V.resize(0); _D.resize(0);
+  _G.resize(0); _V.resize(0);
 }
 
 // Complex version

@@ -79,6 +79,7 @@ namespace QCM {
 #else
     new_global_char('L', "Ground_state_method", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method)");
 #endif
+    new_global_char('K', "Green_function_kernel", "Matrix multiplication kernel for Green function evaluation: K (Kernelized with AVX2 - default), N (Naive)");
   }
 }
 

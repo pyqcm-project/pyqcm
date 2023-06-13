@@ -144,9 +144,15 @@ void Q_matrix<HilbertField>::Green_function(const Complex &z, matrix<Complex> &G
   //initiate u vector
   std::vector<Complex> u;
   u.resize(M);
-  for(size_t i=0; i<M; ++i) u[i] = (1.0/(z-e[i]));
+  for(size_t i=0; i<M; ++i) {
+    Complex temp = z-e[i];
+    u[i] = conjugate(temp) / (temp.real()*temp.real() + temp.imag()*temp.imag());
+  }
   
-  VDVH_naive(G.v, v.v, u, L, M);
+  char kernel = global_char("Green_function_kernel");
+  if (kernel == 'K') VDVH_kernel_avx2(G.v, v.v, u, L, M);
+  else if (kernel == 'N') VDVH_naive(G.v, v.v, u, L, M);
+  else qcm_ED_throw("Unknown Green function kernel, must be K (Kernelised) or N (Naive)");
 }
 
 
