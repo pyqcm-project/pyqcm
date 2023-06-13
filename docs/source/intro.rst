@@ -7,7 +7,7 @@ What is pyqcm?
 
 pyqcm is a python module that interfaces with a library written in C++: **qcm**.
 This library provide a collection of functions that help implement quantum cluster methods.
-Specifically, it provides an exact diagonalization solver for small clusters on which a Hubbard-like model is defined and provides functions to define infinite-lattice models and to embed the clusters into the lattice via *Cluster Pertrubation Theory* (CPT). Methods like the *Variational Cluster Approximation* (VCA) and *Cluster Dynamical Mean Field Theory* (CDMFT) are then implemented from qcm by the pyqcm module, which is written in Python only.
+Specifically, it provides an exact diagonalization solver for small clusters on which a Hubbard-like model is defined and provides functions to define infinite-lattice models and to embed the clusters into the lattice via *Cluster Perturbation Theory* (CPT). Methods like the *Variational Cluster Approximation* (VCA) and *Cluster Dynamical Mean Field Theory* (CDMFT) are then implemented from qcm by the pyqcm module, which is written in Python only.
 
 This document is not a review of the above methods; the reader is referred to the appropriate review articles for that. It is strictly a user's manual for the pyqcm module.
 Some degree of understanding of the above methods is however necessary to proceed.
@@ -49,15 +49,16 @@ Optional build arguments and their values include:
 
 * ``-DDOWNLOAD_CUBA=0/1``: Specify to download and compile automatically the CUBA integration library.
 * ``-DCUBA_DIR=[path_to_CUBA_root_dir]``: If CUBA not downloaded from above, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library ``libcuba.a`` along with the header ``cuba.h``).
-* ``-DBLA_VENDOR=[value]``: BLAS implementation to use. See `CMake vendor documentation <https://cmake.org/cmake/help/latest/module/FindBLAS.html?highlight=bla_vendor#blas-lapack-vendors>`_ for more information (recommended: do not specify or ``FlexiBLAS`` on Alliance cluster).
+* ``-DBLA_VENDOR=[value]``: BLAS implementation to use. See `CMake vendor documentation <https://cmake.org/cmake/help/latest/module/FindBLAS.html?highlight=bla_vendor#blas-lapack-vendors>`_ for more information (recommended: do not specify or ``FlexiBLAS`` on `Alliance cluster <https://docs.alliancecan.ca/wiki/BLAS_and_LAPACK>`_).
 * ``-DEIGEN_HAMILTONIAN=0/1``: Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine (require `Eigen library <https://eigen.tuxfamily.org/index.php?title=Main_Page>`_).
 * ``-DWITH_PRIMME=0/1``: Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs ``-DEIGEN_HAMILTONIAN=1``).
 * ``-DDOWNLOAD_PRIMME=0/1``: Specify to download and compile automatically the PRIMME eigensolver library (needs ``-DWITH_PRIMME=1``).
 * ``-DPRIMME_DIR=[path_to_PRIMME_root_dir]``: Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically.
+* ``-DWITH_GF_OPT_KERNEL=0/1``: If true, automatically detect host processor AVX2 capabilities (i.e. Intel processors after 2014 and AMD processors after 2015) and compile the optimized kernel for Green function evaluation accordingly (5 times quicker).
 
 For a full-capability build, use::
 
-    export CMAKE_ARGS="-DDOWNLOAD_CUBA=1 -DEIGEN_HAMILTONIAN=1 -DWITH_PRIMME=1 -DDOWNLOAD_PRIMME=1"
+    export CMAKE_ARGS="-DDOWNLOAD_CUBA=1 -DEIGEN_HAMILTONIAN=1 -DWITH_PRIMME=1 -DDOWNLOAD_PRIMME=1 -DWITH_GF_OPT_KERNEL=1"
 
 Lastly, compile with::
 
