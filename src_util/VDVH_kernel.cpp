@@ -176,7 +176,9 @@ void VDVH_kernel_avx2(std::vector<Complex> &G, const std::vector<double> &V, con
 // Complex
 #define KERNEL_HEIGH_C 0
 #define KERNEL_WIDTH_C 0
-void VDVH_kernel_avx2(std::vector<Complex> &G, std::vector<Complex> &V, std::vector<Complex> &D, const int L, const int M){};
+void VDVH_kernel_avx2(std::vector<Complex> &G, const std::vector<Complex> &V, const std::vector<Complex> &D, const int L, const int M) {
+  VDVH_naive(G,V,D,L,M);
+}
 void kernel_avx2(void* G, Complex* V, Complex* D, int x, int y, int l, int r, int M, int L) {};
 
 
@@ -185,10 +187,11 @@ void kernel_avx2(void* G, Complex* V, Complex* D, int x, int y, int l, int r, in
 
 //
 // KERNEL AVX512 version
+// Note the AVX512 kernel seems slower than the AVX2 version...
 //
 
 // Double version
-#define KERNEL_HEIGH_D_AVX512 9
+#define KERNEL_HEIGH_D_AVX512 4
 #define KERNEL_WIDTH_D_AVX512 2
 void kernel_avx512(__restrict__ Complex* G, const double* V, const Complex* D, const int x, const int y, const int l, const int r, const int M, const int L)
 {
@@ -201,7 +204,10 @@ void kernel_avx512(__restrict__ Complex* G, const double* V, const Complex* D, c
     for (int i = 0; i<KERNEL_HEIGH_D_AVX512; i++) {
       //broadcast lines of V(x+i,k) * D(k) into a register
       temp = V[x+i + k*L] * D[k];
-      reg_temp = _mm512_set_pd(temp.imag(),temp.real(),temp.imag(),temp.real(),temp.imag(),temp.real(),temp.imag(),temp.real()); //TODO
+      reg_temp = _mm512_set_pd(
+          temp.imag(),temp.real(),temp.imag(),temp.real(),
+          temp.imag(),temp.real(),temp.imag(),temp.real()
+      );
       //now multiply the temp register by column of B
       for (int j = 0; j < KERNEL_WIDTH_D_AVX512; j++) {
         //we should take indice V^T(k,y+j) and V^T(k,y+j+1)
@@ -233,32 +239,73 @@ void kernel_avx512(__restrict__ Complex* G, const double* V, const Complex* D, c
   }
 }
 
+void kernel_avx512_hor(__restrict__ Complex* G, const double* V, const Complex* D, const int x, const int y, const int l, const int r, const int M, const int L)
+{
+  __m512d res[KERNEL_WIDTH_D_AVX512]{}; //hold four complex type
+  __m512d reg_temp, reg_temp2;
+  Complex temp;
+  
+  for(int k=l; k<r; k++) { //k inner dim to reduce (V column, square size of D)
+    //loops must be unrooled
+    temp = V[x + k*L] * D[k];
+    reg_temp = _mm512_set_pd(
+      temp.imag(),temp.real(),temp.imag(),temp.real(),
+      temp.imag(),temp.real(),temp.imag(),temp.real()
+    );
+    for (int j = 0; j < KERNEL_WIDTH_D_AVX512; j++) {
+      int index = y+4*j + k*L;
+      reg_temp2 = _mm512_set_pd(
+        V[index+3],V[index+3],V[index+2],V[index+2],
+        V[index+1],V[index+1],V[index],V[index]
+      );
+      res[j] = _mm512_fmadd_pd(reg_temp2, reg_temp, res[j]);
+    }
+  }
+  // write the results back to G considering symmetry
+  double* _G = (double*) G;
+  for (int j = 0; j < KERNEL_WIDTH_D_AVX512; j++) {
+    for (int k=0; k < 4; k++) { //loop over the 4 complex in a register
+      if (x > y+4*j+k) {
+        _G[2*(x + (y+4*j+k)*L)] += res[j][2*k]; //lower triangle
+        _G[2*(x + (y+4*j+k)*L)+1] += res[j][2*k+1];
+        _G[2*(y+4*j+k + x*L)] += res[j][2*k]; //upper triangle
+        _G[2*(y+4*j+k + x*L)+1] += res[j][2*k+1];
+      }
+      else if (x == y+4*j+k) {
+        _G[2*(x + (y+4*j+k)*L)] += res[j][2*k]; //diagonal
+        _G[2*(x + (y+4*j+k)*L)+1] += res[j][2*k+1];
+      }
+    }
+  }
+}
+
 void VDVH_kernel_avx512(std::vector<Complex> &G, const std::vector<double> &V, const std::vector<Complex> &D, const int L, const int M) {
   //note Mpad is the size of the inner padded matrix
-  //G is LpadH * LpadV
+  //G is LpadH * L
   const int LpadH = (L + 4*KERNEL_WIDTH_D_AVX512-1) / (4*KERNEL_WIDTH_D_AVX512) * (4*KERNEL_WIDTH_D_AVX512);
-  const int LpadV = (L + KERNEL_HEIGH_D_AVX512-1) / KERNEL_HEIGH_D_AVX512 * KERNEL_HEIGH_D_AVX512;
   
   //padding the input matrix to fit the kernel (to remove later)
-  std::vector<Complex> _G; _G.resize(LpadV * LpadH);
-  std::vector<double> _V; _V.resize(LpadV * M);
-  
-  for (int i = 0; i < M; i++) {
-    std::copy(V.begin() + i*L, V.begin() + (i+1)*L, _V.begin() + i * LpadV);
-  }
-  
+  std::vector<Complex> _G; _G.resize(L * LpadH);
+    
   for (int x = 0; x <= L-KERNEL_HEIGH_D_AVX512; x += KERNEL_HEIGH_D_AVX512)
     for (int y = 0; y < x+KERNEL_HEIGH_D_AVX512; y += 4*KERNEL_WIDTH_D_AVX512)
-      kernel_avx512(_G.data(), _V.data(), D.data(), x, y, 0, M, M, LpadV);
- 
-  for (int i = 0; i < L; i++) std::copy(_G.begin()+ i*LpadV, _G.begin()+i*LpadV+L, G.begin()+i*L);
+      kernel_avx512(_G.data(), V.data(), D.data(), x, y, 0, M, M, L);
   
-  _G.resize(0); _V.resize(0);
+  //using the 1xKERNEL_WIDTH_D kernel to finish
+  for (int x = L/KERNEL_HEIGH_D_AVX512*KERNEL_HEIGH_D_AVX512; x < L; x += 1)
+    for (int y = 0; y <= x; y += 4*KERNEL_WIDTH_D)
+      kernel_avx2_hor(_G.data(), V.data(), D.data(), x, y, 0, M, M, L);
+ 
+  for (int i = 0; i < L; i++) std::copy(_G.begin()+ i*L, _G.begin()+i*L+L, G.begin()+i*L);
+  
+  _G.resize(0);
 }
 
 // Complex version
 #define KERNEL_HEIGH_C_AVX512 0
 #define KERNEL_WIDTH_C_AVX512 0
-void VDVH_kernel_avx512(std::vector<Complex> &G, std::vector<Complex> &V, std::vector<Complex> &D, const int L, const int M){};
+void VDVH_kernel_avx512(std::vector<Complex> &G, const std::vector<Complex> &V, const std::vector<Complex> &D, const int L, const int M) {
+  VDVH_naive(G,V,D,L,M);
+}
 void kernel_avx512(void* G, Complex* V, Complex* D, int x, int y, int l, int r, int M, int L) {};
 
