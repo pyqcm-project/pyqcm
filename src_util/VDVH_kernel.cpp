@@ -1,9 +1,19 @@
 #include <VDVH_kernel.hpp>
-#include <immintrin.h>
 #include <vector>
 #include <cstring>
 #include "types.hpp"
 
+#ifdef HAVE_AVX2
+#include <immintrin.h>
+#endif
+
+/*
+Some refs:
+https://en.algorithmica.org/hpc/algorithms/matmul/
+https://sci-hub.st/https://dl.acm.org/doi/10.1145/1356052.1356053
+https://ia601407.us.archive.org/23/items/cnx-org-col11136/high-performance-computing.pdf
+https://people.freebsd.org/~lstewart/articles/cpumemory.pdf
+*/
 
 
 // 
