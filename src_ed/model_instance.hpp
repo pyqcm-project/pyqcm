@@ -524,13 +524,16 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
   // first search the look_up table
   auto LKUP = &look_up_table;
   if(spin_down) LKUP = &look_up_table_down;
+  matrix<Complex> G_recycled;
   #pragma omp critical
   for(auto &x: *LKUP){
     if(abs(z - x.first) < SMALL_VALUE){
       // cout << "recycling G for z = " << z << " and x.first = " << x.first << "  G(0,0) = " << x.second(0,0) << endl;
-      return x.second;
+      G_recycled = x.second;
+      break;
     }
   }
+  if(G_recycled.size() > 0) return G_recycled;
 #endif 
 
   #pragma omp master
