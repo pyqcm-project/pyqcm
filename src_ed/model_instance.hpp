@@ -27,6 +27,7 @@
 #endif
 
 extern double max_gap;
+extern run_statistics STATS;
 
 void polynomial_fit(
   vector<double> &xa, //!< array of abcissas
@@ -534,8 +535,12 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
       break;
     }
   }
-  if(G_recycled.size() > 0) return G_recycled;
+  if(G_recycled.size() > 0){
+    STATS.n_GF_recycled += 1;
+    return G_recycled;
+  }
 #endif 
+  STATS.n_GF_computed += 1;
 
   #pragma omp master
   {

@@ -24,7 +24,7 @@ map<string, shared_ptr<model>> models;
 map<size_t, shared_ptr<model_instance_base>> model_instances;
 
 double max_gap; //!< maximum excitation energy compatible with minimum_weight and temperature
-
+run_statistics STATS;
 
 //------------------------------------------------------------------------------
 

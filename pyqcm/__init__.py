@@ -2072,4 +2072,11 @@ def reset_model():
     lattice_model.defined = False
     qcm.great_reset()
 
+#---------------------------------------------------------------------------------------------------
+def print_statistics():
+    """
+    Prints various internal statistics (number of evaluations of certains quantities, etc.)
+    """
+    banner("RUN STATISTICS", c='#', skip=1)
+    qcm.print_statistics()
 

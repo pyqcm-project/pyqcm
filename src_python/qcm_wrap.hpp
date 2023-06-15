@@ -26,6 +26,8 @@ vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj);
 vector<string> strings_from_PyList(PyObject* lst);
 
 extern shared_ptr<lattice_model> qcm_model;
+extern run_statistics STATS;
+
 // extern unordered_map<string, global_parameter<bool>> GP_bool;
 extern map<string, global_parameter<bool>> GP_bool;
 void qcm_catch(const string& s);
@@ -2212,5 +2214,21 @@ static PyObject* erase_model_instance_python(PyObject *self, PyObject *args)
 }
 
 
+//==============================================================================
+const char* print_statistics_help =
+R"{(
+Prints run statistics on the screen
+){";
+//------------------------------------------------------------------------------
+static PyObject* print_statistics_python(PyObject *self, PyObject *args)
+{
+  try{
+    if(!PyArg_ParseTuple(args, ""))
+      qcm_throw("failed to read parameters in call to print_statistics (python)");
+  } catch(const string& s) {qcm_catch(s);}
+  cout << "Number of recycled evaluations of the cluster Green function : " << STATS.n_GF_recycled << endl;
+  cout << "Number of computed evaluations of the cluster Green function : " << STATS.n_GF_computed << endl;
+  return Py_BuildValue("");
+}
 
 #endif

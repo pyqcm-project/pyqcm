@@ -26,4 +26,9 @@ inline Complex fold_type(double x) {return x;}
 template<>
 inline double fold_type(Complex x) {return real(x);}
 
+struct run_statistics{
+    size_t n_GF_recycled = 0L; // number of times the GF is recycled 
+    size_t n_GF_computed = 0L; // number of times the GF is computed
+};
+
 #endif /* types_h */
