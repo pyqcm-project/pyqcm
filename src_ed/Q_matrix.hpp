@@ -7,6 +7,7 @@
 
 #include "parser.hpp"
 #include "block_matrix.hpp"
+#include "VDVH_kernel.hpp"
 
 //! Used to store the Lehman representation of a part of the Green function (a given symmetry block)
 template<typename HilbertField>
@@ -145,15 +146,20 @@ void Q_matrix<HilbertField>::append(Q_matrix &q)
  */
 template<typename HilbertField>
 void Q_matrix<HilbertField>::Green_function(const Complex &z, matrix<Complex> &G)
-{  
-  for(size_t i=0; i<M; ++i){
-    Complex u = (1.0/(z-e[i]));
-    for(size_t a=0; a<L; ++a){
-      for(size_t b=0; b<L; ++b){
-        G(b,a) += v(a,i)*conjugate(v(b,i))*u; // original was G(a,b) but was wrong with complex operators
-      }
-    }
+{
+  //initiate u vector
+  std::vector<Complex> u;
+  u.resize(M);
+  for(size_t i=0; i<M; ++i) {
+    Complex temp = z-e[i];
+    u[i] = conjugate(temp) / (temp.real()*temp.real() + temp.imag()*temp.imag());
   }
+  
+#ifdef HAVE_AVX2
+  VDVH_kernel_avx2(G.v, v.v, u, L, M);
+#else
+  VDVH_naive(G.v, v.v, u, L, M);
+#endif
 }
 
 
