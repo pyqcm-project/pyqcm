@@ -46,7 +46,7 @@ general_interaction_operator<op_field>::general_interaction_operator(const strin
 
 
 template<typename op_field>
-double general_interaction_operator<op_field>::average_from_GF(matrix<Complex>& Gave, bool spin_down){return 0.0;}
+double general_interaction_operator<op_field>::average_from_GF(matrix<Complex>& Gave, bool spin_down){return NAN;}
 
 
 

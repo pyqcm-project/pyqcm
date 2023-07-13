@@ -10,7 +10,7 @@ struct Hund_operator : Hermitian_operator
   map<index_pair, double> element_map; //!< temporary map form of elements, for checks
 
   Hund_operator(const string &_name, shared_ptr<model> _the_model, const vector<matrix_element<double>>& _elements);
-  double average_from_GF(matrix<Complex>& Gave, bool spin_down){return 0.0;}
+  double average_from_GF(matrix<Complex>& Gave, bool spin_down){return NAN;}
   shared_ptr<HS_Hermitian_operator> build_HS_operator(sector sec, bool complex_Hilbert_space);
   string type() {return string("Hund");}
   vector<matrix_element<Complex>> matrix_elements();

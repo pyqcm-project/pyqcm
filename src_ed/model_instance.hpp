@@ -147,7 +147,8 @@ template<typename HilbertField>
 pair<double, double> model_instance<HilbertField>::cluster_averages(shared_ptr<Hermitian_operator> h)
 {
   if(value.find(h->name)==value.end()) qcm_ED_throw("operator "+h->name+" is not activated in instance "+to_string(label));
-  double ave=0.0, var=0.0;
+  if(h->target != 1 && gf_read) return {NAN, NAN};
+  double ave=NAN, var=NAN;
   if(!is_correlated or gf_read){
     ave = h->average_from_GF(M,false);
     if(mixing&HS_mixing::up_down) ave += h->average_from_GF(M_down,true);
@@ -159,6 +160,8 @@ pair<double, double> model_instance<HilbertField>::cluster_averages(shared_ptr<H
     }
   }
   else{
+    var = 0.0;
+    ave = 0.0;
     for(auto& gs : states) h->expectation_value(*gs, ave, var);
     var -= ave*ave;
   }
