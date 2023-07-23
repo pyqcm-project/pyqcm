@@ -24,6 +24,7 @@ class CDMFT:
     :param int miniter: minimum number of CDMFT iterations
     :param float accur: the procedure converges if parameters do not change by more than accur
     :param float accur_hybrid: the procedure converges on the hybridization function with this accuracy
+    :param float accur_sigma: the procedure converges on the self-energy with this accuracy
     :param float accur_dist: convergence criterion when minimizing the distance function.
     :param float accur_E0: convergence criterion on the impurity ground state energy.
     :param float alpha: damping parameter (fraction of the previous iteration in the new one) OR (float,int) with number of iterations where damping is used (at the beginning if positive, at the end if negative)
@@ -59,6 +60,7 @@ class CDMFT:
         miniter=0,
         accur=1e-3,
         accur_hybrid=1e-4,
+        accur_sigma=1e-4,
         accur_dist=1e-10,
         accur_E0=1e-10,
         alpha = 0.0,
@@ -81,6 +83,8 @@ class CDMFT:
         self.model =model
         self.Hyb = None # internal : hybridization function
         self.Hyb_down = None # internal : hybridization function (spin downs, when mixing=4)
+        self.sigma = None # internal : self-energy
+        self.sigma_down = None # internal : self-energy (spin downs, when mixing=4)
 
         max_function_eval
         if pyqcm.is_sequence(hartree) == False and hartree is not None:
@@ -148,7 +152,8 @@ class CDMFT:
         
         # CDMFT loop
         converged = False
-        diffH=1e6
+        delta_hybrid=1e6
+        delta_sigma=1e6
         diff_E0 = 0.0
         time_ED = 0.0
         time_MIN = 0.0
@@ -172,6 +177,7 @@ class CDMFT:
             #     gs = self.I.ground_state()
             #     for x in gs:
             #         E0[self.iter] += x[0]
+
             gs = self.I.ground_state()
             for x in gs:
                 E0[self.iter] += x[0]
@@ -197,6 +203,9 @@ class CDMFT:
                 pre_host(self.I)
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
             self.set_Hyb()
+            self.set_sigma()
+            
+
             t2 = timeit.default_timer()
             time_ED += t2 - t1
 
@@ -231,8 +240,9 @@ class CDMFT:
             gs = self.I.ground_state()
             print('\nGS sector : ', [x[1] for x in gs])
             if self.iter > 0:
-                diffH = self.diff_hybrid()
-                print('CDMFT iteration {:d}, distance = {: #.2e}, diff param = {: #.2e}, diff hybrid = {: #.2e}, diff E0 = {: #.2g}\n{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(self.iter+1, dist_value, diff_param, diffH, diff_E0, iter_done, time_MIN/time_ED), flush=True)
+                delta_hybrid = self.diff_hybrid()
+                delta_sigma = self.diff_sigma()
+                print('CDMFT iteration {:d}, distance = {: #.2e}, diff param = {: #.2e}, diff hybrid = {: #.2e}, diff sigma = {: #.2e}, diff E0 = {: #.2g}\n{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(self.iter+1, dist_value, diff_param, delta_hybrid, delta_sigma, diff_E0, iter_done, time_MIN/time_ED), flush=True)
             else:
                 print('CDMFT iteration {:d}, distance = {: #.2e}, diff param = {: #.2e}\n{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(self.iter+1, dist_value, diff_param, iter_done, time_MIN/time_ED), flush=True)
 
@@ -255,8 +265,8 @@ class CDMFT:
                     self.I.Potthoff_functional()
 
             # writing the parameters in a progress file
-            des = 'distance\tdiff_param\tdiff_hybrid\t'
-            val = '{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(dist_value, diff_param, diffH)
+            des = 'distance\tdiff_param\tdiff_hybrid\tdiff_sigma\t'
+            val = '{: #.2e}\t{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(dist_value, diff_param, delta_hybrid, delta_sigma)
             self.I.write_summary('cdmft_iter.tsv', suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time2)
             CDMFT.first_time2 = False
 
@@ -271,9 +281,15 @@ class CDMFT:
 
             # checking convergence on the hybridization matrix
             if self.iter > 0:
-                diffH = self.diff_hybrid()
-                if (diffH < accur_hybrid) and hartree_converged and self.iter > miniter:
+                delta_hybrid = self.diff_hybrid()
+                if (delta_hybrid < accur_hybrid) and hartree_converged and self.iter > miniter:
                     pyqcm.banner('CDMFT converged on the hybridization function', '=')
+                    converged = True
+                    break
+
+                delta_sigma = self.diff_sigma()
+                if (delta_sigma < accur_sigma) and hartree_converged and self.iter > miniter:
+                    pyqcm.banner('CDMFT converged on the self-energy', '=')
                     converged = True
                     break
 
@@ -329,8 +345,8 @@ class CDMFT:
                 omegaH=self.I.Potthoff_functional(hartree)
 
             if file != None:
-                des = 'GS_consistency\titerations\tdist_function\tdistance\tdiff_hybrid\t'
-                val = '{:s}\t{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t'.format(GS_cons, self.iter, self.grid.dist_function, dist_value, diffH)
+                des = 'GS_consistency\titerations\tdist_function\tdistance\tdiff_hybrid\tdiff_sigma\t'
+                val = '{:s}\t{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(GS_cons, self.iter, self.grid.dist_function, dist_value, delta_hybrid, delta_sigma)
                 if SEF : 
                     des += 'omegaH\t'
                     val += '{: #.8g}\t'.format(omegaH)
@@ -400,15 +416,75 @@ class CDMFT:
         g = self.grid
         for i in range(g.nw):
             for j in range(self.model.nclus):
-                diffH = self.Hyb[j][i,:,:] - self.Hyb0[j][i,:,:]
-                norm = np.linalg.norm(diffH)
+                delta = self.Hyb[j][i,:,:] - self.Hyb0[j][i,:,:]
+                norm = np.linalg.norm(delta)
                 diff += g.weight[i]*norm*norm
 
         if self.model.mixing==4:
             for i in range(g.nw):
                 for j in range(self.model.nclus):
-                    diffH = self.Hyb_down[j][i,:,:] - self.Hyb0_down[j][i,:,:]
-                    norm = np.linalg.norm(diffH)
+                    delta = self.Hyb_down[j][i,:,:] - self.Hyb0_down[j][i,:,:]
+                    norm = np.linalg.norm(delta)
+                    diff += g.weight[i]*norm*norm
+
+        if self.model.mixing == 0:
+            diff *= 2
+        elif self.model.mixing == 3:
+            diff /= 2
+        diff /= g.nw  
+        return np.sqrt(diff)
+
+    #-----------------------------------------------------------------------------------------------
+    def set_sigma(self):
+        """Computes the self-energy on the frequency grid
+        an array of arrays of matrices. sigma[i], for cluster #i, is a (nw,d,d) Numpy array. with nw frequencies, and d sites
+
+        :returns None
+
+        """
+        self.sigma0 = self.sigma
+        self.sigma = []
+        for j in range(self.model.nclus):
+            d = self.model.dimGFC[j]
+            self.sigma.append(np.zeros((self.grid.nw, d, d), dtype=np.complex128))
+
+        for i in range(self.grid.nw):
+            for j in range(self.model.nclus):
+                self.sigma[j][i, :, :] = self.I.cluster_self_energy(self.grid.w[i], j, spin_down=False)
+
+        if self.model.mixing == 4:
+            self.sigma0_down = self.sigma_down
+            self.sigma_down = []
+            for j in range(self.model.nclus):
+                d = self.model.dimGFC[j]
+                self.sigma_down.append(np.zeros((self.grid.nw, d, d), dtype=np.complex128))
+
+            for i in range(self.grid.nw):
+                for j in range(self.model.nclus):
+                    self.sigma_down[j][i, :, :] = self.I.cluster_self_energy(self.grid.w[i], j, spin_down=True)
+
+    #-----------------------------------------------------------------------------------------------
+    def diff_sigma(self):
+        """
+        Computes a difference in self-energy between the current iteration (sigma) and the previous one (sigma0)
+
+        :returns float: the difference in self-energy arrays
+        
+        """
+
+        diff = 0.0
+        g = self.grid
+        for i in range(g.nw):
+            for j in range(self.model.nclus):
+                delta = self.sigma[j][i,:,:] - self.sigma0[j][i,:,:]
+                norm = np.linalg.norm(delta)
+                diff += g.weight[i]*norm*norm
+
+        if self.model.mixing==4:
+            for i in range(g.nw):
+                for j in range(self.model.nclus):
+                    delta = self.sigma_down[j][i,:,:] - self.sigma0_down[j][i,:,:]
+                    norm = np.linalg.norm(delta)
                     diff += g.weight[i]*norm*norm
 
         if self.model.mixing == 0:
@@ -1033,9 +1109,9 @@ def check_bounds(x, B=100, v=None):
     for i in range(len(x)):
         if np.abs(x[i]) > B:
             if v != None:
-                print('parameter ', v[i], ' is out of bounds!!!')
+                print('parameter ', v[i], ' = ', x[i], ' is out of bounds!!!')
             else:
-                print('parameter no ', i+1, ' is out of bounds!!!')
+                print('parameter no ', i+1, ' = ', x[i], ' is out of bounds!!!')
             raise pyqcm.OutOfBoundsError(i)
 
 
