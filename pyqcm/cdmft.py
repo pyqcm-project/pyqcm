@@ -10,6 +10,72 @@ import timeit
 import matplotlib.pyplot as plt
 
 ####################################################################################################
+class convergence_manager:
+    """
+    class managing the convergence tests
+
+    """
+
+    def __init__(self, name, diff_func, tol, depth=2):
+        """
+        :param str name: name of the convergence test
+        :param function diff: difference function applied to the objects tested
+        :param float tol: tolerance for convergence
+        :param int depth: number of previous iterations the comparison is made with
+        """
+
+        self.name = name
+        self.diff_func = diff_func
+        self.tol = tol
+        self.depth = depth
+        self.diff = np.zeros(depth)
+        self.iter = 0
+        self.X = []  # list of test objects
+
+    def test(self, x):
+        """
+        tests for convergence
+
+        :param object x: the object containing the current test quantity
+        :return: True if converged, False otherwise
+        """
+        converged = True
+        self.iter += 1
+        if self.iter <= self.depth:
+            self.X.append(x)
+            return False
+        else:
+            for i in range(self.depth):
+                self.diff[i] = self.diff_func(x, self.X[i])
+                if self.diff[i] > self.tol:
+                    converged = False
+            if converged: 
+                return True
+            else:
+                for i in range(self.depth-1):
+                    self.X[i] = self.X[i+1]
+                self.X[self.depth-1] = x
+                return False
+    
+    def print(self):
+        if self.iter <= self.depth: return
+        S = 'differences in ' + self.name + ' : '
+        for i in range(self.depth): S += '{:1.2e}\t'.format(self.diff[i])
+        print(S)
+    
+def test_params(x, y):
+    """
+    Here x and y are numpy arrays containing bath parameters
+    """
+    return np.linalg.norm(x-y)/np.sqrt(x.shape[0])
+
+def test_params(x, y):
+    """
+    Here x and y are lists of hybridization functions
+    """
+    return np.linalg.norm(x-y)/np.sqrt(x.shape[0])
+
+####################################################################################################
 class CDMFT:
     """
     class containing the elements of a CDMFT computation. The constructor executes the computation.
@@ -22,11 +88,8 @@ class CDMFT:
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self'
     :param int maxiter: maximum number of CDMFT iterations
     :param int miniter: minimum number of CDMFT iterations
-    :param float accur: the procedure converges if parameters do not change by more than accur
-    :param float accur_hybrid: the procedure converges on the hybridization function with this accuracy
-    :param float accur_sigma: the procedure converges on the self-energy with this accuracy
-    :param float accur_dist: convergence criterion when minimizing the distance function.
-    :param float accur_E0: convergence criterion on the impurity ground state energy.
+    :param str convergence: the convergence test
+    :param float accur: the tolerance for convergence
     :param float alpha: damping parameter (fraction of the previous iteration in the new one) OR (float,int) with number of iterations where damping is used (at the beginning if positive, at the end if negative)
     :param boolean displaymin: displays the minimum distance function when minimized
     :param str method: method to use, as used in scipy.optimize.minimize()
@@ -37,8 +100,6 @@ class CDMFT:
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
     :param boolean SEF: if True, computes the Potthoff functional at the end
     :param boolean check_ground_state: if True, checks the ground state consistency and raises exception if inconsistent
-    :param [observable]: list of observables used to assess convergence
-    :param boolean verb: If True, prints debugging information
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
     :param boolean compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
@@ -58,11 +119,10 @@ class CDMFT:
         grid_type = 'sharp',
         maxiter=32,
         miniter=0,
+        convergence='parameters',
+        depth=2,
         accur=1e-3,
-        accur_hybrid=1e-4,
-        accur_sigma=1e-4,
-        accur_dist=1e-10,
-        accur_E0=1e-10,
+        accur_dist=1e-8,
         alpha = 0.0,
         method='Nelder-Mead',
         file='cdmft.tsv',
@@ -72,8 +132,6 @@ class CDMFT:
         hartree=None,
         SEF=False,
         check_ground_state = False,
-        observables=None,
-        verb=False,
         max_function_eval = 5000000,
         compute_potential_energy = False,
         pre_host = None,
@@ -99,7 +157,29 @@ class CDMFT:
             raise ValueError('CDMFT requires at least one variational parameter...Aborting.')
         qcm.CDMFT_variational_set(self.var)
         self.var_data = np.empty((nvar, maxiter+1))
-            
+        
+        # convergence test initialization
+        convergence_needs_GF = True
+        convergence_as_operator = None
+        convergence_diff_function = None
+        
+        if convergence in model.parameters():
+            convergence_as_operator = convergence
+            convergence_diff_function = lambda x,y : np.abs(x-y)
+        elif convergence == 'parameters':
+            convergence_diff_function = lambda x,y : np.linalg.norm(x-y)/x.shape[0]
+            convergence_needs_GF = False
+        elif convergence == 'hybridization':
+            convergence_diff_function = lambda x,y : self.diff_matrix(x,y)
+        elif convergence == 'self-energy':
+            convergence_diff_function = lambda x,y : self.diff_matrix(x,y)
+        elif convergence == 'GS energy':
+            convergence_diff_function = lambda x,y : np.abs(x-y)
+            convergence_needs_GF = False
+        else:
+            raise ValueError('type of convergence test in CDMFT does not exist')
+        convergence_test = convergence_manager(convergence, convergence_diff_function, accur, depth)
+        
         # damping
         begin_with_damping = False
         n_damping = 1
@@ -122,25 +202,6 @@ class CDMFT:
 
         min_iter_E0 = 5
 
-        observable_series_length = 0
-
-        # storing the GS energy and error (the error is relevant for the DVMC solver)
-        E0 = np.zeros(maxiter+1)
-        E0_err = np.ones(maxiter+1)
-        moving_ave = np.zeros(maxiter+1)
-
-
-        # convergence criterion in the bath parameters
-        self.iter = 0
-        diff_hartree = 0.0
-        hartree_converged = True
-
-        # checks on the observables
-        if observables != None:
-            for x in observables:
-                if x.name[-2:] != '_1':
-                    raise ValueError('observables must be cluster operators associated with cluster 1 only')
-
         # first define the frequency grid for the distance function
         print('frequency grid type = ', grid_type)
         print('fictitious inverse temperature = ', beta)
@@ -151,10 +212,9 @@ class CDMFT:
         params_array = np.zeros(nvar)
         
         # CDMFT loop
+        self.iter = 0
+        hartree_converged = True
         converged = False
-        delta_hybrid=1e6
-        delta_sigma=1e6
-        diff_E0 = 0.0
         time_ED = 0.0
         time_MIN = 0.0
         while True:
@@ -167,34 +227,12 @@ class CDMFT:
             self.var_data[:, self.iter] = params_array
             check_bounds(params_array, max_value, v=self.var)
 
-
-            # check convergence in the DVMC case
-            # if pyqcm.solver == 'dvmc':
-            #     print('E0_VMC = ', E0_VMC, '\tE0_err_VMC = ', E0_err_VMC)
-            #     E0[self.iter] = E0_VMC
-            #     E0_err[self.iter] = E0_err_VMC
-            # else:
-            #     gs = self.I.ground_state()
-            #     for x in gs:
-            #         E0[self.iter] += x[0]
-
-            gs = self.I.ground_state()
-            for x in gs:
-                E0[self.iter] += x[0]
-            if self.iter >= min_iter_E0-1:
-                moving_ave[self.iter] = 0.0
-                tmp_norm = 0.0
-                for i in range(min_iter_E0):
-                    tmp_norm += 1.0/E0_err[self.iter-i]
-                    moving_ave[self.iter] += E0[self.iter-i]/E0_err[self.iter-i]
-                moving_ave[self.iter] /= tmp_norm
-            if self.iter >= min_iter_E0 and self.iter >= miniter:
-                diff_E0 = np.abs(moving_ave[self.iter]-moving_ave[self.iter-1])
-                if diff_E0 < accur_E0:
-                    converged = True
-                    # print('moving averages of E0 : ', moving_ave[0:self.iter+1])
-                    pyqcm.banner('CDMFT converged on the ground state energy', '=')
-                    break
+            if convergence == 'GS energy':
+                gs = self.I.ground_state()
+                E0 = 0.0
+                for x in gs:
+                    E0 += x[0]
+                converged = convergence_test.test(E0)
 
             # initializes G_host
             t1 = timeit.default_timer()
@@ -203,11 +241,20 @@ class CDMFT:
                 pre_host(self.I)
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
             self.set_Hyb()
-            self.set_sigma()
-            
-
             t2 = timeit.default_timer()
             time_ED += t2 - t1
+
+            if convergence == 'self-energy':
+                self.set_sigma()
+                if self.model.mixing == 4: converged = convergence_test.test((self.sigma,self.sigma_down))
+                else: converged = convergence_test.test(self.sigma)
+
+            elif convergence == 'hybridization':
+                if self.model.mixing == 4: converged = convergence_test.test((self.Hyb,self.Hyb_down))
+                else: converged = convergence_test.test(self.Hyb)
+
+            if convergence_as_operator != None:
+                converged = convergence_test.test(self.I.averages()[convergence_as_operator])
 
             # optimization of the bath parameters
             sol, iter_done = optimize(lambda x : qcm.CDMFT_distance(x, self.I.label), params_array, method, initial_step, accur, accur_dist, max_function_eval)
@@ -224,10 +271,9 @@ class CDMFT:
                 raise pyqcm.MinimizationError()
 
             dist_value = sol.fun
-            # updating the bath parameters (replace old by new)
 
-            if alpha > 0.0 and ((self.iter < n_damping and begin_with_damping is True) or (self.iter > n_damping and begin_with_damping is False)):
-                print('applying damping with alpha = ', alpha)
+            # updating the bath parameters (replace old by new)
+            if alpha > 0.0 :
                 for i in range(nvar):
                     self.model.set_parameter(self.var[i], (1-alpha)*sol.x[i]+alpha*params_array[i])
             else:
@@ -235,16 +281,15 @@ class CDMFT:
                     self.model.set_parameter(self.var[i], sol.x[i])
 
 
-            diff_param = np.linalg.norm(params_array - sol.x)/np.sqrt(nvar)
-            initial_step = diff_param
+            if convergence == 'parameters':
+                converged = convergence_test.test(sol.x)
+
             gs = self.I.ground_state()
-            print('\nGS sector : ', [x[1] for x in gs])
-            if self.iter > 0:
-                delta_hybrid = self.diff_hybrid()
-                delta_sigma = self.diff_sigma()
-                print('CDMFT iteration {:d}, distance = {: #.2e}, diff param = {: #.2e}, diff hybrid = {: #.2e}, diff sigma = {: #.2e}, diff E0 = {: #.2g}\n{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(self.iter+1, dist_value, diff_param, delta_hybrid, delta_sigma, diff_E0, iter_done, time_MIN/time_ED), flush=True)
-            else:
-                print('CDMFT iteration {:d}, distance = {: #.2e}, diff param = {: #.2e}\n{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(self.iter+1, dist_value, diff_param, iter_done, time_MIN/time_ED), flush=True)
+
+            print('\nCDMFT iteration ', self.iter+1, flush=True)
+            print('GS sector : ', [x[1] for x in gs])
+            print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(iter_done, time_MIN/time_ED), flush=True)
+            convergence_test.print()
 
             #--------------------------------- Hartree step ---------------------------------
             if hartree != None:
@@ -265,51 +310,13 @@ class CDMFT:
                     self.I.Potthoff_functional()
 
             # writing the parameters in a progress file
-            des = 'distance\tdiff_param\tdiff_hybrid\tdiff_sigma\t'
-            val = '{: #.2e}\t{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(dist_value, diff_param, delta_hybrid, delta_sigma)
-            self.I.write_summary('cdmft_iter.tsv', suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time2)
+            self.I.write_summary('cdmft_iter.tsv', first_of_series=CDMFT.first_time2)
             CDMFT.first_time2 = False
-
-
-            #______________________________________________________________________
                     
-            # checking convergence on the parameters (note the sqrt(nvar) factor in order not to punish large parameter sets)
-            if (diff_param < accur) and hartree_converged and self.iter > miniter:
+            if converged and hartree_converged and self.iter > miniter:
                 converged = True
-                pyqcm.banner('CDMFT converged on the parameters', '=')
+                pyqcm.banner('CDMFT converged on '+convergence_test.name, '=')
                 break
-
-            # checking convergence on the hybridization matrix
-            if self.iter > 0:
-                delta_hybrid = self.diff_hybrid()
-                if (delta_hybrid < accur_hybrid) and hartree_converged and self.iter > miniter:
-                    pyqcm.banner('CDMFT converged on the hybridization function', '=')
-                    converged = True
-                    break
-
-                delta_sigma = self.diff_sigma()
-                if (delta_sigma < accur_sigma) and hartree_converged and self.iter > miniter:
-                    pyqcm.banner('CDMFT converged on the self-energy', '=')
-                    converged = True
-                    break
-
-            # checking convergence on the observables
-            # for the moment, this works only for observables belonging to the first cluster
-            obs_converged = True
-            if observables != None:
-                ave = self.I.cluster_averages()  ### WARNING CHECK
-                observable_series_length = 0
-                for x in observables:
-                    val = ave[x.name[0:-2]][0]
-                    Conv = x.test_convergence(self.iter, val)
-                    if x.length > observable_series_length:
-                        observable_series_length = x.length
-                    obs_converged = obs_converged and Conv
-                    print('observable <{:s}> = {:.6g}'.format(x.name, x.ave))
-                if obs_converged and self.iter > miniter:
-                    converged = True
-                    pyqcm.banner('CDMFT converged on the observables (length of series : {:d})'.format(observable_series_length), '=')
-                    break
 
             self.iter += 1
             var_val = pyqcm.varia_table(self.var,sol.x)
@@ -345,28 +352,14 @@ class CDMFT:
                 omegaH=self.I.Potthoff_functional(hartree)
 
             if file != None:
-                des = 'GS_consistency\titerations\tdist_function\tdistance\tdiff_hybrid\tdiff_sigma\t'
-                val = '{:s}\t{:d}\t{:s}\t{: #.2e}\t{: #.2e}\t{: #.2e}\t'.format(GS_cons, self.iter, self.grid.dist_function, dist_value, delta_hybrid, delta_sigma)
+                des = 'GS_consistency\titerations\tdist_function\tconvergence\t'
+                val = '{:s}\t{:d}\t{:s}\t{:s}\t'.format(GS_cons, self.iter, self.grid.dist_function, convergence)
                 if SEF : 
                     des += 'omegaH\t'
                     val += '{: #.8g}\t'.format(omegaH)
-                if observables != None:
-                    for x in observables:
-                        des += 'ave_'+x.name+'_obs\t'
-                        val += '{: #.6e}\t'.format(x.ave)
-                    des += 'series_length\t'
-                    val += '{:d}\t'.format(observable_series_length)
                 self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time)
                 CDMFT.first_time = False
                 CDMFT.first_time2 = True
-
-            # writing the frequency grid to a file
-            if 'self' in self.grid.dist_function:
-                self.I.write_summary('cdmft_grid.tsv', suppl_descr = des, suppl_values = val, first_of_series=True)
-                with open('cdmft_grid.tsv','a') as gridfile:
-                    np.savetxt(gridfile, np.stack((self.grid.w.imag, self.grid.weight),axis=-1),header='w\tweight', fmt='%.8f', delimiter='\t')
-                    gridfile.close()
-
 
             pyqcm.banner('CDMFT completed successfully', '*')
         else:
@@ -404,26 +397,33 @@ class CDMFT:
             
 
     #-----------------------------------------------------------------------------------------------
-    def diff_hybrid(self):
+    def diff_matrix(self, X, Y):
         """
         Computes a difference in hybridization functions between the current iteration (Hyb) and the previous one (Hyb0)
-
+        :param object X : the current test object
+        :param object Y : any past test object (same structure as X)
         :returns float: the difference in hybridization arrays
         
         """
 
         diff = 0.0
         g = self.grid
-        for i in range(g.nw):
-            for j in range(self.model.nclus):
-                delta = self.Hyb[j][i,:,:] - self.Hyb0[j][i,:,:]
-                norm = np.linalg.norm(delta)
-                diff += g.weight[i]*norm*norm
+        if self.model.mixing!=4:
+            for i in range(g.nw):
+                for j in range(self.model.nclus):
+                    delta = X[j][i,:,:] - Y[j][i,:,:]
+                    norm = np.linalg.norm(delta)
+                    diff += g.weight[i]*norm*norm
 
         if self.model.mixing==4:
             for i in range(g.nw):
                 for j in range(self.model.nclus):
-                    delta = self.Hyb_down[j][i,:,:] - self.Hyb0_down[j][i,:,:]
+                    delta = X[0][j][i,:,:] - Y[0][j][i,:,:]
+                    norm = np.linalg.norm(delta)
+                    diff += g.weight[i]*norm*norm
+            for i in range(g.nw):
+                for j in range(self.model.nclus):
+                    delta = X[1][j][i,:,:] - Y[1][j][i,:,:]
                     norm = np.linalg.norm(delta)
                     diff += g.weight[i]*norm*norm
 
