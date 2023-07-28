@@ -69,7 +69,7 @@ def run_vca():
     return V.I
 
 # performing the vca loop over V_range
-# model.controlled_loop(run_vca, varia='Vm1', loop_param='V', loop_range=(V_start, V_stop, V_step))
+model.controlled_loop(run_vca, varia='Vm1', loop_param='V', loop_range=(V_start, V_stop, V_step))
 
 #########################################################################################
 ############################# - VCA over both parameters - ##############################
@@ -83,7 +83,7 @@ def run_vca_2():
     return V.I
 
 # Looping from 4 to 3
-# model.controlled_loop(run_vca_2, varia=varia, loop_param='V', loop_range=(V_start, V_stop, V_step))
+model.controlled_loop(run_vca_2, varia=varia, loop_param='V', loop_range=(V_start, V_stop, V_step))
 
 #########################################################################################
 ######################### - Hybrid VCA with self-consistency - ##########################

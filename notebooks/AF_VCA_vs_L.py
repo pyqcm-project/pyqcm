@@ -4,14 +4,14 @@
 # For each of these models, perform a VCA analysis of antiferromagnetism at half-filling for $U=8$ and $t=1$. How does the Weiss field change according to cluster size?
 ####################################################################################################
 import pyqcm
-import pyqcm.vca as vca
+from pyqcm.vca import VCA
 
 def create_model(L):
     """
     param L : length of the cluster (L x 2)
     """
 
-    CM = pyqcm.cluster_model(2*L, 'clus'.format(L), 0)
+    CM = pyqcm.cluster_model(2*L, name='clus'.format(L))
     sites = [(i,0,0) for i in range(L)] + [(i,1,0) for i in range(L)]
     clus = pyqcm.cluster(CM, sites)
     model = pyqcm.lattice_model('{:d}x2_AFM'.format(L), clus, ((L, L%2, 0), (0, 2, 0)))
@@ -36,4 +36,4 @@ for L in [1,2,3,4,5]:
     """)
 
     # Running the VCA
-    V = vca.VCA(model, varia='M_1', steps=0.01, accur=2e-4, max=10.0, method='altNR', file = 'vca_L{:d}.tsv'.format(L)) 
+    V = VCA(model, varia='M_1', steps=0.01, accur=2e-4, max=10.0, method='altNR', file = 'vca_L{:d}.tsv'.format(L)) 

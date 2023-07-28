@@ -12,14 +12,24 @@ import matplotlib.pyplot as plt
 ####################################################################################################
 class convergence_manager:
     """
-    class managing the convergence tests
-
+    class managing a convergence test. One or more instances of this class must be used by the CDMFT
+    procedure. One instance corresponds to a quantity that is evaluated at each iteration and then
+    compared with the corresponding quantities at a number (`depth`) of previous iterations.
+    A difference function (`diff_func`) is applied to the current value of the quantity and each of
+    its predecessors, and convergence is declared when the result of this difference (a float) is smaller than
+    the tolerance (`tol`) for each of the `depth` previous iterations.
+    The possible values of the 'name' argument are: 
+        * 'parameters' : the set of bath parameters is the quantity used.
+        * 'GS energy' : the ground state energy of the impurity problem is used. In the case of more than one cluster, the sum is used.
+        * 'hybridization' : the hybridization function (or set thereof, in the case of many clusters). The test is based on the norm of the matrix differences, summed over grid frequencies.
+        * 'self-energy' : same as above, but using the impurity self-energy instead.
+        * any one-body or anomalous lattice operator name. The lattice average is used as test value.
     """
 
-    def __init__(self, name, diff_func, tol, depth=2, op = None):
+    def __init__(self, name, diff_func, tol, depth=2):
         """
         :param str name: name of the convergence test
-        :param function diff: difference function applied to the objects tested
+        :param function diff_func: difference function applied to the objects tested
         :param float tol: tolerance for convergence
         :param int depth: number of previous iterations the comparison is made with
         """
@@ -31,12 +41,12 @@ class convergence_manager:
         self.diff = np.zeros(depth)
         self.iter = 0
         self.X = []  # list of test objects
-        self.op = op
+        self.op = None
         self.converged = False
 
     def test(self, x):
         """
-        tests for convergence
+        tests for convergence and stores the test object x in an array for comparisons with 'depth' future iterations
 
         :param object x: the object containing the current test quantity
         :return: True if converged, False otherwise
@@ -63,6 +73,9 @@ class convergence_manager:
                 return False
     
     def print(self):
+        """
+        Prints the status of the convergence (differences are printed, with a number "depth" of previous iterations)
+        """
         if self.iter <= self.depth: return
         S = 'differences in ' + self.name + ' : '
         for i in range(self.depth): S += '{:1.2e}\t'.format(self.diff[i])
@@ -165,23 +178,22 @@ class CDMFT:
         convergence_test_string = ''
         for i, C in enumerate(convergence):
             convergence_test_string += C + '/'
-            convergence_diff_function = None
             if C in model.parameters():
-                op = C
-                convergence_diff_function = lambda x,y : np.abs(x-y)
+                conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth)
+                conv_manager.op = C
             else:
                 op = None
                 if C == 'parameters':
-                    convergence_diff_function = lambda x,y : np.linalg.norm(x-y)/x.shape[0]
+                    conv_manager = convergence_manager(C, lambda x,y : np.linalg.norm(x-y)/x.shape[0], accur[i], depth)
                 elif C == 'hybridization':
-                    convergence_diff_function = lambda x,y : self.diff_matrix(x,y)
+                    conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
                 elif C == 'self-energy':
-                    convergence_diff_function = lambda x,y : self.diff_matrix(x,y)
+                    conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
                 elif C == 'GS energy':
-                    convergence_diff_function = lambda x,y : np.abs(x-y)
+                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth)
                 else:
                     raise ValueError('type of convergence test "' + C + '" in CDMFT does not exist')
-            convergence_test.append(convergence_manager(C, convergence_diff_function, accur[i], depth, op = op))
+            convergence_test.append(conv_manager)
         convergence_test_string = convergence_test_string[:-1]
 
         # Hartree mean field parameters

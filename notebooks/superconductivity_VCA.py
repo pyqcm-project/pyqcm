@@ -67,27 +67,3 @@ model.set_parameter('D_1', 1e-9)
 vca.plot_sef(model, 'Dxy_1', Delta_grid)
 model.set_parameter('Dxy_1', 1e-9)
 
-# Loading the sef.tsv file into an array
-raw_data = np.genfromtxt("./sef.tsv", delimiter="\t", names=True, dtype=None, encoding='utf8', usecols=['omega'])
-data = raw_data[-4*grid_size-4:] # reading the last 4 sef simulation blocks accounting for the "omega" header
-
-# Loading each superconducting sef into an array
-omega_1 = data[0:grid_size]
-omega_2 = data[grid_size:2*grid_size]
-omega_3 = data[2*grid_size:3*grid_size]
-omega_4 = data[3*grid_size:4*grid_size]
-
-import matplotlib.pyplot as plt
-
-plt.plot(Delta_grid, omega_1, label="$s$-wave")
-plt.plot(Delta_grid, omega_2, label="extended $s$-wave")
-plt.plot(Delta_grid, omega_3, label="$d_{x^2 - y^2}$")
-plt.plot(Delta_grid, omega_4, label="$d_{xy}$")
-
-plt.xlim((0.0, 0.3))
-
-plt.legend()
-plt.xlabel("$\Delta$")
-plt.ylabel("$\Omega$")
-plt.show()
-

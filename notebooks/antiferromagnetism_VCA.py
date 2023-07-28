@@ -81,7 +81,7 @@ M_2 = 1*M_1
 # model.set_parameter("U", 8)
 I = pyqcm.model_instance(model)
 print(I.ground_state())
-#vca.plot_sef(model, 'M_1', np.arange(0.05, 0.151, 0.01)); exit()
+# pyqcm.vca.plot_sef(model, 'M_1', np.arange(0.05, 0.151, 0.01)); exit()
 
 
 #---------------------------------------------------------------------------------------------------
