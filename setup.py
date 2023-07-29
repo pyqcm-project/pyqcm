@@ -27,7 +27,7 @@ skbuild.setup(
     author="David Sénéchal",
     license="GPL",
     packages=find_packages(),
-    cmake_args=["-DDOWNLOAD_CUBA=1", "-DEIGEN_HAMILTONIAN=0"],
+    cmake_args=["-DWITH_PRIMME=1", "-DEIGEN_HAMILTONIAN=1"],
     # package_dir={"": "."},
     # cmake_install_dir=".",
     include_package_data=True,
