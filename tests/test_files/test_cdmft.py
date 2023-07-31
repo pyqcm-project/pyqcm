@@ -22,12 +22,14 @@ M.model.set_parameters("""
 # convergence='self-energy'; accur = 1e-4
 # convergence='t'; accur = 1e-4
 # convergence='parameters'; accur = 1e-4
-convergence=('parameters', 'hybridization', 'self-energy'); accur = (5e-4, 1e-4, 1e-4)
-# convergence=('mu', 't'); accur=(1e-4, 5e-4)
+# convergence=('parameters', 'hybridization', 'self-energy'); accur = (5e-4, 1e-4, 1e-4)
+# convergence=('mu', 't'); accur=(1e-3, 1e-3)
+# convergence=[]; accur = []
+convergence=('t',); accur=(1e-3,)
 
 # Defining a function that will run a cdmft procedure within controlled_loop()
 def run_cdmft():
-    X = CDMFT(M.model, varia=["tb1_1", "eb1_1"], wc=10, grid_type='self', accur=accur, convergence=convergence)
+    X = CDMFT(M.model, varia=["tb1_1", "eb1_1"], wc=10, grid_type='self', accur=accur, convergence=convergence, converge_with_stdev=True, miniter=8, maxiter=64)
     return X.I
 
 run_cdmft(); exit()

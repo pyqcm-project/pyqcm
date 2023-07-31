@@ -26,12 +26,13 @@ class convergence_manager:
         * any one-body or anomalous lattice operator name. The lattice average is used as test value.
     """
 
-    def __init__(self, name, diff_func, tol, depth=2):
+    def __init__(self, name, diff_func, tol, depth=2, stdev=False):
         """
         :param str name: name of the convergence test
         :param function diff_func: difference function applied to the objects tested
         :param float tol: tolerance for convergence
         :param int depth: number of previous iterations the comparison is made with
+        :param boolean stdev: indicates that the convergence is tested using the standard deviation
         """
 
         self.name = name
@@ -43,6 +44,14 @@ class convergence_manager:
         self.X = []  # list of test objects
         self.op = None
         self.converged = False
+        self.stdev = stdev
+        if stdev : 
+            self.val = np.zeros(32)
+            self.std = None
+            self.ave = None
+    
+
+        
 
     def test(self, x):
         """
@@ -51,8 +60,10 @@ class convergence_manager:
         :param object x: the object containing the current test quantity
         :return: True if converged, False otherwise
         """
-        converged = True
         self.iter += 1
+        if self.stdev: 
+            return self.stdev_test(x)
+        converged = True
         if self.iter <= self.depth:
             self.X.append(x)
             return False
@@ -72,13 +83,29 @@ class convergence_manager:
             else:
                 return False
     
+    def stdev_test(self, x):
+        print(self.name + ' = {:1.5g} (added to sequence)'.format(x))
+        if self.iter > len(self.val):
+            self.val.resize(len(self.val) + 32)
+        self.val[self.iter-1] = x
+        self.std = np.std(self.val[0:self.iter])/np.sqrt(self.iter) 
+        self.ave = np.mean(self.val[0:self.iter]) 
+        if self.std < self.tol:
+            return True
+        else:
+            return False
+        
+
     def print(self):
         """
         Prints the status of the convergence (differences are printed, with a number "depth" of previous iterations)
         """
         if self.iter <= self.depth: return
-        S = 'differences in ' + self.name + ' : '
-        for i in range(self.depth): S += '{:1.2e}\t'.format(self.diff[i])
+        if self.stdev:
+            S = '---> ave({:s}) = {:1.7g} +/- {:1.4g}'.format(self.name, self.ave, self.std)
+        else:
+            S = 'differences in ' + self.name + ' : '
+            for i in range(self.depth): S += '{:1.2e}\t'.format(self.diff[i])
         if self.converged: S += ' * converged * '
         print(S, flush=True)
     
@@ -98,6 +125,7 @@ class CDMFT:
     :param float accur_bath: the x-tolerance for distance function optimization
     :param [str] convergence: the convergence tests (sequence of strings or single string)
     :param [float] accur: the tolerance for the various convergence tests (sequence of floats or single float)
+    :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
     :param float alpha: damping parameter (fraction of the previous iteration in the new one)
     :param boolean displaymin: displays the minimum distance function when minimized
     :param str method: method to use, as used in scipy.optimize.minimize()
@@ -132,6 +160,7 @@ class CDMFT:
         accur_bath=1e-3,
         accur=1e-4,
         accur_dist=1e-9,
+        converge_with_stdev = False,
         alpha = 0.0,
         method='Nelder-Mead',
         file='cdmft.tsv',
@@ -174,14 +203,17 @@ class CDMFT:
             convergence = (convergence,)
         if len(convergence) != len(accur):
             raise ValueError('The number of convergence tests must be the same as the length of "accur"')
+        n_convergence_tests = len(convergence)
         convergence_test = []
         convergence_test_string = ''
         for i, C in enumerate(convergence):
             convergence_test_string += C + '/'
             if C in model.parameters():
-                conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth)
+                conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
                 conv_manager.op = C
             else:
+                if converge_with_stdev and C != 'GS energy':
+                    raise ValueError('In CDMFT, converge_with_stdev=True is only possible when "convergence" is the name of an operator or GS energy')
                 op = None
                 if C == 'parameters':
                     conv_manager = convergence_manager(C, lambda x,y : np.linalg.norm(x-y)/x.shape[0], accur[i], depth)
@@ -190,7 +222,7 @@ class CDMFT:
                 elif C == 'self-energy':
                     conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
                 elif C == 'GS energy':
-                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth)
+                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
                 else:
                     raise ValueError('type of convergence test "' + C + '" in CDMFT does not exist')
             convergence_test.append(conv_manager)
@@ -221,7 +253,8 @@ class CDMFT:
         time_ED = 0.0
         time_MIN = 0.0
         while True:
-            converged = True
+            if n_convergence_tests > 0 : converged = True
+            else: converged = False
             self.I = pyqcm.model_instance(self.model)
             self.grid = frequency_grid(self.I, grid_type, beta, wc)
             params = self.I.instance_parameters() # params is a dict
@@ -288,6 +321,7 @@ class CDMFT:
             print('updated bath parameters:\n', var_val)
             if self.iter > maxiter:
                 self.plot_iterations()
+                if n_convergence_tests == 0 : break
                 raise pyqcm.TooManyIterationsError(maxiter)
 
             #--------------------------- convergence acceleration ---------------------------
@@ -301,45 +335,45 @@ class CDMFT:
                 var_val = pyqcm.varia_table(self.var,self.var_data[:,self.iter])
                 print(var_val)
             #-------------------------------------------------------------------------------
+            if self.iter >= miniter:
+                for C in convergence_test:
+                    if C.name == 'GS energy':
+                        gs = self.I.ground_state()
+                        E0 = 0.0
+                        for x in gs:
+                            E0 += x[0]
+                        converged = converged and C.test(E0)
 
-            for C in convergence_test:
-                if C.name == 'GS energy':
-                    gs = self.I.ground_state()
-                    E0 = 0.0
-                    for x in gs:
-                        E0 += x[0]
-                    converged = converged and C.test(E0)
+                    elif C.name == 'self-energy':
+                        self.set_sigma()
+                        if self.model.mixing == 4: 
+                            T = C.test((self.sigma,self.sigma_down))
+                            converged = converged and T
+                        else: 
+                            T = C.test(self.sigma)
+                            converged = converged and T
 
-                elif C.name == 'self-energy':
-                    self.set_sigma()
-                    if self.model.mixing == 4: 
-                        T = C.test((self.sigma,self.sigma_down))
+                    elif C.name == 'hybridization':
+                        if self.model.mixing == 4: 
+                            T = C.test((self.Hyb,self.Hyb_down))
+                            converged = converged and T
+                        else: 
+                            T = C.test(self.Hyb)
+                            converged = converged and T
+
+                    elif C.name == 'parameters':
+                        T = C.test(np.copy(params_array))
                         converged = converged and T
-                    else: 
-                        T = C.test(self.sigma)
-                        converged = converged and T
 
-                elif C.name == 'hybridization':
-                    if self.model.mixing == 4: 
-                        T = C.test((self.Hyb,self.Hyb_down))
+                    elif C.op != None:
+                        T = C.test(self.I.averages()[C.op])
                         converged = converged and T
-                    else: 
-                        T = C.test(self.Hyb)
-                        converged = converged and T
-
-                elif C.name == 'parameters':
-                    T = C.test(np.copy(params_array))
-                    converged = converged and T
-
-                elif C.op != None:
-                    T = C.test(self.I.averages()[C.op])
-                    converged = converged and T
 
             # writing the parameters in a progress file
             self.I.write_summary('cdmft_iter.tsv', first_of_series=CDMFT.first_time2)
             CDMFT.first_time2 = False
 
-            print('\nCDMFT iteration ', self.iter+1, flush=True)
+            print('\nCDMFT iteration ', self.iter, flush=True)
             print('GS sector : ', [x[1] for x in gs])
             print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}'.format(iter_done, time_MIN/time_ED), flush=True)
             for C in convergence_test:
@@ -375,8 +409,11 @@ class CDMFT:
 
             pyqcm.banner('CDMFT completed successfully', '*')
         else:
-            pyqcm.banner('Failure of the CDMFT algorithm', '*')
-    
+            if n_convergence_tests > 0:
+                pyqcm.banner('Failure of the CDMFT algorithm', '*')
+            else:
+                pyqcm.banner('CDMFT completed with the prescribed number of iterations', '*')
+ 
 
     #-----------------------------------------------------------------------------------------------
     def set_Hyb(self):
@@ -571,32 +608,6 @@ class frequency_grid:
             self.dist_function = 'self_wc_{0:.1f}_b_{1:d}'.format(self.wc, int(self.beta))
         else:
             raise pyqcm.WrongArgumentError(f"unknown frequency grid type `{grid_type}`")
-
-
-####################################################################################################
-class observable:
-    def __init__(self, name, tol, min_length=2):
-        self.name = name
-        self.tol = tol
-        self.val = np.zeros(32)
-        self.ave = 999
-        self.length = 0
-        self.min_length = min_length
-
-    def __repr__(self):
-        return self.name + '(tol = {:.2g})'.format(self.tol)
-
-    def test_convergence(self, iter, x):
-        if iter > len(self.val):
-            self.val.resize(len(self.val) + 32)
-        self.val[iter] = x
-        if iter+1 < self.min_length:
-            return False
-        std, self.ave, self.length = moving_std(self.val[0:iter+1], self.min_length)
-        if std < self.tol:
-            return True
-        else:
-            return False
 
 ####################################################################################################
 class general_bath:
@@ -1086,28 +1097,6 @@ class hybridization:
 
 ####################################################################################################
 # PRIVATE FUNCTIONS
-
-def moving_std(x, min):
-    """finds the subsequence with the smallest standard deviation, with minimum size min
-    
-    :param [float] x: sequence 
-    :param int min: minimum length of subsequence
-
-    """
-    n = len(x)
-    if n<min :
-        raise ValueError('the sequence given to moving_std is too short (should be >= {:d})'.format(min))
-    if min<2 :
-        raise ValueError('the minimum value of argument "min" in moving_std() is 2')
-
-    std = np.empty(n-1) # stores the standard deviations of the subsequences
-    for i in range(n-1):
-        std[i] = np.std(x[n-i-2:n])/np.sqrt(i+2) # the length of the subsequence is i+2
-    I = np.argmin(std[min-2:]) + min - 2
-    return std[I], np.mean(x[n-I-2:n]), I+2
-
-        
-
 
 #---------------------------------------------------------------------------------------------------
 def check_bounds(x, B=100, v=None):
