@@ -529,12 +529,12 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
   auto LKUP = &look_up_table;
   if(spin_down) LKUP = &look_up_table_down;
   matrix<Complex> G_recycled;
-  #pragma omp critical
+  #pragma omp critical (looking_up)
   for(auto &x: *LKUP){
     if(abs(z - x.first) < MIDDLE_VALUE){
       // cout << "recycling G for z = " << z << " and x.first = " << x.first << "  G(0,0) = " << x.second(0,0) << endl;
       G_recycled = x.second;
-      break;
+      //break;
     }
   }
   if(G_recycled.size() > 0){
@@ -583,7 +583,7 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
   }
   
 #ifdef LOOK_UP
-  #pragma omp critical
+  #pragma omp critical (adding_up)
   {
     pair<Complex, matrix<Complex>> P(z,G);
     LKUP->push_front(P);
