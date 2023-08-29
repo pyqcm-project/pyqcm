@@ -583,7 +583,7 @@ matrix<complex<double>> model_instance<HilbertField>::Green_function(const Compl
   }
   
 #ifdef LOOK_UP
-  #pragma omp critical (adding_up)
+  #pragma omp critical (looking_up)
   {
     pair<Complex, matrix<Complex>> P(z,G);
     LKUP->push_front(P);
