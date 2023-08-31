@@ -1,5 +1,37 @@
 cmake_minimum_required(VERSION 3.15)
 
+# Compiler options
+if(APPLE)
+    #enforce compiler because Apple system can use a broken compiler
+    if ((NOT CMAKE_C_COMPILER) AND (NOT CMAKE_CXX_COMPILER))
+        message(STATUS "Enforce Clang and Clang++ compilers on Apple. To disable this behavior, manually set CMake variables -DCMAKE_C_COMPILER=[your_c_compiler] and -DCMAKE_CXX_COMPILER=[your_cxx_compiler]")
+        set(CMAKE_C_COMPILER "clang")
+        set(CMAKE_CXX_COMPILER "clang++")
+    endif()
+elseif(UNIX)
+    #Nothing
+else()
+    message(WARNING "Potentially unsupported system, compilation may fail...")
+endif()
+
+#------------------
+# QCM specific options
+#------------------
+option(DOWNLOAD_CUBA "Specify to download and compile automatically the CUBA integration library" ON)
+option(CUBA_DIR "If CUBA not downloaded and build by this project, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library libcuba.a along with the header cuba.h")
+#option(BLA_VENDOR "BLAS implementation to use. See CMake vendor documentation https://cmake.org/cmake/help/latest/module/FindBLAS.html for more information" OFF)
+option(EIGEN_HAMILTONIAN "Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine (require Eigen library)" ON)
+option(WITH_PRIMME "Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs EIGEN_HAMILTONIAN=1)" OFF)
+option(DOWNLOAD_PRIMME "Specify to download and compile automatically the PRIMME eigensolver library (needs WITH_PRIMME=ON)" OFF)
+option(PRIMME_DIR "Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically")
+option(WITH_GF_OPT_KERNEL "Automatically detect host processor AVX2 capabilities (i.e. Intel processors after 2014 and AMD processors after 2015) and compile the optimized kernel (5 times quicker) for Green function evaluation" ON)
+option(QCM_DEBUG "Enable extra verbose information for debug purpose" OFF)
+#option(CMAKE_C_COMPILER "The C compiler to use to compile qcm and its automatically download dependencies")
+#option(CMAKE_CXX_COMPILER "The C++ compiler to use to compile qcm and its automatically download dependencies (must match the C compiler, for example gcc and g++)")
+option(APPLE_LIBOMP_PREFIX "Custom path to the OpenMP library libomp on Apple computer")
+option(USE_OPENMP "Enable parallelization using OpenMP" ON)
+
+
 # set the project name and version
 project(qcm LANGUAGES C CXX VERSION 1.0 DESCRIPTION "Quantum Cluster Methods shared library")
 
@@ -15,27 +47,28 @@ message(STATUS "Host processor : ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "Architecture: ${ARCHITECTURE}")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_DEBUG "-g ")
 
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -ftree-vectorize -funroll-loops")
-    set(OpenMP_CXX_INCLUDE_DIR "/opt/homebrew/opt/libomp/include")
-else()
-    if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O2 -xHost -funroll-loops")
-    else()
-        set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -ftree-vectorize -funroll-loops")
-    endif()
+
+#------------------
+# Compilation option (optimisation)
+#------------------
+
+if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -xHost -funroll-loops")
+else(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GCC)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -march=native -ftree-vectorize -funroll-loops")
 endif()
 
 if(QCM_DEBUG)
     add_definitions(-DQCM_DEBUG)
 endif()
 
+
 #------------------
 # Define target 
 #------------------
+
 add_library(qcm SHARED
     src_qcm/CPT.cpp
     src_qcm/Chern.cpp
@@ -81,9 +114,8 @@ set_target_properties(qcm PROPERTIES VERSION ${PROJECT_VERSION} PREFIX "" SUFFIX
 #------------------
 find_package(Python3 3.7 COMPONENTS Interpreter Development NumPy REQUIRED)
 message(STATUS "python executable: ${Python3_EXECUTABLE}")
-find_package(PythonLibs REQUIRED)
-message(STATUS "python include dir: ${PYTHON_INCLUDE_DIRS}")
-message(STATUS "python libs: ${PYTHON_LIBRARIES}")
+message(STATUS "python include dir: ${Python3_INCLUDE_DIRS}")
+message(STATUS "python libs: ${Python3_LIBRARIES}")
 set(NUMPY_INCLUDE_DIR ${Python3_NumPy_INCLUDE_DIRS})
 message(STATUS "numpy dir : ${NUMPY_INCLUDE_DIR}")
 
@@ -103,14 +135,6 @@ if (EIGEN_HAMILTONIAN)
     message(STATUS "Compile with Eigen Hamiltonian format 'E'")
     message(STATUS "Eigen3 directory: ${EIGEN3_INCLUDE_DIR}")
     add_compile_definitions(EIGEN_HAMILTONIAN)
-endif()
-
-if (PETSC_HAMILTONIAN)
-    find_package(PETSc REQUIRED)
-    target_link_libraries(qcm ${PETSC_LIBRARIES})
-    target_include_directories(qcm ${PETSC_INCLUDE_DIR})
-    message(STATUS "PETSc lib: ${PETSC_LIBRARIES}")
-    add_compile_definitions(PETSC_HAMILTONIAN)
 endif()
 
 
@@ -138,6 +162,7 @@ if (WITH_PRIMME)
             INSTALL_COMMAND ""
             STEP_TARGETS build
             BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/external/primme/lib/libprimme.a
+            DOWNLOAD_EXTRACT_TIMESTAMP false
         )
         add_dependencies(qcm PRIMME)
         set(PRIMME_LIBRARY ${CMAKE_SOURCE_DIR}/external/primme/lib/libprimme.a)
@@ -155,20 +180,19 @@ if (WITH_PRIMME)
     message(STATUS "PRIMME lib: ${PRIMME_LIBRARY}")
 endif()
 
+
 #------------------
 # BLAS / LAPACK
 #------------------
 
-include(FindLAPACK)
+include(FindLAPACK REQUIRED)
 message(STATUS "LAPACK lib: ${LAPACK_LIBRARIES}")
 
-if(NOT LAPACK_FOUND)
-    message(FATAL_ERROR "Blas/Lapack or equivalent not found. Please install the required libraries." )
-endif()
 
 #------------------
 # Cuba library
 #------------------
+
 if (DOWNLOAD_CUBA)
     include(ExternalProject)
     ExternalProject_Add(Cuba
@@ -182,6 +206,7 @@ if (DOWNLOAD_CUBA)
         INSTALL_COMMAND ""
         STEP_TARGETS build
         BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/external/cuba/libcuba.a
+        DOWNLOAD_EXTRACT_TIMESTAMP false
     )
     add_dependencies(qcm Cuba)
     set(CUBA_LIBRARY ${CMAKE_SOURCE_DIR}/external/cuba/libcuba.a)
@@ -207,27 +232,56 @@ if (WITH_GF_OPT_KERNEL)
     add_compile_definitions(HAVE_AVX2)
   else()
     message(WARNING "WITH_GF_KERNEL specified but the host processor does not have AVX2 capability: optimized kernel will not be used.")
+    set(AVX2_FOUND false)
   endif()
   message(STATUS "Using AVX2 optimized kernel for Green function evaluation: ${AVX2_FOUND}")
 endif()
-
-#------------------
-# Link dependencies
-#------------------
-target_link_libraries(qcm ${PYTHON_LIBRARIES} ${LAPACK_LIBRARIES} ${CUBA_LIBRARY} ${PRIMME_LIBRARY})
-
-target_include_directories(qcm PUBLIC src_qcm src_ed src_python src_util ${PYTHON_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR}/numpy ${CUBA_DIR} ${PRIMME_DIR}/include)
 
 
 #------------------
 # Parallelization using OpenMP
 #------------------
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(qcm OpenMP::OpenMP_CXX)
+
+if (USE_OPENMP)
+    if (APPLE)
+        #Let's try once
+        find_package(OpenMP)
+        #If can't be find automatically
+        if (NOT OpenMP_FOUND)
+            if (NOT ${APPLE_LIBOMP_PREFIX})
+                execute_process(COMMAND brew --prefix libomp
+                          OUTPUT_VARIABLE APPLE_LIBOMP_PREFIX
+                          OUTPUT_STRIP_TRAILING_WHITESPACE)
+            endif()
+            message(STATUS "Apple OpenMP library: ${APPLE_LIBOMP_PREFIX}")
+            #OpenMP_C
+            set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
+            set(OpenMP_C_LIB_NAMES "omp")
+            #OpenMP_CXX
+            set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
+            set(OpenMP_CXX_LIB_NAMES "omp")
+            #OpenMP libs name
+            set(OpenMP_omp_LIBRARY "${APPLE_LIBOMP_PREFIX}/lib/libomp.dylib")
+            find_package(OpenMP REQUIRED)
+        endif()
+    else()
+        find_package(OpenMP REQUIRED)
+    endif()
 endif()
 
 
-# install(TARGETS qcm DESTINATION ${PYTHON_INCLUDE_DIRS}/site-packages)
+#------------------
+# Link dependencies
+#------------------
+
+target_link_libraries(qcm ${Python3_LIBRARIES} ${LAPACK_LIBRARIES} ${CUBA_LIBRARY} ${PRIMME_LIBRARY} OpenMP::OpenMP_CXX)
+
+target_include_directories(qcm PUBLIC src_qcm src_ed src_python src_util ${Python3_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR}/numpy ${CUBA_DIR} ${PRIMME_DIR}/include)
+
+
+#------------------
+# Install targets
+#------------------
+# install(TARGETS qcm DESTINATION ${PYTHON_INCLUDE_DIR}/site-packages)
 # install(TARGETS qcm DESTINATION ${CMAKE_SOURCE_DIR}/pyqcm)
 install(TARGETS qcm DESTINATION pyqcm)
