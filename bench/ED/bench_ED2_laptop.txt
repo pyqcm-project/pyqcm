@@ -1,0 +1,10 @@
+#pyqcm version 2.2.4
+#Total runtime on a 11th Gen Intel® Core™ i7-1165G7 @ 2.80GHz (4 cores with HT)
+#With OPENBLAS_NUM_THREADS=1
+#File bench_ED2.py with withtout symmetry (line 18)
+#~9GB with symmetry, ~18G without
+Threads,with,without
+1,602,
+2,538,
+4,517,
+8,516,

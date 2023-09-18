@@ -2,26 +2,30 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if __name__ == "__main__":
-  cuba = np.genfromtxt("CUBACORES.txt", delimiter=",", skip_header=4)
-  omp = np.genfromtxt("OMP.txt", delimiter=",", skip_header=4)
-  ref_time = omp[-1,1]
+  
+  f_integrals_small = "bench_ED2_laptop.txt"
+  data = np.genfromtxt(f_integrals_small, delimiter=",", comments='#',skip_header=6)
   
   fig,ax = plt.subplots()
-  ax.plot(cuba[:,0], cuba[:,1], color='b', label="CUBACORES", marker='o')
-  ax.plot(omp[:,0], omp[:,1], color='r', label="OMP", marker='s')
-  max_core = int(np.max(omp[:,0]))
+  colors = ['r','b','g']
+  
+  for j in range(1,2):#data.shape[1]):
+      ax.plot(data[:,0], data[:,j], color=colors[j-1], label="pyqcm", marker='o')
+  
+  max_core = int(data[-1,0])
+  ref_time = data[0,1]
   ax.plot([x+1 for x in range(max_core)],[ref_time/(x+1) for x in range(max_core)], linestyle='--', color='k', label='Ideal')
   
   ax.set_xlabel("Cores")
   ax.set_ylabel("Time (s)")
   ax.grid()
-  ax.set_ylim(8,ref_time*1.1)
-  ax.set_xlim([1,max_core])
+  ax.set_ylim(64,660)
+  ax.set_xlim([1,8])
   ax.set_yscale("log", base=2)
   ax.set_xscale("log", base=2)
-  ax.set_yticks([int(2**x) for x in range(3,10)])
+  ax.set_yticks([int(2**x) for x in range(6,10)])
   ax.set_yticklabels([str(int(x)) for x in ax.get_yticks()])
-  ax.set_xticks([int(2**x) for x in range(0,6)])
+  ax.set_xticks([int(2**x) for x in range(0,4)])
   ax.set_xticklabels([str(int(x)) for x in ax.get_xticks()])
   ax.legend()
   

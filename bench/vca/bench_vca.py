@@ -2,8 +2,11 @@ import pyqcm
 import pyqcm.vca as vca
 import numpy as np
 
+
+pyqcm.set_global_parameter("verb_integrals")
+
 # declare a cluster model of 9 sites, named 'clus'
-CM = pyqcm.cluster_model(9)  
+CM = pyqcm.cluster_model(9)
 
 sites = []
 for j in range(3):
