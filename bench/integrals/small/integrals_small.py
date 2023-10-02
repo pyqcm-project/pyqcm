@@ -1,7 +1,9 @@
 import pyqcm
-from model_2x2x2 import model
+from model_small import model
 
 pyqcm.set_global_parameter('verb_integrals')
+pyqcm.set_global_parameter('verb_Hilbert')
+pyqcm.set_global_parameter('seed', 1234)
 model.set_target_sectors('R0:S0')
 model.set_parameters("""
 t = 1
