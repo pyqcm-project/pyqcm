@@ -1703,13 +1703,25 @@ def wavevector_path(n=32, shape='triangle'):
     Builds a wavevector path and associated tick marks
     
     :param int n: number of wavevectors per segment
-    :param str shape: the geometry of the path, one of: line, halfline, triangle, graphene, graphene2, diagonal, cubic, cubic2, tetragonal, tetragonal2  OR a tuple with two wavevectors for a straight path between the two OR a filename ending with ".tsv". In the latter case, the file contains a tab-separated list of wavevectors (in units of pi) and tick marks: the first three columns are the x,y,z components of the wavevectors, and the last columns the strings (possibly latex) for the tick marks (write - in that column if you do not want a tick mark for a specific wavevector).
+    :param str shape: the geometry of the path, one of: line, halfline, triangle, diagonal, graphene, graphene2, tri, cubic, cubic2, tetragonal, tetragonal2  OR a tuple with two wavevectors for a straight path between the two OR a filename ending with ".tsv". In the latter case, the file contains a tab-separated list of wavevectors (in units of pi) and tick marks: the first three columns are the x,y,z components of the wavevectors, and the last columns the strings (possibly latex) for the tick marks (write - in that column if you do not want a tick mark for a specific wavevector).
     :returns tuple: 1) a ndarray of wavevectors 2) a list of tick positions 3) a list of tick strings
 
     """
     if type(shape) is tuple:
         return __wavevector_line(shape[0], shape[1], n)
 
+    elif shape == 'line':
+        k = np.zeros((2 * n + 1, 3))
+        for i in range(2 * n + 1):
+            k[i, 0] = (i - n) / n
+        ticks = np.array([0, n, 2 * n + 1])
+        tick_labels = [r'$-\pi$', r'$0$', r'$\pi$']
+    elif shape == 'halfline':
+        k = np.zeros((n + 1, 3))
+        for i in range(n + 1):
+            k[i, 0] = i / n
+        ticks = np.array([0, n / 2, n + 1])
+        tick_labels = [r'$0$', r'$\pi/2$', r'$\pi$']
     elif (shape == 'triangle'):
         k = np.zeros((3 * n + 1, 3))
         for i in range(n):
@@ -1723,12 +1735,6 @@ def wavevector_path(n=32, shape='triangle'):
         k[-1] = k[0]
         ticks = np.array([0, n, 2 * n, 3 * n + 1])
         tick_labels = [r'$(0,0)$', r'$(\pi,0)$', r'$(\pi,\pi)$', r'$(0,0)$']
-    elif shape == 'line':
-        k = np.zeros((2 * n + 1, 3))
-        for i in range(2 * n + 1):
-            k[i, 0] = (i - n) / n
-        ticks = np.array([0, n, 2 * n + 1])
-        tick_labels = [r'$-\pi$', r'$0$', r'$\pi$']
     elif shape == 'diagonal':
         k = np.zeros((n + 1, 3))
         for i in range(n + 1):
@@ -1736,12 +1742,6 @@ def wavevector_path(n=32, shape='triangle'):
             k[i, 1] = i / n
         ticks = np.array([0, n / 2, n + 1])
         tick_labels = [r'$\Gamma$', r'$(\pi/2,\pi/2)$', r'$M$']
-    elif shape == 'halfline':
-        k = np.zeros((n + 1, 3))
-        for i in range(n + 1):
-            k[i, 0] = i / n
-        ticks = np.array([0, n / 2, n + 1])
-        tick_labels = [r'$0$', r'$\pi/2$', r'$\pi$']
     elif shape == 'graphene':  # honeycomb lattice (2D) gamma-M-K'-gamma
         k = np.zeros((5 * n // 2 + 1, 3))
         for i in range(n):
@@ -1796,6 +1796,35 @@ def wavevector_path(n=32, shape='triangle'):
             k[i + 3*n, 1] = 1.0 - i / n
         ticks = np.array([0, n, 2 * n, 3 * n, 4 * n + 1])
         tick_labels = [r'$(\pi,0,0)$', r'$(0,0,0)$', r'$(\pi,\pi,\pi)$', r'$(\pi,\pi,0)$', r'$(0,0,0)$']
+    elif shape == 'cubic2':  # cubic lattice (000)-(010)-(110)-(000)-(111)-(010)-(000)
+        k = np.zeros((6*n+1, 3))
+        for i in range(n):
+            k[i, 1] = i / n
+        for i in range(n):
+            k[i + n, 0] = i / n
+            k[i + n, 1] = 1.0
+            k[i + n, 2] = 0
+        for i in range(n):
+            k[i + 2*n, 0] = 1.0 - i / n
+            k[i + 2*n, 1] = 1.0 - i / n
+            k[i + 2*n, 2] = 0
+        for i in range(n):
+            k[i + 3*n, 0] = i / n
+            k[i + 3*n, 1] = i / n
+            k[i + 3*n, 2] = i / n
+        for i in range(n):
+            k[i + 4*n, 0] = 1.0 - i / n
+            k[i + 4*n, 1] = 1.0
+            k[i + 4*n, 2] = 1.0 - i / n
+        for i in range(n):
+            k[i + 5*n, 0] = 0
+            k[i + 5*n, 1] = 1.0 - i / n
+            k[i + 5*n, 2] = 0
+        k[-1,0] = 0
+        k[-1,1] = 0
+        k[-1,2] = 0 
+        ticks = np.array([0, n, 2 * n, 3 * n, 4 * n, 5 * n, 6 * n + 1])
+        tick_labels = [r'$(0,0,0)$', r'$(0,\pi,0)$', r'$(\pi,\pi,0)$', r'$(0,0,0)$', r'$(\pi,\pi,\pi)$' , r'$(0,\pi,0)$', r'$(0,0,0)$']
     elif shape == 'tetragonal':  # tetragonal lattice (000)-(200)-(101/2)-(111/2)-(110)
         k = np.zeros((4*n+1, 3))
         for i in range(n):
@@ -1839,35 +1868,6 @@ def wavevector_path(n=32, shape='triangle'):
             k[i + 3*n, 2] = 1 / 4 - i / (4 * n)
         ticks = np.array([0, n, 2 * n, 3 * n, 4 * n + 1])
         tick_labels = [r'$(0,0,0)$', r'$(\pi,0,0)$', r'$(\pi/2,0,\pi/4)$', r'$(\pi/2,\pi/2,\pi/4)$', r'$(\pi/2,\pi/2,0)$']
-    elif shape == 'cubic2':  # cubic lattice (000)-(010)-(110)-(000)-(111)-(010)-(000)
-        k = np.zeros((6*n+1, 3))
-        for i in range(n):
-            k[i, 1] = i / n
-        for i in range(n):
-            k[i + n, 0] = i / n
-            k[i + n, 1] = 1.0
-            k[i + n, 2] = 0
-        for i in range(n):
-            k[i + 2*n, 0] = 1.0 - i / n
-            k[i + 2*n, 1] = 1.0 - i / n
-            k[i + 2*n, 2] = 0
-        for i in range(n):
-            k[i + 3*n, 0] = i / n
-            k[i + 3*n, 1] = i / n
-            k[i + 3*n, 2] = i / n
-        for i in range(n):
-            k[i + 4*n, 0] = 1.0 - i / n
-            k[i + 4*n, 1] = 1.0
-            k[i + 4*n, 2] = 1.0 - i / n
-        for i in range(n):
-            k[i + 5*n, 0] = 0
-            k[i + 5*n, 1] = 1.0 - i / n
-            k[i + 5*n, 2] = 0
-        k[-1,0] = 0
-        k[-1,1] = 0
-        k[-1,2] = 0 
-        ticks = np.array([0, n, 2 * n, 3 * n, 4 * n, 5 * n, 6 * n + 1])
-        tick_labels = [r'$(0,0,0)$', r'$(0,\pi,0)$', r'$(\pi,\pi,0)$', r'$(0,0,0)$', r'$(\pi,\pi,\pi)$' , r'$(0,\pi,0)$', r'$(0,0,0)$']
 
     else:
         if '.tsv' in shape:

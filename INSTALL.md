@@ -126,6 +126,16 @@ cp ./qcm* ../pyqcm/.
 export PYTHONPATH="$HOME/qcm_wed:$PYTHONPATH"
 ```
 
+## Tips on MacOS
+
+Compiling CUBA on MacOS must be done with the same compiler as the rest, and the ./configure
+file of the CUBA distribution may not follow this. Therefore it is recommended to manually set
+the following cmake options:
+
+```
+-DCMAKE_C_COMPILER=cc -DCMAKE_CXX_COMPILER=c++
+```
+
 ## Tips for compilation on Compute Canada server (not up to date)
 
 ### Compilation on Intel based cluster with ICC compiler

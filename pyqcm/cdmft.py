@@ -199,7 +199,7 @@ class CDMFT:
         if nvar == 0:
             raise ValueError('CDMFT requires at least one variational parameter...Aborting.')
         qcm.CDMFT_variational_set(self.var)
-        self.var_data = np.empty((nvar, maxiter+1))
+        self.CM.var_data = np.empty((nvar, maxiter+1))
         
         # convergence test initialization
         if pyqcm.is_sequence(convergence) == False:
@@ -265,7 +265,7 @@ class CDMFT:
             # puts the values only of the parameters into array params_array
             for i in range(nvar):
                 params_array[i] = params[self.var[i]]
-            self.var_data[:, self.iter] = params_array
+            self.CM.var_data[:, self.iter] = params_array
             check_bounds(params_array, max_value, v=self.var)
 
             #--------------------------------- Hartree step ---------------------------------
@@ -346,10 +346,10 @@ class CDMFT:
             if eps_algo and self.iter>=2*eps_length and self.iter%(2*eps_length) == 0:
                 pyqcm.banner('applying the epsilon algorithm')
                 for i in range(nvar):
-                    z = pyqcm.epsilon(self.var_data[i,self.iter-eps_length:self.iter])
-                    self.var_data[i,self.iter] = z
+                    z = pyqcm.epsilon(self.CM.var_data[i,self.iter-eps_length:self.iter])
+                    self.CM.var_data[i,self.iter] = z
                     self.model.set_parameter(self.var[i], z)
-                var_val = pyqcm.varia_table(self.var,self.var_data[:,self.iter])
+                var_val = pyqcm.varia_table(self.var,self.CM.var_data[:,self.iter])
                 print(var_val)
             #-------------------------------------------------------------------------------
             if self.iter >= miniter:
@@ -571,11 +571,11 @@ class CDMFT:
         nrows = 1+(nvar-1)//ncols
         fig, ax = plt.subplots(nrows, ncols, sharex=True)
         fig.set_size_inches(24/2.54, nrows*6/2.54)
-        niter = self.var_data.shape[0]
+        niter = self.CM.var_data.shape[0]
         for i,x in enumerate(self.var):
             if nrows==1: plt.sca(ax[i])
             else: plt.sca(ax[i//ncols,i%ncols])
-            plt.plot(range(self.iter), self.var_data[i,0:self.iter], 'o-', ms=3, lw=0.5)
+            plt.plot(range(self.iter), self.CM.var_data[i,0:self.iter], 'o-', ms=3, lw=0.5)
             plt.title(self.var[i])
         plt.savefig('iterations.pdf')
 
@@ -655,13 +655,9 @@ class general_bath:
     """
 
     def  __init__(self, ns, nb, name = 'clus', spin_dependent=False, spin_flip=False, singlet=False, triplet=False, complex=False, sites=None):
-        from pyqcm import new_cluster_model, new_cluster_operator, new_cluster_operator_complex
-        new_cluster_model(name, ns, nb)
-        self.ns = ns
-        self.nb = nb
-        self.name = name
-        self.var_E = []
-        self.var_H = []
+        self.CM = pyqcm.cluster_model(ns, n_bath=nb, name=name)
+        self.CM.var_E = []
+        self.CM.var_H = []
         self.spin_dependent = spin_dependent
         self.spin_flip = spin_flip
         self.singlet = singlet
@@ -686,16 +682,16 @@ class general_bath:
         if spin_dependent or spin_flip:
             for x in range(1,nb+1):
                 param_name = 'eb{:d}u'.format(x)
-                new_cluster_operator(name, param_name, 'one-body', [(x+ns, x+ns, 1)])
-                self.var_E.append(param_name)
+                self.CM.new_operator(param_name, 'one-body', [(x+ns, x+ns, 1)])
+                self.CM.var_E.append(param_name)
                 param_name = 'eb{:d}d'.format(x)
-                new_cluster_operator(name, param_name, 'one-body', [(x+ns+no, x+ns+no, 1)])
-                self.var_E.append(param_name)
+                self.CM.new_operator(param_name, 'one-body', [(x+ns+no, x+ns+no, 1)])
+                self.CM.var_E.append(param_name)
         else:
             for x in range(1,nb+1):
                 param_name = 'eb{:d}'.format(x)
-                new_cluster_operator(name, param_name, 'one-body', [(x+ns, x+ns, 1), (x+ns+no, x+ns+no, 1)])
-                self.var_E.append(param_name)
+                self.CM.new_operator(param_name, 'one-body', [(x+ns, x+ns, 1), (x+ns+no, x+ns+no, 1)])
+                self.CM.var_E.append(param_name)
 
         # hybridizations
         if spin_dependent or spin_flip:
@@ -703,77 +699,77 @@ class general_bath:
 
                 for y in self.sites[x-1]:
                     param_name = 'tb{:d}u{:d}u'.format(x,y)
-                    new_cluster_operator(name, param_name, 'one-body', [(y, x+ns, 1)])
-                    self.var_H.append(param_name)
+                    self.CM.new_operator(param_name, 'one-body', [(y, x+ns, 1)])
+                    self.CM.var_H.append(param_name)
                     param_name = 'tb{:d}d{:d}d'.format(x,y)
-                    new_cluster_operator(name, param_name, 'one-body', [(y+no, x+ns+no, 1)])
-                    self.var_H.append(param_name)
+                    self.CM.new_operator(param_name, 'one-body', [(y+no, x+ns+no, 1)])
+                    self.CM.var_H.append(param_name)
                     if spin_flip:
                         param_name = 'tb{:d}u{:d}d'.format(x,y)
-                        new_cluster_operator(name, param_name, 'one-body', [(x+ns, y+no, 1)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator(param_name, 'one-body', [(x+ns, y+no, 1)])
+                        self.CM.var_H.append(param_name)
                         param_name = 'tb{:d}d{:d}u'.format(x,y)
-                        new_cluster_operator(name, param_name, 'one-body', [(y+no, x+ns+no, 1)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator(param_name, 'one-body', [(y+no, x+ns+no, 1)])
+                        self.CM.var_H.append(param_name)
 
             
                 if complex:
                     for y in self.sites[x-1][1:]:
                         param_name = 'tb{:d}u{:d}ui'.format(x,y)
-                        new_cluster_operator_complex(name, param_name, 'one-body', [(y, x+ns, 1j)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator_complex(param_name, 'one-body', [(y, x+ns, 1j)])
+                        self.CM.var_H.append(param_name)
                         param_name = 'tb{:d}d{:d}di'.format(x,y)
-                        new_cluster_operator_complex(name, param_name, 'one-body', [(y+no, x+ns+no, 1j)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator_complex(param_name, 'one-body', [(y+no, x+ns+no, 1j)])
+                        self.CM.var_H.append(param_name)
                     if spin_flip:
                         for y in self.sites[x-1]:
                             param_name = 'tb{:d}u{:d}di'.format(x,y)
-                            new_cluster_operator_complex(name, param_name, 'one-body', [(x+ns, y+no, 1j)])
-                            self.var_H.append(param_name)
+                            self.CM.new_operator_complex(param_name, 'one-body', [(x+ns, y+no, 1j)])
+                            self.CM.var_H.append(param_name)
                             param_name = 'tb{:d}d{:d}ui'.format(x,y)
-                            new_cluster_operator_complex(name, param_name, 'one-body', [(y+no, x+ns+no, 1j)])
-                            self.var_H.append(param_name)
+                            self.CM.new_operator_complex(param_name, 'one-body', [(y+no, x+ns+no, 1j)])
+                            self.CM.var_H.append(param_name)
         
         else:
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
                     param_name = 'tb{:d}{:d}'.format(x,y)
-                    new_cluster_operator(name, param_name, 'one-body', [(y, x+ns, 1), (y+no, x+ns+no, 1)])
-                    self.var_H.append(param_name)
+                    self.CM.new_operator(param_name, 'one-body', [(y, x+ns, 1), (y+no, x+ns+no, 1)])
+                    self.CM.var_H.append(param_name)
 
                 if complex:
                     for y in self.sites[x-1][1:]:
                         param_name = 'tb{:d}{:d}i'.format(x,y)
-                        new_cluster_operator_complex(name, param_name, 'one-body', [(y, x+ns, 1j), (y+no, x+ns+no, 1j)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator_complex(param_name, 'one-body', [(y, x+ns, 1j), (y+no, x+ns+no, 1j)])
+                        self.CM.var_H.append(param_name)
 
         if singlet:    
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
                     param_name = 'sb{:d}{:d}'.format(x,y)
-                    new_cluster_operator(name, param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, 1)])
-                    self.var_H.append(param_name)
+                    self.CM.new_operator(param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, 1)])
+                    self.CM.var_H.append(param_name)
                 if complex:
                     for y in self.sites[x-1]:
                         if x==1 and y==1:
                             continue
                         param_name = 'sb{:d}{:d}i'.format(x,y)
-                        new_cluster_operator_complex(name, param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, 1j)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator_complex(param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, 1j)])
+                        self.CM.var_H.append(param_name)
 
         if triplet:    
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
                     param_name = 'pb{:d}{:d}'.format(x,y)
-                    new_cluster_operator(name, param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, -1)])
-                    self.var_H.append(param_name)
+                    self.CM.new_operator(param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, -1)])
+                    self.CM.var_H.append(param_name)
                 if complex:
                     for y in self.sites[x-1]:
                         if x==1 and y==1:
                             continue
                         param_name = 'pb{:d}{:d}i'.format(x,y)
-                        new_cluster_operator_complex(name, param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, -1j)])
-                        self.var_H.append(param_name)
+                        self.CM.new_operator_complex(param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, -1j)])
+                        self.CM.var_H.append(param_name)
 
     #-----------------------------------------------------------------------------------------------
     def  __str__(self):
@@ -789,10 +785,10 @@ class general_bath:
         if self.singlet :
             S += ', triplet SC'
         S += '\nbath energies : '
-        for x in self.var_E:
+        for x in self.CM.var_E:
             S += x + ', '
         S = S[0:-2] + '\nhybridizations : '
-        for x in self.var_H:
+        for x in self.CM.var_H:
             S += x + ', '
         return S[0:-2]
 
@@ -805,7 +801,7 @@ class general_bath:
 
         """
         v = []
-        for x in self.var_E:
+        for x in self.CM.var_E:
             v.append(x+'_'+str(c)) 
         return v
 
@@ -818,7 +814,7 @@ class general_bath:
 
         """
         v = []
-        for x in self.var_H:
+        for x in self.CM.var_H:
             v.append(x+'_'+str(c)) 
         return v
 
@@ -955,12 +951,12 @@ class general_bath:
         """
         S = ''
         fac = 1
-        E = np.linspace(e[0], e[1], len(self.var_E))
-        for i, x in enumerate(self.var_E):
+        E = np.linspace(e[0], e[1], len(self.CM.var_E))
+        for i, x in enumerate(self.CM.var_E):
             bn = int(x[2])
             fac = 2*(bn%2)-1
             S += x + '_' + str(c)+ ' = ' + str(fac*E[i])+'\n'
-        for x in self.var_H:
+        for x in self.CM.var_H:
             if x[0:2] == 'sb' or x[0:2] == 'pb':
                 S += x + '_' + str(c)+ ' = ' + str(shyb[0] + shyb[1]*(2*np.random.random()-1))+'\n'
             else:
@@ -1018,22 +1014,22 @@ class general_bath:
                     for s in self.sites[2*i]:
                         S += 'tb{:d}{:d}i_{:d} = {:2.1f}*tb{:d}{:d}i_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
 
-        var_E = self.var_E
-        self.var_E = []
+        var_E = self.CM.var_E
+        self.CM.var_E = []
         for x in var_E:
             for i in range(NE):
                 if 'eb{:d}'.format(2*i+1) in x:
-                    self.var_E.append(x)
-        var_H = self.var_H
-        self.var_H = []
+                    self.CM.var_E.append(x)
+        var_H = self.CM.var_H
+        self.CM.var_H = []
         for x in var_H:
             for i in range(NE):
                 if 'tb{:d}'.format(2*i+1) in x:
-                    self.var_H.append(x)
+                    self.CM.var_H.append(x)
 
-        for i, x in enumerate(self.var_E):
+        for i, x in enumerate(self.CM.var_E):
             S += x + '_' + str(c)+ ' = ' + str(e[0] + e[1]*(2*np.random.random()-1))+'\n'
-        for x in self.var_H:
+        for x in self.CM.var_H:
             S += x + '_' + str(c)+ ' = ' + str(hyb[0] + hyb[1]*(2*np.random.random()-1))+'\n'
         if pr:
             print('starting values:\n', S)

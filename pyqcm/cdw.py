@@ -233,7 +233,7 @@ class superlattice:
         Vic = np.zeros((self.N, self.N))
         Vc = np.zeros((self.N, self.N))
         S2 = self.sites@basis
-        if plt_ax:
+        if plt_ax != None:
             plt_ax.set_aspect(1.0)
             plt_ax.scatter(S2[:,0], S2[:,1], [24]*S2.shape[0],color='gray')
 

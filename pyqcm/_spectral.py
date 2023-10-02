@@ -82,7 +82,7 @@ def __kgrid(ax, nk, quadrant=False, k_perp=0.0, plane='xy', size=1.0):
 ####################################################################################################
 # Additional methods of the model_instance class
 
-def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, **kwargs):
+def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, threeD = False,  **kwargs):
     """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
@@ -179,18 +179,35 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
                 for l in orbs: 
                     A_down[i, j] += -g[j, l, l].imag
     
-
     ax.set_xlim(np.real(w[0]), np.real(w[-1]))
     ax.set_ylim(0, (1+len(k)) * offset + 1 / eta)
     for j in range(len(k)):
-        if plot_down:
-            ax.plot(np.real(w), A_down[:, j] + offset * j, 'r-', lw=0.5, **kwargs)
-        ax.plot(np.real(w), A[:, j] + offset * j, 'b-', lw=0.5, **kwargs)
+        if threeD:
+            ax.plot(np.real(w), A[:, j], 'k-', lw=0.5, zdir='y', zs = offset * j, **kwargs)
+        else:
+            if plot_down:
+                ax.plot(np.real(w), A_down[:, j] + offset * j, 'r-', lw=0.5, **kwargs)
+            ax.plot(np.real(w), A[:, j] + offset * j, 'b-', lw=0.5, **kwargs)
     if title is None and plt_ax is None:
         ax.set_title(r'$A(\mathbf{k},\omega)$: '+self.model.parameter_string(), fontsize=9)
     else:
-        ax.set_title(title, fontsize=9)    
-    ax.axvline(0, ls='solid', lw=0.5)
+        ax.set_title(title, fontsize=9)
+    if threeD:
+        ax.set_ylim(0, (1+len(k))* offset)
+        ax.set_zlim(0, 2*np.max(A))
+        ax.xaxis.pane.fill = False
+        ax.yaxis.pane.fill = False
+        ax.zaxis.pane.fill = False
+        ax.xaxis.pane.set_edgecolor('w')
+        ax.yaxis.pane.set_edgecolor('w')
+        ax.zaxis.pane.set_edgecolor('w')
+        ax.set_zticks([])
+        ax.w_zaxis.line.set_lw(0.)
+        ax.w_xaxis.line.set_c('b')
+        ax.w_yaxis.line.set_c('b')
+        ax.grid(False)
+    else:
+        ax.axvline(0, ls='solid', lw=0.5)
     ax.set_yticks(offset * tick_pos)
     ax.set_yticklabels(tick_str)
     if plt_ax is None:
