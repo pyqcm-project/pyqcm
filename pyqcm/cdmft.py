@@ -199,7 +199,7 @@ class CDMFT:
         if nvar == 0:
             raise ValueError('CDMFT requires at least one variational parameter...Aborting.')
         qcm.CDMFT_variational_set(self.var)
-        self.CM.var_data = np.empty((nvar, maxiter+1))
+        self.var_data = np.empty((nvar, maxiter+1))
         
         # convergence test initialization
         if pyqcm.is_sequence(convergence) == False:
@@ -265,7 +265,7 @@ class CDMFT:
             # puts the values only of the parameters into array params_array
             for i in range(nvar):
                 params_array[i] = params[self.var[i]]
-            self.CM.var_data[:, self.iter] = params_array
+            self.var_data[:, self.iter] = params_array
             check_bounds(params_array, max_value, v=self.var)
 
             #--------------------------------- Hartree step ---------------------------------
@@ -346,10 +346,10 @@ class CDMFT:
             if eps_algo and self.iter>=2*eps_length and self.iter%(2*eps_length) == 0:
                 pyqcm.banner('applying the epsilon algorithm')
                 for i in range(nvar):
-                    z = pyqcm.epsilon(self.CM.var_data[i,self.iter-eps_length:self.iter])
-                    self.CM.var_data[i,self.iter] = z
+                    z = pyqcm.epsilon(self.var_data[i,self.iter-eps_length:self.iter])
+                    self.var_data[i,self.iter] = z
                     self.model.set_parameter(self.var[i], z)
-                var_val = pyqcm.varia_table(self.var,self.CM.var_data[:,self.iter])
+                var_val = pyqcm.varia_table(self.var,self.var_data[:,self.iter])
                 print(var_val)
             #-------------------------------------------------------------------------------
             if self.iter >= miniter:
@@ -571,11 +571,11 @@ class CDMFT:
         nrows = 1+(nvar-1)//ncols
         fig, ax = plt.subplots(nrows, ncols, sharex=True)
         fig.set_size_inches(24/2.54, nrows*6/2.54)
-        niter = self.CM.var_data.shape[0]
+        niter = self.var_data.shape[0]
         for i,x in enumerate(self.var):
             if nrows==1: plt.sca(ax[i])
             else: plt.sca(ax[i//ncols,i%ncols])
-            plt.plot(range(self.iter), self.CM.var_data[i,0:self.iter], 'o-', ms=3, lw=0.5)
+            plt.plot(range(self.iter), self.var_data[i,0:self.iter], 'o-', ms=3, lw=0.5)
             plt.title(self.var[i])
         plt.savefig('iterations.pdf')
 
