@@ -836,10 +836,9 @@ class model_instance:
         """
         Computes the cluster self-energy
 
-        :param int clus: label of the cluster (0 to the number of clusters -1)
         :param complex z: frequency
+        :param int clus: label of the cluster (0 to the number of clusters -1)
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :param int label:  label of the model instance (default 0)
         :return: a complex-valued matrix
 
         """
@@ -1053,7 +1052,6 @@ class model_instance:
         :param complex z: frequency
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: a vector of complex numbers
 
         """
@@ -1068,7 +1066,6 @@ class model_instance:
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
@@ -1093,7 +1090,6 @@ class model_instance:
         """
         Computes the potential energy for a given instance, as the functional trace of Sigma x G
 
-        :param int label: label of the model instance
         :return: the value of the potential energy
 
         """
@@ -1106,7 +1102,6 @@ class model_instance:
 
         :param str name: name of the operator
         :param complex z: complex frequency
-        :param int label:  label of the model instance
         :return float: the contribution of frequency z to the average of the operator
 
         """
@@ -1156,9 +1151,8 @@ class model_instance:
         """
         Computes the Potthoff functional for a given instance
 
-        :param int label: label of the model instance
-        :param str file: name of the file to append with the result
         :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
+        :param str file: name of the file to append with the result
         :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
         :param boolean consistency_check: checks the consistency of the Green function
         :return: the value of the self-energy functional
@@ -1198,7 +1192,6 @@ class model_instance:
         """
         Returns two strings of properties of a model instance
         
-        :param int label:  label of the model instance
         :return: a pair of strings (the description line and the data line).
 
         """
@@ -1276,7 +1269,6 @@ class model_instance:
 
         :param complex z: frequency
         :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: the projected Green function matrix (d x d), d being the dimension of the CPT Green function.
 
         """
@@ -1290,7 +1282,6 @@ class model_instance:
         :param complex z: frequency
         :param wavevector k: wavevector (ndarray(3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
@@ -1304,7 +1295,6 @@ class model_instance:
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: a single or an array of complex-valued matrices
 
         """
@@ -1320,7 +1310,6 @@ class model_instance:
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
         :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :param int label:  label of the model instance
         :return: a float
 
         """
@@ -1339,7 +1328,6 @@ class model_instance:
         :param freq: complex freqency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: if None, sums all the orbitals. Otherwise just shows the weight for that orbital (starts at 1)
-        :param int label:  label of the model instance
         :return: depending on the shape of k, a nd.array(3) of nd.array(N,3)
 
         """
