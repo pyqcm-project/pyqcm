@@ -2,6 +2,7 @@ import sys
 import os
 from setuptools import find_packages
 import skbuild
+import pathlib
 
 #ne pas importer numpy, et pas de try/except sur skbuild, mais plutot mentionner son installation dans le readme
 
@@ -18,6 +19,7 @@ fout.write("git_hash = '{:s}'\n".format(git_hash))
 fout.write("version = '{:s}'\n".format(version))
 fout.close() 
  
+here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 skbuild.setup(

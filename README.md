@@ -7,7 +7,7 @@ The impurity solver (the technique used to compute the cluster's interacting Gre
 The core library is written in C++ for performance, but the interface is in Python, for ease of use and inter-operability with the numerical Python ecosystem. 
 The library is distributed under the GPL license.
 
-A comprehensive paper describing the different methods and version 2.1 of the software is available on the [arXiv paper](https://arxiv.org/abs/2305.18643).
+A comprehensive paper describing the different methods and version 2.1 of the software is available on [arXiv repository](https://arxiv.org/abs/2305.18643).
 
 
 ## Installation
@@ -34,7 +34,8 @@ Finely tuned installation can be acheived by specifiyng the environment variable
 
 ## Examples and documentation
 
-Pyqcm documentation is hosted on ReadTheDocs and is available at [https://qcm-wed.readthedocs.io/](https://qcm-wed.readthedocs.io/en/latest/)
+Pyqcm documentation is hosted on ReadTheDocs and is available at [https://qcm-wed.readthedocs.io/](https://qcm-wed.readthedocs.io/en/latest/).
+
 EXAMPLES can be found in the notebooks/ folder, either in plain python files (`*.py`) or in the form of Jupyter notebooks (`*.ipynb`).
 
 
