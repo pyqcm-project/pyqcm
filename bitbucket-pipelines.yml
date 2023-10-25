@@ -1,0 +1,12 @@
+image: python:3.10
+
+pipelines:
+  tags:
+    '*':
+      - step:
+          name: Deploy
+          deployment: Production
+          script:
+            - pip install scikit-build==0.17.6 twine==4.0.2
+            - python setup.py sdist
+            - python -m twine upload dist/*

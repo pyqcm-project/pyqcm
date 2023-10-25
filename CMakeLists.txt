@@ -23,23 +23,22 @@ endif()
 #------------------
 # QCM specific options
 #------------------
-option(DOWNLOAD_CUBA "Specify to download and compile automatically the CUBA integration library" OFF)
+option(DOWNLOAD_CUBA "Specify to download and compile automatically the CUBA integration library" ON)
 option(CUBA_DIR "If CUBA not downloaded and build by this project, specify the path to CUBA directory for linking Pyqcm against (must contain compiled Cuba library libcuba.a along with the header cuba.h")
-#option(BLA_VENDOR "BLAS implementation to use. See CMake vendor documentation https://cmake.org/cmake/help/latest/module/FindBLAS.html for more information" OFF)
+option(BLA_VENDOR "BLAS implementation to use. See CMake vendor documentation https://cmake.org/cmake/help/latest/module/FindBLAS.html for more information")
 option(EIGEN_HAMILTONIAN "Specify to compile with Eigen format for the Hamiltonian for better performance in the diagonalisation solver on multi-core machine (require Eigen library)" ON)
-option(WITH_PRIMME "Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs EIGEN_HAMILTONIAN=1)" OFF)
-option(DOWNLOAD_PRIMME "Specify to download and compile automatically the PRIMME eigensolver library (needs WITH_PRIMME=ON)" OFF)
+option(WITH_PRIMME "Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs EIGEN_HAMILTONIAN=1)" ON)
+option(DOWNLOAD_PRIMME "Specify to download and compile automatically the PRIMME eigensolver library (needs WITH_PRIMME=ON)" ON)
 option(PRIMME_DIR "Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically")
 option(WITH_GF_OPT_KERNEL "Automatically detect host processor AVX2 capabilities (i.e. Intel processors after 2014 and AMD processors after 2015) and compile the optimized kernel (5 times quicker) for Green function evaluation" ON)
 option(QCM_DEBUG "Enable extra verbose information for debug purpose" OFF)
-#option(CMAKE_C_COMPILER "The C compiler to use to compile qcm and its automatically download dependencies")
-#option(CMAKE_CXX_COMPILER "The C++ compiler to use to compile qcm and its automatically download dependencies (must match the C compiler, for example gcc and g++)")
 option(APPLE_LIBOMP_PREFIX "Custom path to the OpenMP library libomp on Apple computer")
 option(USE_OPENMP "Enable parallelization using OpenMP" ON)
+option(GENERIC_BUILD "Compile qcm_wed with the minimum optimization flag to target generic machine" OFF)
 
 
 # set the project name and version
-project(qcm LANGUAGES C CXX VERSION 1.0 DESCRIPTION "Quantum Cluster Methods shared library")
+project(qcm LANGUAGES C CXX VERSION 2.2.6 DESCRIPTION "Quantum Cluster Methods shared library")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -66,10 +65,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Intel)
 else()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -ftree-vectorize -funroll-loops")
     include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG("-march=native" NATIVE_ARCH_BUILD)
-    if (NATIVE_ARCH_BUILD)
-        message(STATUS "Target this machine architecture (enable -march=native)")
-        set(CMAKE_CXX_FLAGS_RELEASE "-march=native ${CMAKE_CXX_FLAGS_RELEASE}")
+    if (NOT GENERIC_BUILD)
+      CHECK_CXX_COMPILER_FLAG("-march=native" NATIVE_ARCH_BUILD)
+      if (NATIVE_ARCH_BUILD)
+          message(STATUS "Target this machine architecture (enable -march=native)")
+          set(CMAKE_CXX_FLAGS_RELEASE "-march=native ${CMAKE_CXX_FLAGS_RELEASE}")
+      endif()
     endif()
 endif()
 
@@ -161,16 +162,16 @@ if (WITH_PRIMME)
     endif()
     if (DOWNLOAD_PRIMME)
         include(ExternalProject)
-        set(cmd_make_primme "make")
-        list(APPEND cmd_make_primme "lib")
-        list(APPEND cmd_make_primme "CC=${CMAKE_C_COMPILER}" "CFLAGS=${CMAKE_CXX_FLAGS_RELEASE} -fPIC -DNDEBUG")
+        set(CMD_MAKE_PRIMME "make")
+        list(APPEND CMD_MAKE_PRIMME "lib")
+        list(APPEND CMD_MAKE_PRIMME "CC=${CMAKE_C_COMPILER}" "CFLAGS=${CMAKE_CXX_FLAGS_RELEASE} -fPIC -DNDEBUG")
         ExternalProject_Add(PRIMME
             PREFIX ${CMAKE_SOURCE_DIR}/external
             SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/primme
             URL https://github.com/primme/primme/archive/refs/tags/v3.2.tar.gz
             URL_HASH MD5=b26968d0ea8aa2e6feefc89f3c863062
             CONFIGURE_COMMAND COMMAND ""
-            BUILD_COMMAND COMMAND ${cmd_make_primme}
+            BUILD_COMMAND COMMAND ${CMD_MAKE_PRIMME}
             BUILD_IN_SOURCE 1
             INSTALL_COMMAND ""
             STEP_TARGETS build
@@ -212,7 +213,7 @@ if (DOWNLOAD_CUBA)
         SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/cuba
         URL http://www.feynarts.de/cuba/Cuba-4.2.2.tar.gz
         URL_HASH MD5=a92897343027893ba2ec40dc15558b32
-        CONFIGURE_COMMAND COMMAND ${CMAKE_SOURCE_DIR}/external/cuba/configure "CFLAGS=-O3 -fPIC -ffast-math" "CC=${CMAKE_C_COMPILER}"
+        CONFIGURE_COMMAND COMMAND ${CMAKE_SOURCE_DIR}/external/cuba/configure "CFLAGS=${CMAKE_CXX_FLAGS_RELEASE} -fPIC" "CC=${CMAKE_C_COMPILER}"
         BUILD_COMMAND COMMAND make "lib"
         BUILD_IN_SOURCE 1
         INSTALL_COMMAND ""
@@ -236,8 +237,12 @@ message(STATUS "CUBA dir: ${CUBA_DIR}")
 #-----------------------------------------------
 # Optimized kernel for Green function evaluation
 #-----------------------------------------------
+if (GENERIC_BUILD)
+  set( WITH_GF_OPT_KERNEL OFF)
+  message(WARNING "Generic build cannot use AVX2 optimized kernel for Green function evaluation. Setting WITH_GF_OPT_KERNEL to false")
+endif()
 if (WITH_GF_OPT_KERNEL)
-  SET( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external" ${CMAKE_MODULE_PATH} )
+  set( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external" ${CMAKE_MODULE_PATH} )
   include(FindAVX2)
   if (AVX2_FOUND)
     add_compile_definitions(HAVE_AVX2)
