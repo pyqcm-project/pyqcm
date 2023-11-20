@@ -310,7 +310,8 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
         ax = plt_ax
 
     w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
-    d = self.model.dimGFC[clus]
+    # d = self.model.dimGFC[clus]
+    d = self.model.clus[clus].nsites
     if full:
         dd = d*d
         # dd = (d*(d+1))//2
