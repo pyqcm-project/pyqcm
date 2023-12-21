@@ -4,7 +4,7 @@ import re
 import pyqcm
 
 ####################################################################################################
-def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_neighbors=False, values=False, offset = 0.05, orb_offset=0.05, z_offset=0.0, alpha_inter=0.2, plt_ax = None):
+def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_neighbors=False, values=False, offset = 0.05, orb_offset=0.05, z_offset=0.0, alpha_inter=0.2, spin_scale=0.1, plt_ax = None):
     """
     Draws an operator defined on a lattice model to the screen (for debugging purposes)
 
@@ -211,7 +211,6 @@ def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_n
             if values:
                 plt.text(0.5*(S[s1,0]+S[s2,0]), 0.5*(S[s1,1]+S[s2,1]), f'${np.round(hop[e],5)}$', va='bottom', ha='center', c='r')
 
-    fac = 0.15
     for e in spin:
         if ';0' not in e: continue
         s1 = Si[e][0]
@@ -221,7 +220,7 @@ def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_n
             pf = 'r--'
         else:
             pf = 'r-'
-        plt.arrow(S[s1,0]-fac*spin[e][0], S[s1,1]-fac*spin[e][1], 2*fac*spin[e][0], 2*fac*spin[e][1], color='r', width=0.01, head_width=0.1)
+        plt.arrow(S[s1,0]-spin_scale*spin[e][0], S[s1,1]-spin_scale*spin[e][1], 2*spin_scale*spin[e][0], 2*spin_scale*spin[e][1], color='r', width=0.1*spin_scale, head_width=0.3*spin_scale)
 
     for e in anom:
         if ';0' not in e: continue

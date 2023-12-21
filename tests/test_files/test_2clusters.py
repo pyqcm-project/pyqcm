@@ -78,3 +78,4 @@ print(I.qmatrix(clus=1))
 I.write_Green_function(clus=0, file='GF1.tsv')
 I.write_Green_function(clus=1, file='GF2.tsv')
 
+# I.plot_profile()
