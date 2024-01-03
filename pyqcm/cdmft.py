@@ -6,6 +6,7 @@
 import numpy as np
 import pyqcm
 from pyqcm import qcm
+from scipy.optimize import broyden1
 import timeit
 import matplotlib.pyplot as plt
 
@@ -24,6 +25,7 @@ class convergence_manager:
         * 'hybridization' : the hybridization function (or set thereof, in the case of many clusters). The test is based on the norm of the matrix differences, summed over grid frequencies.
         * 'self-energy' : same as above, but using the impurity self-energy instead.
         * any one-body or anomalous lattice operator name. The lattice average is used as test value.
+        * 'Broyden' : the Broyden method is used. Cannot be associated with any other convergence method
     """
 
     def __init__(self, name, diff_func, tol, depth=2, stdev=False):
@@ -106,7 +108,7 @@ class convergence_manager:
             S = '---> ave({:s}) = {:1.7g} +/- {:1.4g}'.format(self.name, self.ave, self.std)
         else:
             S = 'differences in ' + self.name + ' : '
-            for i in range(self.depth): S += '{:1.2e}\t'.format(self.diff[i])
+            for i in range(self.depth): S += '{:1.3g}\t'.format(self.diff[i])
         if self.converged: S += ' * converged * '
         print(S, flush=True)
     
@@ -116,8 +118,6 @@ class CDMFT:
     class containing the elements of a CDMFT computation. The constructor executes the computation.
 
     :param [str] varia: list of variational parameters 
-        OR tuple of two lists : bath energies and bath hybridizations
-        OR function that returns dicts of bath energies and bath hybridizations given numeric arrays
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self'
@@ -151,7 +151,9 @@ class CDMFT:
     first_time = True
     first_time2 = True
 
-    def __init__(self, model, varia,
+    def __init__(self, 
+        model, 
+        varia,
         beta=50,
         wc=2.0,
         grid_type = 'sharp',
@@ -176,7 +178,7 @@ class CDMFT:
         compute_potential_energy = False,
         host_function = None,
         pre_host = None,
-        max_value = 100
+        max_value = 100,
     ):
 
         self.model =model
@@ -184,6 +186,18 @@ class CDMFT:
         self.Hyb_down = None # internal : hybridization function (spin downs, when mixing=4)
         self.sigma = None # internal : self-energy
         self.sigma_down = None # internal : self-energy (spin downs, when mixing=4)
+        self.hartree = hartree
+        self.pre_host = pre_host
+        self.host_function = host_function
+        self.grid_type = grid_type
+        self.beta = beta
+        self.wc = wc
+        self.method = method
+        self.initial_step = initial_step
+        self.accur_bath = accur_bath
+        self.accur_dist = accur_dist
+        self.max_function_eval = max_function_eval
+        self.max_value = max_value
 
         if pyqcm.is_sequence(accur) == False:
             accur = (accur,)
@@ -195,17 +209,21 @@ class CDMFT:
         # variational parameters
         self.var = list(set(varia)) # makes sure there are no duplicates
         self.var.sort()
-        nvar = len(self.var)
-        if nvar == 0:
+        self.nvar = len(self.var)
+        if self.nvar == 0:
             raise ValueError('CDMFT requires at least one variational parameter...Aborting.')
         qcm.CDMFT_variational_set(self.var)
-        self.var_data = np.empty((nvar, maxiter+1))
+        self.var_data = np.empty((self.nvar, maxiter+1))
         
         # convergence test initialization
         if pyqcm.is_sequence(convergence) == False:
             convergence = (convergence,)
         if len(convergence) != len(accur):
             raise ValueError('The number of convergence tests must be the same as the length of "accur"')
+        if 'Broyden' in convergence:
+            if len(convergence) > 1:
+                raise ValueError('Broyden cannot be used with other convergence criteria')
+            convergence = ['Broyden']
         n_convergence_tests = len(convergence)
         convergence_test = []
         convergence_test_string = ''
@@ -226,19 +244,25 @@ class CDMFT:
                     conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
                 elif C == 'GS energy':
                     conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
+                elif C == 'Broyden':
+                    continue
                 else:
                     raise ValueError('type of convergence test "' + C + '" in CDMFT does not exist')
             convergence_test.append(conv_manager)
         convergence_test_string = convergence_test_string[:-1]
 
         # Hartree mean field parameters
-        if hartree is None:
+        self.nhartree=0
+        if self.hartree is None:
             pyqcm.banner('CDMFT procedure', '*', skip=1)
+            self.hartree = []
         else:
             pyqcm.banner('CDMFT procedure (combined with Hartree procedure)', '*', skip=1)
             if eps_algo:
-                for C in hartree:
+                for C in self.hartree:
                     C.init_epsilon(maxiter, eps_algo)
+        self.nhartree = len(self.hartree)
+
 
         # first define the frequency grid for the distance function
         print('frequency grid type = ', grid_type)
@@ -246,166 +270,122 @@ class CDMFT:
         print('frequency cutoff = ', wc)
         print('damping factor = ', alpha)
         print('-'*100)
-
-        params_array = np.zeros(nvar)
         
         # CDMFT loop
         self.iter = 0
         globally_converged = False
         hartree_converged = True
-        time_ED = 0.0
-        time_MIN = 0.0
-        while True:
-            if n_convergence_tests > 0 : converged = True
-            else: converged = False
-            self.I = pyqcm.model_instance(self.model)
-            self.grid = frequency_grid(self.I, grid_type, beta, wc)
-            params = self.I.instance_parameters() # params is a dict
 
-            # puts the values only of the parameters into array params_array
-            for i in range(nvar):
-                params_array[i] = params[self.var[i]]
-            self.var_data[:, self.iter] = params_array
-            check_bounds(params_array, max_value, v=self.var)
+        # initializaing the array of parameters
+        CDMFT_params = np.zeros(self.nvar + self.nhartree)
+        P = model.parameters()
+        for i in range(self.nvar):
+            CDMFT_params[i] = P[self.var[i]]
+        for i in range(self.nhartree):
+            CDMFT_params[i+self.nvar] = P[self.hartree[i].Vm]
 
-            #--------------------------------- Hartree step ---------------------------------
-            if hartree != None:
-                hartree_converged = True
-                hartree_ave = np.zeros(self.model.nclus)
-                diff_hartree = 0
-                diff_hartree_rel = 0
-                for C in hartree:
-                    C.update(self.I, pr=True)
-                    diff_hartree += np.abs(C.diff)
-                    hartree_converged = hartree_converged and C.converged()
-            #--------------------------------------------------------------------------------
+        # CDMFT main iteration loop
+        # ------------------------------- Broyden method ----------------------------------
+        if convergence[0] == 'Broyden':
+            def F(x):
+                xn = self.CDMFT_step(x)
+                return xn - x
 
+            try:
+                CDMFT_params = broyden1(F, CDMFT_params, verbose=True, maxiter=maxiter, f_tol=accur[0], x_tol=accur[0])
+                globally_converged=True
+            except:
+                globally_converged=False
+        # ----------------------------- fixed point method --------------------------------
+        else:
+            while True:
+                if n_convergence_tests > 0 : converged = True
+                else: converged = False
+                CDMFT_params_old = np.copy(CDMFT_params)
+                CDMFT_params = self.CDMFT_step(CDMFT_params)
+
+                # updating the bath parameters (replace old by new)
+                if alpha > 0.0 :
+                    for i in range(self.nvar):
+                        self.model.set_parameter(self.var[i], (1-alpha)*CDMFT_params[i]+alpha*CDMFT_params_old[i])
+                else:
+                    for i in range(self.nvar):
+                        self.model.set_parameter(self.var[i], CDMFT_params[i])
+
+                var_val = pyqcm.varia_table(self.var,CDMFT_params)
+                print('updated bath parameters:\n', var_val)
+                if self.iter > maxiter:
+                    self.plot_iterations()
+                    if n_convergence_tests == 0 : break
+                    raise pyqcm.TooManyIterationsError(maxiter)
+
+                #--------------------------- convergence acceleration ---------------------------
+                eps_length = 2*eps_algo + 1
+                if eps_algo and self.iter>=2*eps_length and self.iter%(2*eps_length) == 0:
+                    pyqcm.banner('applying the epsilon algorithm')
+                    for i in range(self.nvar):
+                        z = pyqcm.epsilon(self.var_data[i,self.iter-eps_length:self.iter])
+                        self.var_data[i,self.iter] = z
+                        self.model.set_parameter(self.var[i], z)
+                    var_val = pyqcm.varia_table(self.var,self.var_data[:,self.iter])
+                    print(var_val)
+                #-------------------------------------------------------------------------------
+                if self.iter >= miniter:
+                    for C in convergence_test:
+                        if C.name == 'GS energy':
+                            gs = self.I.ground_state()
+                            E0 = 0.0
+                            for x in gs:
+                                E0 += x[0]
+                            converged = converged and C.test(E0)
+
+                        elif C.name == 'self-energy':
+                            self.set_sigma()
+                            if self.model.mixing == 4: 
+                                T = C.test((self.sigma,self.sigma_down))
+                                converged = converged and T
+                            else: 
+                                T = C.test(self.sigma)
+                                converged = converged and T
+
+                        elif C.name == 'hybridization':
+                            if self.model.mixing == 4: 
+                                T = C.test((self.Hyb,self.Hyb_down))
+                                converged = converged and T
+                            else: 
+                                T = C.test(self.Hyb)
+                                converged = converged and T
+
+                        elif C.name == 'parameters':
+                            T = C.test(np.copy(CDMFT_params))
+                            converged = converged and T
+
+                        elif C.op != None:
+                            T = C.test(self.I.averages()[C.op])
+                            converged = converged and T
+
+                    for C in convergence_test:
+                        C.print()
+
+                if converged and hartree_converged and self.iter > miniter:
+                    globally_converged = True
+                    pyqcm.banner('CDMFT converged on '+convergence_test_string, '=')
+                    break
+
+        # -----------------------------------------------------------------------------
+        # here we have converged
+
+        if globally_converged:
             if averages:
                 ave = self.I.averages(pr=True)
                 if compute_potential_energy : 
                     self.I.potential_energy()
                     self.I.Potthoff_functional()
 
-            # initializes G_host
-            t1 = timeit.default_timer()
-            if pre_host != None:
-                pre_host(self.I)
-
-            # computing or transferring the host array --------------------------------------
-            if host_function == None:
-                qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
-            else:
-                host_function(self.I)
-            #--------------------------------------------------------------------------------
-
-            self.set_Hyb()
-            t2 = timeit.default_timer()
-            time_ED += t2 - t1
-
-            gs = self.I.ground_state()
-            
-            # optimization of the bath parameters
-            def DIST(x):
-                d = qcm.CDMFT_distance(x, self.I.label)
-                # print(x, '\tdist = ', d); exit(1)
-                return d
-            sol, iter_done = optimize(DIST, params_array, method, initial_step, accur_bath, accur_dist, max_function_eval)
-            # sol, iter_done = optimize(lambda x : qcm.CDMFT_distance(x, self.I.label), params_array, method, initial_step, accur_bath, accur_dist, max_function_eval)
-            t3 = timeit.default_timer()
-            time_MIN += t3 - t2
-
-            print('optimized set:', sol.x) # TEMPO
-
-            if method != 'ANNEAL' and not sol.success:
-                print(sol)
-                raise pyqcm.MinimizationError()
-
-            if sol.nfev > max_function_eval:
-                print(sol)
-                print('number of function evaluations exceeds preset maximum of ', max_function_eval)
-                raise pyqcm.MinimizationError()
-
-            # updating the bath parameters (replace old by new)
-            if alpha > 0.0 :
-                for i in range(nvar):
-                    self.model.set_parameter(self.var[i], (1-alpha)*sol.x[i]+alpha*params_array[i])
-            else:
-                for i in range(nvar):
-                    self.model.set_parameter(self.var[i], sol.x[i])
-
-            self.iter += 1
-            var_val = pyqcm.varia_table(self.var,sol.x)
-            print('updated bath parameters:\n', var_val)
-            if self.iter > maxiter:
-                self.plot_iterations()
-                if n_convergence_tests == 0 : break
-                raise pyqcm.TooManyIterationsError(maxiter)
-
-            #--------------------------- convergence acceleration ---------------------------
-            eps_length = 2*eps_algo + 1
-            if eps_algo and self.iter>=2*eps_length and self.iter%(2*eps_length) == 0:
-                pyqcm.banner('applying the epsilon algorithm')
-                for i in range(nvar):
-                    z = pyqcm.epsilon(self.var_data[i,self.iter-eps_length:self.iter])
-                    self.var_data[i,self.iter] = z
-                    self.model.set_parameter(self.var[i], z)
-                var_val = pyqcm.varia_table(self.var,self.var_data[:,self.iter])
-                print(var_val)
-            #-------------------------------------------------------------------------------
-            if self.iter >= miniter:
-                for C in convergence_test:
-                    if C.name == 'GS energy':
-                        gs = self.I.ground_state()
-                        E0 = 0.0
-                        for x in gs:
-                            E0 += x[0]
-                        converged = converged and C.test(E0)
-
-                    elif C.name == 'self-energy':
-                        self.set_sigma()
-                        if self.model.mixing == 4: 
-                            T = C.test((self.sigma,self.sigma_down))
-                            converged = converged and T
-                        else: 
-                            T = C.test(self.sigma)
-                            converged = converged and T
-
-                    elif C.name == 'hybridization':
-                        if self.model.mixing == 4: 
-                            T = C.test((self.Hyb,self.Hyb_down))
-                            converged = converged and T
-                        else: 
-                            T = C.test(self.Hyb)
-                            converged = converged and T
-
-                    elif C.name == 'parameters':
-                        T = C.test(np.copy(params_array))
-                        converged = converged and T
-
-                    elif C.op != None:
-                        T = C.test(self.I.averages()[C.op])
-                        converged = converged and T
-
-            # writing the parameters in a progress file
-            self.I.write_summary('cdmft_iter.tsv', first_of_series=CDMFT.first_time2)
-            CDMFT.first_time2 = False
-
-            print('\nCDMFT iteration ', self.iter, flush=True)
-            print('GS sector : ', [x[1] for x in gs])
-            print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}, distance = {:1.9e}'.format(iter_done, time_MIN/time_ED, sol.fun), flush=True)
-            for C in convergence_test:
-                C.print()
-
-            if converged and hartree_converged and self.iter > miniter:
-                globally_converged = True
-                pyqcm.banner('CDMFT converged on '+convergence_test_string, '=')
-                break
-
-        # here we have converged
-        if globally_converged:
             # check consistency
             GS_cons = self.I.GS_consistency(check_ground_state)
-            var_val = pyqcm.varia_table(self.var,sol.x)
+            var_val = pyqcm.varia_table(self.var,CDMFT_params)
+            pyqcm.banner('converged variational parameters ({:d} iterations)'.format(self.iter), '-')
             print(var_val)
 
             ave = self.I.averages(pr=True)
@@ -433,9 +413,89 @@ class CDMFT:
  
 
     #-----------------------------------------------------------------------------------------------
+    def CDMFT_step(self, x):
+        """
+        Performs a CDMFT step that brings the system from the current values (x) of the bath and Hartree
+        parameters and returns the next set of values
+
+        @param [float] x: bath and Hartree parameters. The first self.nvar are the bath parameters. The rest are self.nhartree mean-field parameters for the inter-cluster interactions
+
+        @returns [float] : the next value of the array x
+        """
+
+        self.iter += 1
+        for i in range(self.nvar):
+            self.model.set_parameter(self.var[i], x[i])
+        for i in range(self.nhartree):
+            self.model.set_parameter(self.hartree[i].Vm, x[i+self.nvar])
+        self.I = pyqcm.model_instance(self.model)
+        self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
+
+        # solve the impurity problem
+
+        # initializes G_host
+        t1 = timeit.default_timer()
+        if self.pre_host != None:
+            self.pre_host(self.I)
+
+        # computing or transferring the host array --------------------------------------
+        if self.host_function == None:
+            qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
+        else:
+            self.host_function(self.I)
+        #--------------------------------------------------------------------------------
+
+        self.set_Hyb()
+        t2 = timeit.default_timer()
+        time_ED = t2 - t1
+
+        x_new = np.empty(self.nvar + self.nhartree)
+        # updates the Hartree mean-field parameters
+        for C in self.hartree:
+            C.update(self.I, pr=True)
+        P = self.model.parameters()
+        for i,h in enumerate(self.hartree):
+            x_new[self.nvar + i] = P[h.Vm]
+
+        gs = self.I.ground_state()
+        
+        # optimization of the bath parameters
+        def DIST(y):
+            d = qcm.CDMFT_distance(y, self.I.label)
+            return d
+        sol, iter_done = optimize(DIST, x[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        t3 = timeit.default_timer()
+        time_MIN = t3 - t2
+
+        if self.method != 'ANNEAL' and not sol.success:
+            print(sol)
+            raise pyqcm.MinimizationError()
+
+        if sol.nfev > self.max_function_eval:
+            print(sol)
+            print('number of function evaluations exceeds preset maximum of ', self.max_function_eval)
+            raise pyqcm.MinimizationError()
+        
+        # push back into array
+        x_new[0:self.nvar] = np.copy(sol.x)
+        check_bounds(x_new[0:self.nvar], self.max_value, v=self.var)
+
+        # writing the parameters in a progress file
+        self.I.write_summary('cdmft_iter.tsv', first_of_series=CDMFT.first_time2)
+        CDMFT.first_time2 = False
+
+        print('\nCDMFT iteration ', self.iter, flush=True)
+        print('GS sector : ', [X[1] for X in gs])
+        print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}, distance = {:1.9e}'.format(iter_done, time_MIN/time_ED, sol.fun), flush=True)
+
+        return x_new
+
+    #-----------------------------------------------------------------------------------------------
     def set_Hyb(self):
         """Computes the hybridization function, i.e.
-        an array of arrays of matrices. Hyb[i], for cluster #i, is a (nw,d,d) Numpy array. with nw frequencies, and d sites
+        an array of arrays of matrices. 
+        Hyb[i], for cluster #i, is a (nw,d,d) Numpy array. with nw frequencies, and d sites
+        Hyb_down[i] is the same, for the spin-down part, if mixing=4
 
         :returns None
 
@@ -566,9 +626,8 @@ class CDMFT:
         Plots the variational parameters as a function of iteration, for diagnostics purposes
         """
 
-        nvar = len(self.var)
         ncols = 3
-        nrows = 1+(nvar-1)//ncols
+        nrows = 1+(self.nvar-1)//ncols
         fig, ax = plt.subplots(nrows, ncols, sharex=True)
         fig.set_size_inches(24/2.54, nrows*6/2.54)
         niter = self.var_data.shape[0]
