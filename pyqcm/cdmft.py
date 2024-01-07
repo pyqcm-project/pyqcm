@@ -275,6 +275,7 @@ class CDMFT:
             self.CDMFT_params[i+self.nvar] = P[self.hartree[i].Vm]
 
         #------------------------------- CDMFT main iteration loop ------------------------
+        self.niter = 0
         def F(x):
             self.CDMFT_params = np.copy(x)
             self.CDMFT_step()
