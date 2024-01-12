@@ -1557,6 +1557,7 @@ class hartree:
             self.ave = A[self.Vm][0]*self.L
         else:
             self.ave = I.averages()[self.Vm]*self.L
+        if np.isnan(self.ave): raise ValueError('NaN produced in Hartree update')
         self.vm = self.eig*v*self.ave
         self.model.set_parameter(self.Vm, (1-self.alpha)*self.vm + self.alpha*vm0)
         self.diff = self.vm-vm0
@@ -2054,6 +2055,8 @@ def fixed_point_iteration(F, x0, xtol=1e-6, convergence_test=None, maxiter=32,  
     while True:
         print('\nfixed_point iteration {:d}'.format(iter+1))
         x = (alpha-1)*F(x0) + x0
+        if np.any(np.isnan(delta_x)):
+            raise ValueError('NaN produced in fixed-point method')
         data[:, iter] = np.copy(x0)
         delta_x = x - x0
         dx = np.linalg.norm(delta_x)
@@ -2111,6 +2114,8 @@ def broyden(F, x0, iJ0 = 0.0, xtol=1e-6, convergence_test=None, maxiter=32, mini
     iter = 0
     while True:
         delta_x = -I@f
+        if np.any(np.isnan(delta_x)):
+            raise ValueError('NaN produced in Broyden method')
         x += delta_x
         dx = np.linalg.norm(delta_x)
         print('\nBroyden iteration {:d}'.format(iter+1))

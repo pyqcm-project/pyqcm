@@ -207,6 +207,9 @@ class CDMFT:
             hartree = (hartree,)
         else: hartree = hartree
 
+        if iteration not in ['Broyden', 'fixed_point']:
+            raise ValueError("the argument 'iteration' of CDMFT() should be one of 'Broyden', 'fixed_point'")
+
         # variational parameters
         self.var = list(set(varia)) # makes sure there are no duplicates
         self.var.sort()
@@ -227,7 +230,7 @@ class CDMFT:
         for i, C in enumerate(convergence):
             convergence_test_string += C + '/'
             if C in model.parameters():
-                conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
+                conv_manager = convergence_manager(C, lambda x,y : np.abs(np.abs(x)-np.abs(y)), accur[i], depth, stdev=converge_with_stdev)
                 conv_manager.op = C
             else:
                 if converge_with_stdev and C != 'GS energy':
@@ -285,7 +288,7 @@ class CDMFT:
             return self.check_convergence()
         try:
             if iteration == 'Broyden':
-                self.CDMFT_params, self.niter, self.alpha = pyqcm.broyden(F, self.CDMFT_params, self.alpha, maxiter=maxiter, miniter=miniter, xtol=accur[0], convergence_test=G)
+                self.CDMFT_params, self.niter, self.alpha = pyqcm.broyden(F, self.CDMFT_params, self.alpha, maxiter=maxiter, miniter=miniter, xtol=1e-6, convergence_test=G)
             elif iteration == 'fixed_point':
                 self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
             globally_converged=True
@@ -395,6 +398,10 @@ class CDMFT:
             print('number of function evaluations exceeds preset maximum of ', self.max_function_eval)
             raise pyqcm.MinimizationError()
         
+        if np.any(np.isnan(sol.x)):
+            print(sol)
+            raise pyqcm.MinimizationError('NaN found in optimization of bath parameters')
+
         # push back into array
         x_new[0:self.nvar] = np.copy(sol.x)
         check_bounds(x_new[0:self.nvar], self.max_value, v=self.var)
@@ -407,7 +414,7 @@ class CDMFT:
         print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}, distance = {:1.9e}'.format(iter_done, time_MIN/time_ED, sol.fun), flush=True)
 
         var_val = pyqcm.varia_table(self.var,x_new)
-        print('updated bath parameters:\n', var_val)
+        print('updated bath parameters:\n{:s}'.format(var_val))
 
         self.CDMFT_params = np.copy(x_new)
 
