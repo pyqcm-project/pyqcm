@@ -130,7 +130,6 @@ class CDMFT:
     :param boolean displaymin: displays the minimum distance function when minimized
     :param str method: method to use, as used in scipy.optimize.minimize()
     :param str file: name of the file where the solution is written
-    :param boolean averages: if True, computes the lattice averages after each iteration. Computes them at the end anyway.
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :param float initial_step: initial step in the minimization routine
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
@@ -168,7 +167,6 @@ class CDMFT:
         alpha = 0.0,
         method='Nelder-Mead',
         file='cdmft.tsv',
-        averages=False,
         eps_algo=0,
         initial_step = 0.1,
         hartree=None,
@@ -303,11 +301,7 @@ class CDMFT:
         # here we have converged
 
         if globally_converged:
-            if averages:
-                ave = self.I.averages(pr=True)
-                if compute_potential_energy : 
-                    self.I.potential_energy()
-                    self.I.Potthoff_functional()
+            self.I = pyqcm.model_instance(self.model)  # a last instance with the converged parameters
 
             # check consistency
             GS_cons = self.I.GS_consistency(check_ground_state)
@@ -316,8 +310,9 @@ class CDMFT:
             print(var_val)
 
             ave = self.I.averages(pr=True)
-            if compute_potential_energy : self.I.potential_energy()
-
+            if compute_potential_energy : 
+                self.I.potential_energy()
+                omegaH=self.I.Potthoff_functional(hartree)
             if SEF:
                 omegaH=self.I.Potthoff_functional(hartree)
 
@@ -336,7 +331,7 @@ class CDMFT:
             if n_convergence_test > 0:
                 pyqcm.banner('Failure of the CDMFT algorithm', '*')
             else:
-                pyqcm.banner('CDMFT completed with the prescribed number of iterations', '*')
+                pyqcm.banner('CDMFT completed with the prescribed number of iterations, but bot converged', '*')
  
 
     #-----------------------------------------------------------------------------------------------
