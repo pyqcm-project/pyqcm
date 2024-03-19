@@ -220,7 +220,7 @@ if (DOWNLOAD_CUBA)
     ExternalProject_Add(Cuba
         PREFIX ${CMAKE_SOURCE_DIR}/external
         SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/cuba
-        URL http://www.feynarts.de/cuba/Cuba-4.2.2.tar.gz
+        URL https://www.feynarts.de/cuba/Cuba-4.2.2.tar.gz
         URL_HASH MD5=a92897343027893ba2ec40dc15558b32
         CONFIGURE_COMMAND COMMAND ${CMAKE_SOURCE_DIR}/external/cuba/configure "CFLAGS=${CMAKE_CXX_FLAGS_RELEASE} -fPIC" "CC=${CMAKE_C_COMPILER}"
         BUILD_COMMAND COMMAND make "lib"
