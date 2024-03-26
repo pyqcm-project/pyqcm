@@ -223,6 +223,7 @@ class lattice_model:
         self.nclus = len(self.clus)
         self.dim = len(superlattice)
         self.nsites = 0
+        self.descrpt = {}
         for i,x in enumerate(self.clus):
             if isinstance(x, cluster) == False:
                 raise ValueError("The argument 'clus' of 'model' should be of type 'cluster' or a sequence thereof")
@@ -621,6 +622,14 @@ class model_instance:
         if self.model.is_closed == False: self.model.finalize()
         self.is_complex = qcm.complex_HS(self.label)
 
+        self.props = {}
+        self.props['model'] = model.name
+        P = model.parameters()
+        Pset = model.parameter_set()
+        for x in P:
+            if Pset[x][1] == None: self.props[x] = P[x]
+        self.props['script'] = script_file()
+
         # special solver (the function solver(...) must use I.read() at the end)
         if solver != None:
             solver(self)
@@ -711,18 +720,23 @@ class model_instance:
         """
         Computes the lattice averages of the operators present in the model
 
+        :param [str] ops: list of operators to compute the average of. If empty, then computes the averages of all one-body operators.
         :param str file: name of the file in which the information is appended
         :return: a dict giving the values of the averages for each parameter
         :rtype: {str,float}
 
         """
         ave = qcm.averages(ops, self.label)
-        self.write_summary(file)
+
+        self.props['E_kin'] = qcm.kinetic_energy(self.label)
+        for x in ave:
+            self.props['ave_'+x] = ave[x]
 
         if pr:
             for x in ave:
                 print('<{:s}> = {:1.9g}'.format(x, ave[x]))
             
+        self.write_summary(file)
         return ave
 
     #-----------------------------------------------------------------------------------------------
@@ -863,6 +877,24 @@ class model_instance:
         return qcm.Green_function_average(self.label*self.model.nclus + clus, spin_down)
 
     #-----------------------------------------------------------------------------------------------
+    def cluster_density_from_GF(self, clus=0):
+        """
+        Computes the cluster density from the cluster Green function average (integral over frequencies)
+
+        :param int clus: label of the cluster (0 to the number of clusters-1)
+        :return: float
+
+        """
+
+        
+        n = np.trace(self.Green_function_average(clus, False))
+        if self.model.mixing == 4: n += np.trace(self.Green_function_average(self, clus, True))
+        elif self.model.mixing == 0: n *= 2
+        elif self.model.mixing == 3: n /= 2
+
+        return n.real/self.model.clus[clus].nsites
+
+    #-----------------------------------------------------------------------------------------------
     def interactions(self, clus=0):
         """
         returns the density-density interactions on a specific cluster
@@ -939,12 +971,13 @@ class model_instance:
 
 
     #-----------------------------------------------------------------------------------------------
-    def ground_state(self, file=None, pr=False):
+    def ground_state(self, file=None, pr=False, var=False):
         """
         Computes the ground state of the cluster(s).
 
         :param str file: name of the file in which the cluster averages are printed (if not None)
         :param boolean pr: if True, prints the result on the screen
+        :param boolean var: if True, prints the variances of the operators as well
         :return: a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
 
         """
@@ -952,6 +985,17 @@ class model_instance:
         GS = qcm.ground_state(self.label)
         if file is not None:
             self.write_summary(file) 
+        
+        for i in range(self.model.nclus):
+            if self.model.clus[i].ref != None: continue
+            ave = self.cluster_averages(i)
+            for x in ave: self.props['ave_{:s}_{:d}'.format(x,i+1)] = ave[x][0]
+            if var:
+                for x in ave: self.props['var_{:s}_{:d}'.format(x,i+1)] = ave[x][1]
+
+            self.props['E0_{:d}'.format(i+1)] = GS[i][0]
+            self.props['sector_{:d}'.format(i+1)] = GS[i][1]
+            self.props['n_{:d}'.format(i+1)] = self.cluster_density_from_GF(i)
         if pr:
             for x in GS:
                 print('E0 = {:f}\tsector =  {:s}'.format(x[0], x[1]))
@@ -1095,10 +1139,12 @@ class model_instance:
         """
         Computes the potential energy for a given instance, as the functional trace of Sigma x G
 
-        :return: the value of the potential energy
+        :return: the value of the potential energy (total for the unit cell, not per site)
 
         """
-        return qcm.potential_energy(self.label)
+        Epot = qcm.potential_energy(self.label)
+        self.props['Epot'] = Epot
+        return Epot
 
     #-----------------------------------------------------------------------------------------------
     def spectral_average(self, name, z):
@@ -1184,11 +1230,10 @@ class model_instance:
             L = qcm.model_size()[0]
             for C in hartree:
                 OM += C.omega_var()/L
-
+        self.props['omega'] = OM
         if consistency_check: 
-            self.write_summary(file, suppl_descr='omegaH\tconsistency\t', suppl_values='{:.8g}\t{:s}\t'.format(OM, C))
-        else:
-            self.write_summary(file, suppl_descr='omegaH\t', suppl_values='{:.8g}\t'.format(OM))
+            self.props['GS_consistency'] = C
+        self.write_summary(file)
         return OM
 
 
@@ -1372,41 +1417,37 @@ class model_instance:
         return 0.5*S
 
     #-----------------------------------------------------------------------------------------------
-    def write_summary(self, f, suppl_descr=None, suppl_values=None, first_of_series=False):
+    def write_summary(self, f):
         """
         Writes a summary of the properties of the model instance in a file
         
         :param str f: name of the output file
-        :param str suppl_descr: additional description fields compared to the standard ones
-        :param str suppl_values: additional values compared to the standard ones
-        :param boolean first_of_series: True if the header (description fields) are to be written
 
         """
-        first_in_file =False
-        des, val = self.properties()
-        try:
-            des_prev = des_dict[f]
-        except:
-            des_dict[f] = ''
-            des_prev = ''
-            first_in_file =True
-        if des == des_prev and first_of_series == False: 
-            first = False
-        else: 
+
+        self.props['time'] = time.strftime("%Y-%m-%d@%H:%M", time.localtime()) # adds the timestamp
+
+        des = ''
+        val = ''
+        for x in sorted(self.props.keys()):
+            des += x + '\t'
+            val += str(self.props[x]) + '\t'
+        
+        first = False
+        if f not in self.model.descrpt:
+            self.model.descrpt[f] = ''
+        if des != self.model.descrpt[f]:
             first = True
-            des_dict[f] = copy.copy(des)
-        if suppl_values != None:
-            val = val + suppl_values
-        val += script_file() + '\t' + time.strftime("%Y-%m-%d@%H:%M", time.localtime()) # adds the timestamp
+            # print('difference in lengths : ', len(des), len(self.model.descrpt))
+            # print(des)
+            # print(self.model.descrpt)
+        
         fout = open(f, 'a')
         if first:
-            if suppl_descr != None:
-                des = des + suppl_descr
-            des += 'script\ttime\t'
-            if first_in_file is False: fout.write('\n')
             fout.write(des + '\n')
         fout.write(val  + '\n')
         fout.close()
+        self.model.descrpt[f] = des
 
     #-----------------------------------------------------------------------------------------------
     def double_counting_correct(self, DC):

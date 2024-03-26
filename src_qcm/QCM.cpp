@@ -574,6 +574,18 @@ check_instance(label);
   
   
   
+  /**
+   computes the kinetic energy (sum of averages of one-body operators)
+   */
+  double kinetic_energy(int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    return lattice_model_instances.at(label)->E_kin;
+  }
+
+
 
   /**
    computes the lattice averages
@@ -674,24 +686,6 @@ check_instance(label);
     return lattice_model_instances.at(label)->Berry_curvature(k1, k2, nk, orb, rec, dir);
   }
   
-  
-  
-  /**
-   * returns a pair of strings list some properties of the model
-   * the first string is a line of names
-   * the second string is a line of values
-   * This is useful to print properties of models in a summary file
-   * @param label label of the model instance
-   */
-  pair<string,string> properties(int label)
-  {
-    #ifdef QCM_DEBUG
-    check_instance(label);
-    #endif
-    auto& M = *lattice_model_instances[label];
-    M.print_info();
-    return {M.line_info_names, M.line_info_values};
-  }
   
   
   /**

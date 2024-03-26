@@ -700,22 +700,20 @@ class VCA:
                 print('eigenvalues of Hessian :', np.linalg.eigh(H)[0])
             print('computing properties of converged solution...')
             print('omega = ', omega)
+        self.I.ground_state()
         ave = self.I.averages()
 
 
         # writes the solution in the standard file
         if root:
-            val = method + '\t{:d}\t'.format(SEF_eval)
-            des = 'method\tSEF_eval\t'
+            self.I.props['method'] = method
+            self.I.props['SEF_eval'] = SEF_eval
             if iH is not None: 
                 for i in range(nvar):
-                    val += '{:.4g}\t'.format(H[i, i])
-                for i in range(nvar):
-                    des += '2der_' + varia[i] + '\t'
+                    self.I.props['2der_' + varia[i]] = H[i, i]
             if hartree != None:
-                val += '{:.8g}\t'.format(omega)
-                des += 'omegaH\t'
-            self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=VCA.first_time)
+                self.I.props[omegaH] = omega
+            self.I.write_summary(file)
             VCA.first_time = False
 
         if root:
@@ -874,7 +872,7 @@ def plot_sef(model, param, prm, file="sef.tsv", accur_SEF=1e-4, hartree=None, sh
         plt.xlabel(param)
         plt.ylabel(r'$\Omega$')
         plt.axhline(omega[0], c='r', ls='solid', lw=0.5)
-        plt.title(model.parameter_string())
+        plt.title(model.parameter_string(), fontsize=6)
         plt.show()
 
 

@@ -1365,7 +1365,7 @@ R"{(
 computes the potential_energy for a given instance
 arguments:
 1. label (optional) :  label of the model instance (default 0)
-returns: the value of the potential_energy
+returns: the value of the potential energy
 ){";
 //------------------------------------------------------------------------------
 static PyObject* potential_energy_python(PyObject *self, PyObject *args)
@@ -1378,6 +1378,29 @@ static PyObject* potential_energy_python(PyObject *self, PyObject *args)
     PE = QCM::potential_energy(label);
   } catch(const string& s) {qcm_catch(s);}
   return Py_BuildValue("d", PE);
+}
+
+
+
+//==============================================================================
+const char* kinetic_energy_help =
+R"{(
+returns the kinetic_energy for a given instance
+arguments:
+1. label (optional) :  label of the model instance (default 0)
+returns: the value of the kinetic energy
+){";
+//------------------------------------------------------------------------------
+static PyObject* kinetic_energy_python(PyObject *self, PyObject *args)
+{
+  int label=0;
+  double KE;
+  try{
+    if(!PyArg_ParseTuple(args, "|i", &label))
+      qcm_throw("failed to read parameters in call to kinetic_energy (python)");
+    KE = QCM::kinetic_energy(label);
+  } catch(const string& s) {qcm_catch(s);}
+  return Py_BuildValue("d", KE);
 }
 
 
@@ -1463,29 +1486,6 @@ static PyObject* projected_Green_function_python(PyObject *self, PyObject *args)
   } catch(const string& s) {qcm_catch(s);}
   return out;
 }
-
-
-
-//==============================================================================
-const char* properties_help =
-R"{(
-Returns two strings of properties of a model instance
-1. label (optional) :  label of the model instance (default 0)
-returns: a pair of strings (the description line and the data line).
-){";
-//------------------------------------------------------------------------------
-static PyObject* properties_python(PyObject *self, PyObject *args)
-{
-  int label=0;
-  pair<string, string> P;
-  try{
-    if(!PyArg_ParseTuple(args, "|i", &label))
-      qcm_throw("failed to read parameters in call to properties (python)");
-    P = QCM::properties(label);
-  } catch(const string& s) {qcm_catch(s);}
-  return Py_BuildValue("s#s#", P.first.c_str(), P.first.length(), P.second.c_str(), P.second.length());
-}
-
 
 
 

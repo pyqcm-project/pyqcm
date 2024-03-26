@@ -28,8 +28,6 @@ struct lattice_model_instance{
 	double omega; //!< value of the Potthoff functional
 	double E_pot; //!< potential energy
 	double E_kin; //!< kinetic energy
-	string line_info_names; //!< line of field descriptors for output files
-	string line_info_values; //!< line of field values for output files
 	vector<vector<matrix<Complex>>> G_host; //!< CDMFT host function
 	vector<vector<matrix<Complex>>> G_host_down; //!< CDMFT host function (spin-down component)
 	vector<double> CDMFT_freqs; //!< CDMFT frequency grid
@@ -78,7 +76,6 @@ struct lattice_model_instance{
 	void inverse_Gcpt(const block_matrix<Complex> &Ginv, Green_function_k &M);
 	void periodized_Green_function(Green_function_k &M);
 	void potential_energy_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
-	void print_info();
 	void print_parameters(ostream& out, print_format format);
 	void SEF_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
 	void self_energy(Green_function_k& M);

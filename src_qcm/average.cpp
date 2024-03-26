@@ -14,7 +14,7 @@ vector<shared_ptr<lattice_operator>> ops = {};
  @param ops list of names of operators to compute the averages of
  @returns an array of (string, double) giving the average for each lattice operator
  */
-vector<pair<string,double>> lattice_model_instance::averages(const vector<string> &_ops)  
+vector<pair<string,double>> lattice_model_instance::averages(const vector<string> &_ops)
 {
   if(average_solved) return ave;
   if(_ops.size() == 0) ops = model->one_body_ops;

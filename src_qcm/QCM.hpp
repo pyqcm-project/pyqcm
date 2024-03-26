@@ -36,6 +36,7 @@ namespace QCM{
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label);
   double Potthoff_functional(int label);
   double potential_energy(int label);
+  double kinetic_energy(int label);
   double spectral_average(const string& name, const complex<double> w, int label);
   int mixing();
   int spatial_dimension();
@@ -51,7 +52,6 @@ namespace QCM{
   matrix<complex<double>> projected_Green_function(const complex<double> w, bool spin_down, int label);
   matrix<complex<double>> tk(const vector3D<double> &k, bool spin_down, int label);
   matrix<complex<double>> V_matrix(const complex<double> w, const vector3D<double> &k, bool spin_down, int label);
-  pair<string,string> properties(int label);
   pair<vector<array<double,9>>, vector<array<complex<double>, 11>>> site_and_bond_profile(int label);
   size_t Green_function_dimension();
   size_t reduced_Green_function_dimension();

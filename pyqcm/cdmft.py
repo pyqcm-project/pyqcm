@@ -147,8 +147,6 @@ class CDMFT:
     :ivar I: current model instance (changes in the course of the computation)
     
     """
-    first_time = True
-    first_time2 = True
 
     def __init__(self, 
         model, 
@@ -334,6 +332,7 @@ class CDMFT:
         pyqcm.banner('converged variational parameters ({:d} iterations)'.format(self.niter), '-')
         print(var_val)
 
+        self.I.ground_state()
         ave = self.I.averages(pr=True)
         if compute_potential_energy : 
             self.I.potential_energy()
@@ -342,14 +341,12 @@ class CDMFT:
             omegaH=self.I.Potthoff_functional(hartree)
 
         if file != None:
-            des = 'GS_consistency\tmethod\titerations\tdist_function\tconvergence\t'
-            val = '{:s}\t{:s}\t{:d}\t{:s}\t{:s}\t'.format(GS_cons, actual_method, self.niter, self.grid.dist_function, convergence_test_string)
-            if SEF : 
-                des += 'omegaH\t'
-                val += '{: #.8g}\t'.format(omegaH)
-            self.I.write_summary(file, suppl_descr = des, suppl_values = val, first_of_series=CDMFT.first_time)
-            CDMFT.first_time = False
-            CDMFT.first_time2 = True
+            self.I.props['GS_consistency'] = GS_cons
+            self.I.props['CDMFT_method'] = actual_method
+            self.I.props['CDMFT_iterations'] = self.niter
+            self.I.props['dist_function'] = self.grid.dist_function
+            self.I.props['convergence'] = convergence_test_string
+            self.I.write_summary(file)
 
         pyqcm.banner('CDMFT completed successfully', '*')
  
@@ -439,8 +436,7 @@ class CDMFT:
 
 
         # writing the parameters in a progress file
-        self.I.write_summary('cdmft_iter.tsv', first_of_series=CDMFT.first_time2)
-        CDMFT.first_time2 = False
+        self.I.write_summary('cdmft_iter.tsv')
 
         print('GS sector : ', [X[1] for X in gs])
         print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}, distance = {:1.9e}'.format(iter_done, time_MIN/time_ED, sol.fun), flush=True)

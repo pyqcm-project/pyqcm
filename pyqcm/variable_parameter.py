@@ -144,7 +144,6 @@ def variable_parameter_search(F, var_param, bracket, file='var_param.tsv'):
     """
 
     from scipy.optimize import brentq
-    global first_time
 
     pyqcm.banner('Variable parameter search (Brent method)', c='*', skip=1)
 
@@ -162,7 +161,6 @@ def variable_parameter_search(F, var_param, bracket, file='var_param.tsv'):
         raise RuntimeError('the root finding routine could not find a solution!')
     else:
         pyqcm.write_summary(file)
-        first_time = False
         pyqcm.banner('Variable parameter procedure has converged to {:s} = {:4g}'.format(var_param.param, x0), c='*')
         pyqcm.set_parameter(var_param.param, x0)
         pyqcm.new_model_instance()

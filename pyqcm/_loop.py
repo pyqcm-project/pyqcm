@@ -505,7 +505,6 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 		B = np.array([ave[x] for x in C]) # average values
 		return B-A
 
-	first_time = True
 	par = self.parameters()
 	Cv = np.array([par[x] for x in C])
 	Z = np.linspace(0.0, 1.0, n)
@@ -524,8 +523,7 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 			else : X = pyqcm.fixed_point_iteration(F, x0, xtol=tol, maxiter=32,  alpha = 0.0)
 			I = pyqcm.model_instance(self)
 			I.averages()
-			I.write_summary(file, first_of_series=first_time)
-			first_time = False
+			I.write_summary(file)
 			x0 = X[0]
 			
 
@@ -587,14 +585,10 @@ def Hartree_procedure(self, task, couplings, maxiter=32, iteration='fixed_point'
 		raise ValueError('type of iteration unknown in call to Hartree_procedure(...)')
 
 	I = pyqcm.model_instance(self)
-	des='method\titerations\t'
-	val='{:s}\t{:d}\t'.format(iteration, niter)
-	if SEF:
-		sef = I.Potthoff_functional(hartree=couplings)
-		val = '{:.8g}\t'.format(sef)
-		des = 'omegaH\t'
-	I.write_summary(file, suppl_descr = des, suppl_values = val)
-	first_time = False
+	I.props['method'] = iteration
+	I.props['iterations'] = niter
+	if SEF: I.Potthoff_functional(hartree=couplings)
+	I.write_summary(file)
 
 	pyqcm.banner('Hartree procedure has converged', c='*')
 	return I, niter, alpha

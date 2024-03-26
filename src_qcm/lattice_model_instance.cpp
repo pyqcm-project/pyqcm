@@ -449,16 +449,6 @@ double lattice_model_instance::Potthoff_functional()
 	omega /= model->sites.size();
   SEF_solved = true;
 
-  // writing to file
-  // static bool first_print = true;
-  // ofstream fout("sef.tsv",ios::app);
-  // print_info();
-  // if(first_print){
-  //   fout << line_info_names << endl;
-  //   first_print = false;
-  // }
-  // fout << line_info_values << endl;
-  
 	return(omega);
 }
 
@@ -540,47 +530,6 @@ void lattice_model_instance::print_parameters(ostream& out, print_format format)
     default:
       break;
   }
-}
-
-
-
-//==============================================================================
-/**
- Prints instance info on an internal line
- */
-void lattice_model_instance::print_info()
-{
-  std::ostringstream ostr1;
-  std::ostringstream ostr2;
-  int print_precision = (int)global_int("print_precision");
-  ostr1 << "model\t";
-  ostr2 << model->name << '\t';
-  if(SEF_solved){
-    ostr1 << "omega\t";
-    ostr2 << setprecision(print_precision) << omega << '\t';
-  }
-  if(average_solved){
-    ostr1 << "E_kin\t";
-    ostr2 << setprecision(print_precision) << E_kin << '\t';
-  }
-  if(PE_solved){
-    ostr1 << "E_pot\t";
-    ostr2 << setprecision(print_precision) << E_pot << '\t';
-  }
-  ground_state();
-  print_parameters(ostr1, print_format::names);
-  print_parameters(ostr2, print_format::values);
-  for(size_t i = 0; i<n_clus; i++){
-    if(model->clusters[i].ref != i) continue;
-    ostr1 << "E0_" << i+1 << "\tsector_"  << i+1 << '\t';
-    ostr2 << setprecision(print_precision) << gs[i].first << '\t' << gs[i].second << '\t';
-    if(gf_solved){
-      ostr1 << "n_" << i+1 << '\t';
-      ostr2 << setprecision(print_precision) << ED::Green_function_density(n_clus*label+i) << '\t';
-    }
-  }
-  line_info_names = ostr1.str();
-  line_info_values = ostr2.str();
 }
 
 
