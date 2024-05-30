@@ -69,7 +69,7 @@ struct lattice_model_instance{
 	void average_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
 	void build_cluster_H();
 	void build_H();
-	void CDMFT_Host(const vector<double>& freqs, const vector<double>& weights);
+	void CDMFT_host(const vector<double>& freqs, const vector<double>& weights);
 	void cluster_self_energy(Green_function& G);
 	void Green_eigensystem(Green_function &G, const vector3D<double> &k, vector<double> &e, matrix<Complex> &U, int opt);
 	void Green_function_solve(); //!< calls the Green_function solver for all clusters

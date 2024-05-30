@@ -189,7 +189,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
                 ax.plot(np.real(w), A_down[:, j] + offset * j, 'r-', lw=0.5, **kwargs)
             ax.plot(np.real(w), A[:, j] + offset * j, 'b-', lw=0.5, **kwargs)
     if title is None and plt_ax is None:
-        ax.set_title(r'$A(\mathbf{k},\omega)$: '+self.model.parameter_string(), fontsize=6)
+        ax.set_title(r'$A(\mathbf{k},\omega)$: '+self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax.set_title(title, fontsize=6)
     if threeD:
@@ -272,7 +272,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
     if plt_ax is None:
         plt.xlabel(r'$\omega$')
         plt.ylabel(r'$\Gamma(\omega)$')
-        plt.title(r'$\Gamma(\omega)$: '+self.model.parameter_string())
+        plt.title(r'$\Gamma(\omega)$: '+self.model.parameter_string(clus=0))
 
     if file is not None:
         plt.savefig(file)
@@ -358,7 +358,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
 
     plt.xlabel(r'$\omega$')
     plt.axvline(0, ls='solid', lw=0.5)
-    plt.title(self.model.parameter_string(), fontsize=6)
+    plt.title(self.model.parameter_string(clus=0), fontsize=6)
 
     if file is not None:
         plt.savefig(file)
@@ -400,7 +400,7 @@ def spectral_function_Lehmann(self, path='triangle', nk=32, orb=1, offset=0.1, l
 
     if lims is not None:
         plt.xlim(lims[0], lims[1])
-    plt.title(self.model.parameter_string(), fontsize=6)
+    plt.title(self.model.parameter_string(clus=0), fontsize=6)
     plt.yticks(offset * tick_pos, tick_str)
     G = self.Lehmann_Green_function(k, orb)
     for i in range(len(k)):
@@ -824,7 +824,7 @@ def mdc_anomalous(self, nk=200, w=0.1j, orbitals=(1,1), selfenergy=False, im_par
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('anomalous mdc: '+self.model.parameter_string(), fontsize=6)
+        plt.title('anomalous mdc: '+self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -940,7 +940,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
             
     if plt_ax is None:
         axis = _set_legend_mdc(plane, k_perp)
-        plt.title(axis+' '+self.model.parameter_string(), fontsize=6)
+        plt.title(axis+' '+self.model.parameter_string(clus=0), fontsize=6)
 
     if file is not None:
         plt.savefig(file)
@@ -966,7 +966,7 @@ def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, orb
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title(self.model.parameter_string(), fontsize=6)
+        plt.title(self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax = plt_ax
 
@@ -1037,7 +1037,7 @@ def Fermi_surface(self, nk=64, orb=None, quadrant=False, plane='xy', k_perp=0.0,
 
     if plt_ax is None:
         axis = _set_legend_mdc('xy', 0.0)
-        plt.title('Fermi surface: '+axis+' '+self.model.parameter_string(), fontsize=6)
+        plt.title('Fermi surface: '+axis+' '+self.model.parameter_string(clus=0), fontsize=6)
     
     if file is not None:
         plt.savefig(file)
@@ -1075,7 +1075,7 @@ def G_dispersion(self, nk=64, orb=None, period = 'G', contour=False, inv=False, 
             plt.gca().set_aspect(1)
         else:
             ax = plt.axes(projection='3d')
-        plt.title('G dispersion: '+self.model.parameter_string(), fontsize=6)
+        plt.title('G dispersion: '+self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax = plt_ax
 
@@ -1153,7 +1153,7 @@ def Luttinger_surface(self, nk=200, orb=1, quadrant=False, k_perp = 0, plane = '
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('Luttinger surface : '+self.model.parameter_string(), fontsize=6)
+        plt.title('Luttinger surface : '+self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -1195,7 +1195,7 @@ def plot_momentum_profile(self, op, nk=50, quadrant=False, k_perp=0.0, plane='xy
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('profile of '+op+' : '+self.model.parameter_string(), fontsize=6)
+        plt.title('profile of '+op+' : '+self.model.parameter_string(clus=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -1829,7 +1829,7 @@ def plot_profile(self, n_scale=1, bond_scale=1, current_scale=1, spin_scale=1,
         if np.sqrt(sx*sx+sz*sz) > 0.01 :
             ax.add_patch(patches.Arrow(x-0.5*sx, y-0.5*sz, sx, sz, width=0.2, fc = 'red', ec = 'black', lw = 0.5, zorder=100))
 
-    plt.gcf().suptitle(self.model.parameter_string()+', layer '+str(layer), y=1.0, fontsize=6)
+    plt.gcf().suptitle(self.model.parameter_string(clus=0)+', layer '+str(layer), y=1.0, fontsize=6)
     plt.tight_layout()
 
     if file is None:

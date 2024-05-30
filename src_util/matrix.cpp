@@ -141,11 +141,12 @@ template<> void matrix<Complex >::inverse()
 	N = r;
 	M = r;
 	LDA = r;
-	
-	zgetrf_(&M, &N,(doublecomplex*)&v[0], &LDA, IPIV.data(),&INFO);
-	assert((int)INFO==0);
-	zgetri_(&N,(doublecomplex*)&v[0],&LDA,IPIV.data(),WORK.data(),&N,&INFO);
-	assert((int)INFO==0);
+	try{
+		zgetrf_(&M, &N,(doublecomplex*)&v[0], &LDA, IPIV.data(),&INFO);
+		if((int)INFO) qcm_throw("Error in matrix inversion:  zgetrf_() produces INFO = "+to_string<int>(INFO));
+		zgetri_(&N,(doublecomplex*)&v[0],&LDA,IPIV.data(),WORK.data(),&N,&INFO);
+		if((int)INFO) qcm_throw("Error in matrix inversion:  zgetri_() produces INFO = "+to_string<int>(INFO));
+	} catch(const string& s) {qcm_catch(s);}
 }
 
 

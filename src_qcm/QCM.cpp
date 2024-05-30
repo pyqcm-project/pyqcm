@@ -926,7 +926,7 @@ check_instance(label);
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    lattice_model_instances.at(label)->CDMFT_Host(freqs, weights); 
+    lattice_model_instances.at(label)->CDMFT_host(freqs, weights); 
   }
 
   void set_CDMFT_host(int label, const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down)

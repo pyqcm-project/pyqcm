@@ -300,7 +300,7 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
  @param freqs [in] frequency array (along the imaginary axis)
  @param weights [in] weights of the different frequencies in the distance function
  */
-void lattice_model_instance::CDMFT_Host(const vector<double>& freqs, const vector<double>& weights)
+void lattice_model_instance::CDMFT_host(const vector<double>& freqs, const vector<double>& weights)
 {
 	CDMFT_weights = weights;
 	CDMFT_freqs = freqs;
