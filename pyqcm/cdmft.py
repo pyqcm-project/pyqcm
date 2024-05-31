@@ -141,6 +141,7 @@ class CDMFT:
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
     :param boolean fallback: if True, falls back to the other iteration method (Broyden or fixed_point) if the current one fails
+    :param boolean cap: if True, caps variational parameters to the maximum to a magnitude of max_value
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -176,7 +177,8 @@ class CDMFT:
         host_function = None,
         pre_host = None,
         max_value = 100,
-        fallback=False
+        fallback=False,
+        cap = False
     ):
 
         self.model =model
@@ -197,6 +199,7 @@ class CDMFT:
         self.max_function_eval = max_function_eval
         self.max_value = max_value
         self.alpha = alpha
+        self.cap = cap
 
         if pyqcm.is_sequence(accur) == False:
             accur = (accur,)
@@ -432,6 +435,10 @@ class CDMFT:
         # push back into array
         x_new[0:self.nvar] = np.copy(sol.x)
         
+        if self.cap :
+            for i in range(self.nvar):
+                if np.abs(x_new[i]) > self.max_value: x_new[i] = np.sign(x_new[i])*self.max_value*0.99999
+
         try:
             check_bounds(x_new[0:self.nvar], self.max_value, v=self.var)
         except pyqcm.OutOfBoundsError as error:
