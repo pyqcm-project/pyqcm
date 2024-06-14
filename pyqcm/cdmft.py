@@ -118,12 +118,14 @@ class CDMFT:
     :param [str] varia: list of variational parameters 
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
-    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt'
+    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt', 'KS'
     :param int maxiter: maximum number of CDMFT iterations
     :param int miniter: minimum number of CDMFT iterations
     :param float accur_bath: the x-tolerance for distance function optimization
     :param [str] convergence: the convergence tests (sequence of strings or single string)
     :param [float] accur: the tolerance for the various convergence tests (sequence of floats or single float)
+    :param [float] accur_dist: relative tolerance of the distance function when minimizing it
+    :param [float] accur_dist_outer: convergence criteria based on the relative change of the distance function
     :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
     :param str iteration: method of iteration of parameters ('fixed_point' or 'Broyden')
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='Broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
@@ -141,7 +143,7 @@ class CDMFT:
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
     :param boolean fallback: if True, falls back to the other iteration method (Broyden or fixed_point) if the current one fails
-    :param boolean cap: if True, caps variational parameters to the maximum to a magnitude of max_value
+    :param boolean KS_show: if True, plots de host and impurity hybridization weights after each iteration (KS scheme)
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -161,7 +163,8 @@ class CDMFT:
         depth=2,
         accur_bath=1e-3,
         accur=1e-4,
-        accur_dist=1e-9,
+        accur_dist=1e-5,
+        accur_dist_outer=1e-3,
         converge_with_stdev = False,
         iteration = 'Broyden', # or 'fixed_point'
         alpha = 0.0,
@@ -178,7 +181,7 @@ class CDMFT:
         pre_host = None,
         max_value = 100,
         fallback=False,
-        cap = False
+        KS_show=False
     ):
 
         self.model =model
@@ -196,10 +199,13 @@ class CDMFT:
         self.initial_step = initial_step
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
+        self.accur_dist_outer = accur_dist_outer
         self.max_function_eval = max_function_eval
         self.max_value = max_value
         self.alpha = alpha
-        self.cap = cap
+        self.KS_show = KS_show
+        self.dist = 1e6
+        self.delta_dist = 1e6
 
         if pyqcm.is_sequence(accur) == False:
             accur = (accur,)
@@ -226,6 +232,8 @@ class CDMFT:
         if len(convergence) != len(accur):
             raise ValueError('The number of convergence tests must be the same as the length of "accur"')
         n_convergence_test = len(convergence)
+        if(self.grid_type == 'KS' and n_convergence_test>1 and convergence[0] != 'parameters'):
+            raise ValueError('convergence tests other than "parameters" cannot be used if the frequency grid type is "KS"')
         self.convergence_test = []
         convergence_test_string = ''
         for i, C in enumerate(convergence):
@@ -263,8 +271,12 @@ class CDMFT:
 
         #-------------- first define the frequency grid for the distance function ---------
         print('frequency grid type = ', grid_type)
-        print('fictitious inverse temperature = ', beta)
-        print('frequency cutoff = ', wc)
+        if grid_type == 'KS':
+            if type(wc) != tuple: raise ValueError("if grid_type = 'KS', the argument wc must be the tuple (w_min, w_max, eta)")
+            print('Kolmogorov-Smirnov grid from {:.3g} to {:.3g} (+ i*{:.3g})'.format(wc[0], wc[1], wc[2]))
+        else:
+            print('fictitious inverse temperature = ', beta)
+            print('frequency cutoff = ', wc)
         if alpha is float : print('damping factor = ', self.alpha)
         print('-'*100)
         
@@ -286,7 +298,8 @@ class CDMFT:
             else: return x - self.CDMFT_params
 
         def G():
-            return self.check_convergence()
+            if self.delta_dist < self.accur_dist_outer: return True
+            else: return self.check_convergence()
 
         CDMFT_params0 = self.CDMFT_params
 
@@ -345,11 +358,16 @@ class CDMFT:
         if SEF:
             omega=self.I.Potthoff_functional(hartree)
 
+        if grid_type == 'KS':
+            dist_function = 'KS_({:.2g},{:.2g},{:.3g})'.format(self.wc[0], self.wc[1], self.wc[2])
+        else:
+            dist_function = self.grid.dist_function
+
         if file != None:
             self.I.props['GS_consistency'] = GS_cons
             self.I.props['CDMFT_method'] = actual_method
             self.I.props['CDMFT_iterations'] = self.niter
-            self.I.props['dist_function'] = self.grid.dist_function
+            self.I.props['dist_function'] = dist_function
             self.I.props['convergence'] = convergence_test_string
             self.I.write_summary(file)
 
@@ -363,9 +381,8 @@ class CDMFT:
         parameters and updates it to the next set of values
         """
 
-        if self.cap :
-            for i in range(self.nvar):
-                if np.abs(self.CDMFT_params[i]) > self.max_value: self.CDMFT_params[i] = np.sign(self.CDMFT_params[i])*self.max_value*0.99999
+        if self.grid_type == 'KS': KS = True
+        else: KS = False
 
         try:
             check_bounds(self.CDMFT_params, self.max_value, v=self.var)
@@ -379,11 +396,16 @@ class CDMFT:
         for i in range(self.nhartree):
             self.model.set_parameter(self.hartree[i].Vm, self.CDMFT_params[i+self.nvar])
         self.I = pyqcm.model_instance(self.model)
+
         if self.grid_type == 'adapt':  # find the maximum value of variational (bath) parameters
             m = 2.0
             self.wc = max([2.0, max(self.CDMFT_params[0:self.nvar])])
 
-        self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
+        if KS:
+            self.grid = None
+        else:
+            self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
+
 
         # solve the impurity problem
 
@@ -393,13 +415,37 @@ class CDMFT:
             self.pre_host(self.I)
 
         # computing or transferring the host array --------------------------------------
-        if self.host_function == None:
+        if KS:
+            qcm.CDMFT_host_cumul(self.wc[0], self.wc[1], self.wc[2], self.I.label)
+            if self.KS_show:
+                H = qcm.get_CDMFT_host_cumul(self.I.label)
+                Hc = -qcm.hybridization_cumul(self.I.label)
+                W = np.linspace(self.wc[0]+0.125*self.wc[2], self.wc[1]+0.125*self.wc[2], len(H))
+                plt.plot(W, H, 'r-')
+                max = np.max(H)
+                plt.plot(W, Hc, 'b-') 
+                try:
+                    plt.plot(W, self.H0, 'r--', lw=0.5) 
+                    plt.plot(W, self.Hc0, 'b--', lw=0.5) 
+                except:
+                    pass
+                plt.xlim(self.wc[0], self.wc[1])
+                plt.grid()
+                plt.xlabel('$\omega$')
+                plt.ylabel('cumulative (diagonal) hybridization')
+                plt.show()
+                self.Hc0 = Hc
+                self.H0 = H
+
+            
+
+        elif self.host_function == None:
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
         else:
             self.host_function(self.I)
         #--------------------------------------------------------------------------------
 
-        self.set_Hyb()
+        if KS == False: self.set_Hyb()
         t2 = timeit.default_timer()
         time_ED = t2 - t1
 
@@ -413,11 +459,14 @@ class CDMFT:
 
         gs = self.I.ground_state()
         
+
         # optimization of the bath parameters
         def DIST(y):
-            d = qcm.CDMFT_distance(y, self.I.label)
+            d = qcm.CDMFT_distance(y, self.I.label, KS)
             return d
-        sol, iter_done = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        dist0 = self.dist
+        sol, iter_done, self.dist = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        self.delta_dist = np.abs((self.dist - dist0)/dist0)
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
@@ -439,10 +488,6 @@ class CDMFT:
         # push back into array
         x_new[0:self.nvar] = np.copy(sol.x)
         
-        if self.cap :
-            for i in range(self.nvar):
-                if np.abs(x_new[i]) > self.max_value: x_new[i] = np.sign(x_new[i])*self.max_value*0.99999
-
         try:
             check_bounds(x_new[0:self.nvar], self.max_value, v=self.var)
         except pyqcm.OutOfBoundsError as error:
@@ -455,7 +500,7 @@ class CDMFT:
         self.I.write_summary('cdmft_iter.tsv')
 
         print('GS sector : ', [X[1] for X in gs])
-        print('{:d} minimization steps, time(MIN)/time(ED)={:.5f}, distance = {:1.9e}'.format(iter_done, time_MIN/time_ED, sol.fun), flush=True)
+        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(iter_done, time_MIN/time_ED, sol.fun, 100*self.delta_dist), flush=True)
 
         var_val = pyqcm.varia_table(self.var,x_new)
         print('updated bath parameters:\n{:s}'.format(var_val))
@@ -1230,8 +1275,20 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
             initial_simplex[i, :] = x
         for i in range(nvar):
             initial_simplex[i+1, i] += initial_step
-        sol = scipy.optimize.minimize(F, x, method='Nelder-Mead', options={'disp':displaymin, 'maxfev':maxfev, 'xatol': accur, 'fatol': accur_dist, 'initial_simplex': initial_simplex})
+        sol = scipy.optimize.minimize(F, x, method='Nelder-Mead', options={'disp':displaymin, 'maxfev':maxfev, 'xatol': accur, 'frtol': accur_dist, 'initial_simplex': initial_simplex})
         iter_done = sol.nit
+
+    elif method == 'Nelder-Mead2':
+        SciPy_method = False
+        initial_simplex = np.zeros((nvar+1,nvar))
+        for i in range(nvar+1):
+            initial_simplex[i, :] = x
+        for i in range(nvar):
+            initial_simplex[i+1, i] += initial_step
+        NM = pyqcm.NelderMead(F, initial_simplex, xtol = accur, ftol = accur_dist, maxfev = maxfev)
+        X = NM.minimize(verb=True)
+        sol = scipy.optimize.OptimizeResult(x=X,fun=NM.X[0,0],success=True, nfev=NM.nfev)
+        iter_done = NM.iterdone
 
     elif method == 'Powell':
         sol = scipy.optimize.minimize(F, x, method='Powell', tol = accur)
@@ -1246,11 +1303,11 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
         iter_done = sol.nit
 
     elif method == 'COBYLA':
-        sol = scipy.optimize.minimize(F, x, method='COBYLA', options={'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'tol': accur_dist})
+        sol = scipy.optimize.minimize(F, x, method='COBYLA', options={'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'rtol': accur_dist})
         iter_done = sol.nfev
         
     elif method == 'ANNEAL':
-        sol = scipy.optimize.basinhopping(F, x, minimizer_kwargs = {'method':'COBYLA', 'options':{'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'tol': accur_dist}})
+        sol = scipy.optimize.basinhopping(F, x, minimizer_kwargs = {'method':'COBYLA', 'options':{'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'rtol': accur_dist}})
         iter_done = sol.nfev
 
     else:
@@ -1259,5 +1316,5 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
     if not sol.success:
         print(sol.message)
         raise pyqcm.MinimizationError()
-    return sol, iter_done
+    return sol, iter_done, sol.fun
 

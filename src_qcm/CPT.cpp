@@ -5,6 +5,7 @@
 #endif
 #include <fstream>
 
+#define ETADELTA 0.25
 //==============================================================================
 /** 
  * Builds the matrix tk, the momentum-dependent hopping matrix
@@ -370,6 +371,84 @@ vector<vector<matrix<Complex>>> lattice_model_instance::get_CDMFT_host(bool spin
 
 //==============================================================================
 /** 
+ Computes the integrated CDMFT host along the real frequency axis
+ @param freqs [in] frequency array (along the real axis)
+ @param spin_down [in] boolean : true if spin-down sector (mixing = 4) 
+ */
+
+Complex lattice_model_instance::CDMFT_host_part(Complex w, bool spin_down)
+{
+	Complex gamma(0.,0.);
+	auto Gproj= projected_Green_function(w, spin_down);
+	for(int c=0; c<n_clus; c++){
+		int d = model->GF_dims[c];
+		int o = model->GF_offset[c];
+		matrix<Complex> G_host_tmp(d);
+		G_host_tmp.zero();
+		Gproj.move_sub_matrix(d, d, o, o, 0, 0, G_host_tmp);
+		G_host_tmp.inverse();
+		auto X = cluster_self_energy(c, w, false);
+		auto Y = cluster_hopping_matrix(c, false);
+		G_host_tmp.v += X.v;
+		G_host_tmp.v += Y.v;
+		G_host_tmp.add(-w);
+		gamma += G_host_tmp.trace();
+	}
+	return gamma;
+}
+
+
+void lattice_model_instance::CDMFT_host_cumul(const double& w1,  const double& w2, const double& eta)
+{
+	CDMFT_w1 = w1;
+	CDMFT_w2 = w2;
+	CDMFT_eta = eta;
+	double delta = 0.25*eta;
+	int nw = floor((w2-w1)/delta) + 1;
+
+	cout << "delta = " << delta << ", nw = " << nw << endl; // TEMPO
+
+	// allocation 
+	G_host_cumul.assign(nw, 0.0);
+	vector<double> gamma(nw);
+	vector<double> gammap(nw+1);
+	to_zero(gamma);
+	to_zero(gammap);
+
+	if(global_bool("verb_ED")) cout << "Building host function" << endl;
+
+	for(int i=0; i<nw; i++){
+		Complex w(w1+i*delta, CDMFT_eta);
+		gamma[i] = CDMFT_host_part(w, false).imag();
+	}
+	for(int i=0; i<=nw; i++){
+		Complex w(w1+i*delta-0.5*delta, 0.5*eta);
+		gammap[i] = CDMFT_host_part(w, false).real();
+	}
+
+	if(model->mixing & HS_mixing::up_down){
+		for(int i=0; i<nw; i++){
+			Complex w(w1+i*delta, CDMFT_eta);
+			gamma[i] += CDMFT_host_part(w, true).imag();
+		}
+		for(int i=0; i<=nw; i++){
+			Complex w(w1+i*delta-0.5*delta, 0.5*eta);
+			gammap[i] += CDMFT_host_part(w, true).real();
+		}
+	}
+	// converting to accumulated values
+	for(int i=1; i<nw; i++) gamma[i] += gamma[i-1];
+
+	for(int i=0; i<nw; i++) G_host_cumul[i] = gamma[i] + (gammap[0] - gammap[i+1])/ETADELTA;
+	G_host_cumul *= delta;
+}
+
+vector<double> lattice_model_instance::get_CDMFT_host_cumul(){
+	return G_host_cumul;
+}
+
+//==============================================================================
+/** 
  sets the CDMFT host from input data
  @param freqs [in] frequency array (along the imaginary axis)
  @param clus [in] label of the cluster
@@ -432,7 +511,7 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 			for(int c=0; c<n_clus; c++){
 				auto gamma = I.hybridization_function(c, w, true);
 				gamma.v += G_host_down[i][c].v;
-				distw += norm2(gamma.v);
+				distw += norm(gamma.v);
 			}
 			dist += distw*CDMFT_weights[i];
 		}
@@ -442,4 +521,144 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 	else if(model->mixing == 3) dist *= 0.5;
 
 	return dist;
+}
+
+
+//==============================================================================
+/** 
+ Computes the CDMFT distance function in the Kolmogorov-Smirnov sense (along real axis)
+ @param p values of the variational parameters
+ @returns the distance function
+ */
+double lattice_model_instance::CDMFT_distance_KS(const vector<double>& p)
+{
+	double dist = 0.0;
+	for(int i=0; i<model->param_set->CDMFT_variational.size(); i++){
+		model->param_set->set_value(model->param_set->CDMFT_variational[i], p[i]);
+	}
+	auto I = lattice_model_instance(model, label+999);
+
+
+	double delta = ETADELTA*CDMFT_eta;
+	int nw = floor((CDMFT_w2-CDMFT_w1)/delta) + 1;
+
+	// cout << "delta = " << delta << ", nw = " << nw << endl; // TEMPO
+
+	vector<double> gamma_cumul(nw);
+	vector<double> gamma(nw);
+	vector<double> gammap(nw+1);
+	to_zero(gamma_cumul);
+	to_zero(gamma);
+	to_zero(gammap);
+
+	// #pragma omp parallel for reduction (+:dist)
+	for(int i=0; i<nw; i++){
+		Complex w(CDMFT_w1+i*delta, CDMFT_eta);
+		for(int c=0; c<n_clus; c++){
+			auto g = I.hybridization_function(c, w, false);
+			gamma[i] += g.trace().imag();
+		}
+	}
+	for(int i=0; i<=nw; i++){
+		Complex w(CDMFT_w1+i*delta-0.5*delta, 0.5*CDMFT_eta);
+		for(int c=0; c<n_clus; c++){
+			auto g = I.hybridization_function(c, w, false);
+			gammap[i] += g.trace().real();
+		}
+	}
+
+	if(model->mixing & HS_mixing::up_down){
+		for(int i=0; i<nw; i++){
+			Complex w(CDMFT_w1+i*delta, CDMFT_eta);
+			for(int c=0; c<n_clus; c++){
+				auto g = I.hybridization_function(c, w, true);
+				gamma[i] += g.trace().imag();
+			}
+		}
+		for(int i=0; i<=nw; i++){
+			Complex w(CDMFT_w1+i*delta-0.5*delta, 0.5*CDMFT_eta);
+			for(int c=0; c<n_clus; c++){
+				auto g = I.hybridization_function(c, w, true);
+				gammap[i] += g.trace().real();
+			}
+		}
+	}
+
+	// converting to accumulated values
+	for(int i=1; i<nw; i++) gamma[i] += gamma[i-1];
+
+	for(int i=0; i<nw; i++) gamma_cumul[i] = gamma[i] + (gammap[0] - gammap[i+1])/ETADELTA;
+	gamma_cumul *= delta;
+
+
+	double dist0 = (gamma_cumul[nw-1]+G_host_cumul[nw-1]);
+	dist0 *= dist0*global_int("KS_end_weight");
+	dist = norm(gamma_cumul+G_host_cumul)*delta + dist0;
+
+	if(model->mixing == 0) dist *= 2;
+	else if(model->mixing == 3) dist *= 0.5;
+
+	return dist;
+}
+
+
+
+//==============================================================================
+/** 
+ Computes the CDMFT distance function in the Kolmogorov-Smirnov sense (along real axis)
+ @returns the cumulative hybridization function
+ */
+vector<double> lattice_model_instance::hybridization_cumul()
+{
+	double delta = ETADELTA*CDMFT_eta;
+	int nw = floor((CDMFT_w2-CDMFT_w1)/delta) + 1;
+
+	// cout << "delta = " << delta << ", nw = " << nw << endl; // TEMPO
+
+	vector<double> gamma_cumul(nw);
+	vector<double> gamma(nw);
+	vector<double> gammap(nw+1);
+	to_zero(gamma_cumul);
+	to_zero(gamma);
+	to_zero(gammap);
+
+	// #pragma omp parallel for reduction (+:dist)
+	for(int i=0; i<nw; i++){
+		Complex w(CDMFT_w1+i*delta, CDMFT_eta);
+		for(int c=0; c<n_clus; c++){
+			auto g = hybridization_function(c, w, false);
+			gamma[i] += g.trace().imag();
+		}
+	}
+	for(int i=0; i<=nw; i++){
+		Complex w(CDMFT_w1+i*delta-0.5*delta, 0.5*CDMFT_eta);
+		for(int c=0; c<n_clus; c++){
+			auto g = hybridization_function(c, w, false);
+			gammap[i] += g.trace().real();
+		}
+	}
+
+	if(model->mixing & HS_mixing::up_down){
+		for(int i=0; i<nw; i++){
+			Complex w(CDMFT_w1+i*delta, CDMFT_eta);
+			for(int c=0; c<n_clus; c++){
+				auto g = hybridization_function(c, w, true);
+				gamma[i] += g.trace().imag();
+			}
+		}
+		for(int i=0; i<=nw; i++){
+			Complex w(CDMFT_w1+i*delta-0.5*delta, 0.5*CDMFT_eta);
+			for(int c=0; c<n_clus; c++){
+				auto g = hybridization_function(c, w, true);
+				gammap[i] += g.trace().real();
+			}
+		}
+	}
+
+	// converting to accumulated values
+	for(int i=1; i<nw; i++) gamma[i] += gamma[i-1];
+
+	for(int i=0; i<nw; i++) gamma_cumul[i] = gamma[i] + (gammap[0] - gammap[i+1])/ETADELTA;
+	gamma_cumul *= delta;
+	return gamma_cumul;
 }

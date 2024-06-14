@@ -1680,7 +1680,143 @@ class hartree:
     def print(self):
         print('<{:s}> = {:g}\t{:s} = {:g} (diff = {:g}, {:g}%)'.format(self.Vm, self.ave, self.Vm, self.vm, self.diff, 100*self.diff_rel))
 
+
+
+####################################################################################################
+class NelderMead:
+    """
+    This class implements the Nelder-Mead minimization method, independently of the corresponding SciPy method
+    """
     
+    alpha = 1.0
+    gamma = 2.0
+    rho = -0.5
+    sigma = 0.5
+
+    def __init__(self, F, X, xtol = 1e-6, ftol = 1e-6, maxfev = 10000):
+       """
+       @param F: function to minimize. Its argument is a numpy array.
+       @param X: Initial simplex (d+1 elements with each d components)
+       @param float xtol: minimum size of the simplex for convergence
+       @param float ytol: minimum variation of the objective function within the simplex for convergence
+       @param int maxfev: maximum number of evaluations of F
+       """
+       self.F = F
+       self.n = len(X)
+       self.d = self.n-1
+       self.X = np.zeros((self.n,self.n))  # contient les points du simplexe et les valeurs de la fonction (composante 0)
+       X = np.array(X)
+       self.X[:,1:self.n] = X
+       self.xtol = xtol
+       self.ftol = ftol
+       self.nfev = 0
+       self.iterdone = 0
+       self.maxfev = maxfev
+       for i in range(self.n):  # évaluation de la fonction aux sommets
+          self.X[i,0] = F(X[i,:])
+
+
+    def size(self):
+        """
+        Taille du simplexe
+        Retourne la plus grande parmi les distances inter-sommets
+        """
+        v = np.zeros(self.n*(self.n-1)//2)
+        k = 0
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+               v[k] = np.linalg.norm(self.X[i,1:]-self.X[j,1:])
+        return np.max(v)
+    
+    def __str__(self):
+        S = ''
+        for i in range(self.n):
+            S += '\n{:1.7g} : '.format(self.X[i,0])
+            S += self.X[i,1:].__str__()  
+        return S 
+          
+    def minimize(self, verb=False):
+        converged = False
+        iter = 0
+        while True:
+            self.iterdone = iter
+            iter += 1
+            
+            self.X = self.X[self.X[:, 0].argsort()]  # tri. étape 2
+            # if verb : print("\nvaleurs et simplexe:", self)
+
+            min = self.X[0, 0]
+            max = self.X[self.d, 0]
+            test = (max-min)/(max+min+self.ftol)
+            taille = self.size()
+            if verb:
+               print('\niteration {:d}, delta F = {:1.3g}, size = {:1.3g}, value = {:1.8g}, evaluations = {:d}'.format(iter, test, self.size(), self.X[0,0], self.nfev))
+            
+            if test < self.ftol and taille < self.xtol: 
+                converged = True
+                break
+
+            x0 = np.mean(self.X[0:-1,1:], axis=0)  # centre de masse
+            xr = x0*(1+self.alpha) + self.X[self.d,1:]*(-self.alpha)  # étape 4
+            fr = self.F(xr)
+            self.nfev += 1
+            if self.nfev > self.maxfev: break
+
+            if fr < self.X[self.d-1, 0]: 
+                if fr > min:
+                    self.X[self.d,1:] = xr
+                    self.X[self.d,0] = fr
+                    if verb: print('réflexion')
+                    continue
+
+                else:  # étape 5
+                    xe = x0*(1+self.gamma) + self.X[self.d,1:]*(-self.gamma)
+                    # print('xe = ', xe) 
+                    fe = self.F(xe)
+                    self.nfev += 1
+                    if self.nfev > self.maxfev: break
+                    if fe < fr :
+                        self.X[self.d,1:] = xe
+                        self.X[self.d,0] = fe
+                        if verb: print('élongation')
+                        continue
+                    else:
+                        self.X[self.d,1:] = xr
+                        self.X[self.d,0] = fr
+                        if verb: print('réflexion')
+                        continue
+
+            else: # étape 6
+                xe = x0*(1+self.rho) + self.X[self.d,1:]*(-self.rho) # point contracté
+                # print('xe = ', xe) 
+                fe = self.F(xe)
+                self.nfev += 1
+                if self.nfev > self.maxfev: break
+                if fe < self.X[self.d, 0]: 
+                    self.X[self.d,1:] = xe
+                    self.X[self.d,0] = fe
+                    if verb: print('contraction')
+                    continue
+
+                else:   # étape 7
+                    for i in range(1, self.n):
+                        self.X[i,1:] = self.X[0,1:]*(1-self.sigma) + self.X[i,1:]*self.sigma
+                        self.X[i,0] = self.F(self.X[i,1:])
+                        self.nfev += 1
+                    if verb: print("contraction d'ensemble")
+                    continue;
+
+        if converged == False:
+            self.success = False
+        else:
+            self.success = True
+            if verb:
+                print('Nelder-Mead has converged to : ', self.X[0,1:], ', valeur = ', self.X[0,0])
+            return self.X[0,1:]
+
+
+            
+
 ####################################################################################################
 # FUNCTIONS RELATION TO OPTIONS
 

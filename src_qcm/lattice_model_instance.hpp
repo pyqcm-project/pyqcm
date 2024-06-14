@@ -28,15 +28,21 @@ struct lattice_model_instance{
 	double omega; //!< value of the Potthoff functional
 	double E_pot; //!< potential energy
 	double E_kin; //!< kinetic energy
+	double CDMFT_w1; //!< lower bound of frequency domain (KS version)
+	double CDMFT_w2; //!< upper bound of frequency domain (KS version)
+	double CDMFT_eta; //!< Lorentzian broadening used in the CDMFT distance function (KS version)
+	vector<double> G_host_cumul; //!< cumulative CDMFT host function along the real frequency axis
 	vector<vector<matrix<Complex>>> G_host; //!< CDMFT host function
 	vector<vector<matrix<Complex>>> G_host_down; //!< CDMFT host function (spin-down component)
 	vector<double> CDMFT_freqs; //!< CDMFT frequency grid
 	vector<double> CDMFT_weights; //!< weights of the different frequencies in CDMFT
 
 	complex<double> TrSigmaG(Complex w, vector3D<double> &k, bool spin_down);
+	complex<double> CDMFT_host_part(Complex w, bool spin_down);
 	double Berry_flux(const vector<vector3D<double>> &k, int orb, bool spin_down);
 	double Berry_plaquette(Green_function &G, const vector3D<double> &k1, const double deltax, const double deltay, const int opt, int dir, int orb);
 	double CDMFT_distance(const vector<double>& p);
+	double CDMFT_distance_KS(const vector<double>& p);
 	double monopole_part(vector3D<double>& k, double a, int nk, int orb, bool rec, int dir, bool spin_down);
 	double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec);
 	double potential_energy();
@@ -64,12 +70,15 @@ struct lattice_model_instance{
 	vector<pair<string,double>> averages(const vector<string> &_ops);
 	vector<pair<vector<double>, vector<double>>> Lehmann_Green_function(vector<vector3D<double>> &k, int orb, bool spin_down);
 	vector<vector<matrix<Complex>>> get_CDMFT_host(bool spin_down);
+	vector<double> get_CDMFT_host_cumul();
+	vector<double> hybridization_cumul();
 	void set_CDMFT_host(const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down);
 	void average_integrand_per(Complex w, vector3D<double> &k, const int *nv, double *I);
 	void average_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
 	void build_cluster_H();
 	void build_H();
 	void CDMFT_host(const vector<double>& freqs, const vector<double>& weights);
+	void CDMFT_host_cumul(const double& w1, const double& w2, const double& eta);
 	void cluster_self_energy(Green_function& G);
 	void Green_eigensystem(Green_function &G, const vector3D<double> &k, vector<double> &e, matrix<Complex> &U, int opt);
 	void Green_function_solve(); //!< calls the Green_function solver for all clusters
