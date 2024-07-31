@@ -42,6 +42,6 @@ skbuild.setup(
     # package_dir={"": "."},
     # cmake_install_dir=".",
     include_package_data=True,
-    install_requires=["numpy", "matplotlib", "scipy"],
+    install_requires=["numpy<2", "matplotlib", "scipy"],
     python_requires=">=3.7",
 )

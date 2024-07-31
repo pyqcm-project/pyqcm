@@ -261,8 +261,8 @@ if (WITH_GF_OPT_KERNEL)
       message(WARNING "WITH_GF_KERNEL specified but the host processor does not have AVX2 capability: optimized kernel will not be used.")
       set(AVX2_FOUND false)
     endif()
+    message(STATUS "Using AVX2 optimized kernel for Green function evaluation: ${AVX2_FOUND}")
   endif()
-  message(STATUS "Using AVX2 optimized kernel for Green function evaluation: ${AVX2_FOUND}")
 endif()
 
 
