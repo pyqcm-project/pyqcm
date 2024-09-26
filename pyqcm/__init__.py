@@ -1499,6 +1499,7 @@ class model_instance:
                 if check_ground_state:
                     raise ValueError("failed GS consistency for cluster {:d}".format(i+1))
             else: GS_cons += 'Y'
+        self.props['GS_consistency'] = GS_cons
         return GS_cons
 
     #-----------------------------------------------------------------------------------------------

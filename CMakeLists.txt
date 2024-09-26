@@ -30,7 +30,7 @@ option(EIGEN_HAMILTONIAN "Specify to compile with Eigen format for the Hamiltoni
 option(WITH_PRIMME "Whether to use or not the PRIMME library and its eigensolver for finding ground state of the Hamiltonian (needs EIGEN_HAMILTONIAN=1)" ON)
 option(DOWNLOAD_PRIMME "Specify to download and compile automatically the PRIMME eigensolver library (needs WITH_PRIMME=ON)" ON)
 option(PRIMME_DIR "Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically")
-option(WITH_GF_OPT_KERNEL "Automatically detect host processor AVX2 capabilities (i.e. Intel processors after 2014 and AMD processors after 2015) and compile the optimized kernel (5 times quicker) for Green function evaluation" ON)
+option(WITH_GF_OPT_KERNEL "Automatically detect host processor AVX2 capabilities (i.e. Intel processors after 2014 and AMD processors after 2015) and compile the optimized kernel (5 times quicker) for Green function evaluation" OFF)
 option(QCM_DEBUG "Enable extra verbose information for debug purpose" OFF)
 option(APPLE_LIBOMP_PREFIX "Custom path to the OpenMP library libomp on Apple computer")
 option(USE_OPENMP "Enable parallelization using OpenMP" ON)
@@ -283,10 +283,10 @@ if (USE_OPENMP)
             endif()
             message(STATUS "Apple OpenMP library: ${APPLE_LIBOMP_PREFIX}")
             #OpenMP_C
-            set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
+            set(OpenMP_C_FLAGS "-Xclang -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
             set(OpenMP_C_LIB_NAMES "omp")
             #OpenMP_CXX
-            set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
+            set(OpenMP_CXX_FLAGS "-Xclang -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
             set(OpenMP_CXX_LIB_NAMES "omp")
             #OpenMP libs name
             set(OpenMP_omp_LIBRARY "${APPLE_LIBOMP_PREFIX}/lib/libomp.dylib")
