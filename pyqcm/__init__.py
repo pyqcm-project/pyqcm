@@ -2259,7 +2259,7 @@ def fixed_point_iteration(F, x0, xtol=1e-6, convergence_test=None, maxiter=32,  
         x0 = np.copy(x)
 
         if convergence_test is None:
-            if dx < xtol and i >= miniter: 
+            if dx < xtol and iter >= miniter: 
                 break
         else:
             if convergence_test(): 

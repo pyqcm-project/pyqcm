@@ -326,7 +326,8 @@ class CDMFT:
         elif iteration == 'fixed_point':
             try:
                 actual_method = 'fixed_point'
-                self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
+                # self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
+                self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=None, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
             except Exception as E:
                 if fallback:
                     pyqcm.banner('restarting CDMFT with Broyden method', '+', skip=1)

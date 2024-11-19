@@ -186,7 +186,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
 
     if style == 'color':
         aspect = len(k)/(w[-1].real-w[0].real)*0.618
-        CS = ax.imshow(A, vmin=0, vmax = np.max(np.abs(A)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
+        CS = ax.imshow(np.flip(A,0), vmin=0, vmax = np.max(np.abs(A)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
         ax.set_xticks(tick_pos)
         ax.set_xticklabels(tick_str)
 
@@ -476,6 +476,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     :param [str] labels: labels of the different curves
     :param [str] colors: colors of the different curves
     :param str file: if not None, saves the plot in a file with that name
+    :param str data_file: saves the data in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param boolean spin_up: only plots the spin up bands, even if mixing is nonzero
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
@@ -537,6 +538,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
         for i in range(nband):
             head += 'cumul_down_{:d}\t'.format(i+1)
     np.savetxt(data_file, np.hstack((np.reshape(np.real(w), (nw, 1)), A, accum)), header=head, delimiter='\t', fmt='%1.6g', comments='')
+    self.write_summary(data_file)
     print('DoS totals: ', total)
 
     if plot == False: return
@@ -1636,8 +1638,8 @@ def Berry_field_map(self, nk=40, nsides = 4, plane='z', k_perp=0.0, orb=None, fi
     if plt_ax is None:
         plt.colorbar(CS, shrink=0.8)
         ax.set_title(axis, fontsize=6)
-        plt.xticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
-        plt.yticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
+        plt.xticks((-1, 0, 1), (r'$-\pi$', '$0$', r'$\pi$'))
+        plt.yticks((-1, 0, 1), (r'$-\pi$', '$0$', r'$\pi$'))
 
     if file is not None:
         plt.savefig(file)

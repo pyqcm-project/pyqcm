@@ -53,7 +53,7 @@ namespace QCM {
     new_global_bool(false,"merge_states","merges states in the mixed state case");
 
     new_global_double(1e-12,"accur_band_lanczos","energy difference tolerance for stopping the BL process");
-    new_global_double(0.01,"accur_continued_fraction","value of beta below which the simple Lanczod process stops");
+    new_global_double(0.01,"accur_continued_fraction","value of beta below which the simple Lanczos process stops");
     new_global_double(1.0e-5,"accur_Davidson","maximum norm of residuals in the Davidson-Liu algorithm");
     new_global_double(1e-7,"accur_deflation","norm below which a vector is deflated in the band Lanczos method");
     new_global_double(1e-12,"accur_lanczos","tolerance of the Ritz residual estimate in the Lanczos method");
