@@ -1505,7 +1505,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     # methods from _spectral.py
     
-    from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile
+    from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile, wavevector_path_2_str
 
 
 ####################################################################################################

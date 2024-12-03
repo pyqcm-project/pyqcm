@@ -82,7 +82,7 @@ def __kgrid(ax, nk, quadrant=False, k_perp=0.0, plane='xy', size=1.0):
 ####################################################################################################
 # Additional methods of the model_instance class
 
-def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  **kwargs):
+def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  data_file='spectral_data', **kwargs):
     """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
@@ -99,12 +99,17 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param str style: if None, draws the curves for different values of k offset by offset; if '3D', draws a real 3D version of the plot; if 'color', draws a colorplot (wavevector on the horizontal axis).
+    :param str data_file: name of file where spectral data is written (no extension; it will be added by the code)
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: None
 
     """
 
     orbs = pyqcm.orbital_manager(orb, from_zero=True)
+
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
 
     if plt_ax is None:
         if style == '3D':
@@ -131,6 +136,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
         for i,s in enumerate(tick_str):
             tick_str[i] = '-'+s
 
+    k_str = self.wavevector_path_2_str(k)
 
     A = np.zeros((len(w), len(k)))
     A_down = np.zeros((len(w), len(k)))
@@ -183,6 +189,12 @@ def spectral_function(self, wmax=6.0, eta=0.05, path='triangle', nk=32, orb=None
                 for l in orbs: 
                     A_down[i, j] += -g[j, l, l].imag
     
+
+    freq_info = "\nnfreq = {:d}, wmin={:g}, wmax={:g}".format(len(w), w[0], w[-1])
+    np.savetxt(data_file+'.tsv', A, delimiter='\t', fmt='%1.6g', header = k_str+freq_info)
+    if plot_down:
+        np.savetxt(data_file+'_down.tsv', A_down, delimiter='\t', fmt='%1.6g', header = k_str + freq_info)
+        
 
     if style == 'color':
         aspect = len(k)/(w[-1].real-w[0].real)*0.618
@@ -384,7 +396,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
 
 
 #---------------------------------------------------------------------------------------------------
-def spectral_function_Lehmann(self, path='triangle', nk=32, orb=1, offset=0.1, lims=None, file=None, plt_ax=None, **kwargs):
+def spectral_function_Lehmann(self, path=None, nk=32, orb=1, offset=0.1, lims=None, file=None, plt_ax=None, **kwargs):
     """Plots a Lehmann representation of the spectral function along a wavevector path in the Brillouin zone. Singularities are plotted as impulses with heights proportionnal to the residue.
     
     :param path: if a string, keyword passed to `pyqcm.wavevector_path()` to produce a set of wavevectors; else, explicit list of wavevectors (N x 3 numpy array).
@@ -399,6 +411,10 @@ def spectral_function_Lehmann(self, path='triangle', nk=32, orb=1, offset=0.1, l
 
     """
     
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
+
     if plt_ax is None:
         plt.figure()
         plt.gcf().set_size_inches(13.5/2.54, 9/2.54)
@@ -965,7 +981,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
         plt.show()
 
 #---------------------------------------------------------------------------------------------------
-def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, orb = None, **kwargs):
+def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = None, **kwargs):
     """Plots the dispersion relation in the Brillouin zone along a wavevector path
 
     :param str path: wavevector path, as used by the function wavevector_path()
@@ -978,6 +994,10 @@ def segment_dispersion(self, path='triangle', nk=64, file=None, plt_ax=None, orb
 
     """
     
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
+
     if plt_ax is None:
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
@@ -1852,3 +1872,19 @@ def plot_profile(self, n_scale=1, bond_scale=1, current_scale=1, spin_scale=1,
         plt.show()
     else:
         plt.savefig(file)
+
+
+
+#---------------------------------------------------------------------------------------------------
+def wavevector_path_2_str(self, k):
+    K = ''
+    if self.model.dim==1:
+        for x in k:
+            K += '{:.5g}\t'.format(x[0])
+    if self.model.dim==2:
+        for x in k:
+            K += '({:.5g}, {:.5g})\t'.format(x[0],x[1])
+    if self.model.dim==3:
+        for x in k:
+            K += '({:.5g}, {:.5g}, {:.5g})\t'.format(x[0],x[1],x[2])
+    return K
