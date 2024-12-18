@@ -1,15 +1,17 @@
-####################################################################################################
-# This file contains functions implementing 
-# Cluster dynamical mean-field theory (CDMFT)
-####################################################################################################
+"""This file contains functions implementing
+Cluster dynamical mean-field theory (CDMFT).
+"""
 
-import numpy as np
-import pyqcm
-from pyqcm import qcm
+import nlopt
 import timeit
+import numpy as np
+import scipy.optimize
 import matplotlib.pyplot as plt
 
-####################################################################################################
+import pyqcm
+from pyqcm import qcm
+
+
 class convergence_manager:
     """
     class managing a convergence test. One or more instances of this class must be used by the CDMFT
@@ -18,7 +20,7 @@ class convergence_manager:
     A difference function (`diff_func`) is applied to the current value of the quantity and each of
     its predecessors, and convergence is declared when the result of this difference (a float) is smaller than
     the tolerance (`tol`) for each of the `depth` previous iterations.
-    The possible values of the 'name' argument are: 
+    The possible values of the 'name' argument are:
     * 'parameters' : the set of bath parameters is the quantity used.
     * 'GS energy' : the ground state energy of the impurity problem is used. In the case of more than one cluster, the sum is used.
     * 'hybridization' : the hybridization function (or set thereof, in the case of many clusters). The test is based on the norm of the matrix differences, summed over grid frequencies.
@@ -45,13 +47,10 @@ class convergence_manager:
         self.op = None
         self.converged = False
         self.stdev = stdev
-        if stdev : 
+        if stdev :
             self.val = np.zeros(32)
             self.std = None
             self.ave = None
-    
-
-        
 
     def test(self, x):
         """
@@ -61,7 +60,7 @@ class convergence_manager:
         :return: True if converged, False otherwise
         """
         self.iter += 1
-        if self.stdev: 
+        if self.stdev:
             return self.stdev_test(x)
         converged = True
         if self.iter <= self.depth:
@@ -83,19 +82,18 @@ class convergence_manager:
             else:
                 self.converged = False
                 return False
-    
+
     def stdev_test(self, x):
         print(self.name + ' = {:1.5g} (added to sequence)'.format(x))
         if self.iter > len(self.val):
             self.val.resize(len(self.val) + 32)
         self.val[self.iter-1] = x
-        self.std = np.std(self.val[0:self.iter])/np.sqrt(self.iter) 
-        self.ave = np.mean(self.val[0:self.iter]) 
+        self.std = np.std(self.val[0:self.iter])/np.sqrt(self.iter)
+        self.ave = np.mean(self.val[0:self.iter])
         if self.std < self.tol:
             return True
         else:
             return False
-        
 
     def print(self):
         """
@@ -109,13 +107,13 @@ class convergence_manager:
             for i in range(self.depth): S += '{:1.3g}\t'.format(self.diff[i])
         if self.converged: S += ' * converged * '
         print(S, flush=True)
-    
-####################################################################################################
+
+
 class CDMFT:
     """
     class containing the elements of a CDMFT computation. The constructor executes the computation.
 
-    :param [str] varia: list of variational parameters 
+    :param [str] varia: list of variational parameters
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt', 'KS'
@@ -148,11 +146,11 @@ class CDMFT:
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
     :ivar I: current model instance (changes in the course of the computation)
-    
+
     """
 
-    def __init__(self, 
-        model, 
+    def __init__(self,
+        model,
         varia,
         beta=50,
         wc=2.0,
@@ -168,7 +166,7 @@ class CDMFT:
         converge_with_stdev = False,
         iteration = 'Broyden', # or 'fixed_point'
         alpha = 0.0,
-        method='Nelder-Mead',
+        method='NELDERMEAD',
         file='cdmft.tsv',
         eps_algo=0,
         initial_step = 0.1,
@@ -227,7 +225,6 @@ class CDMFT:
         qcm.CDMFT_variational_set(self.var)
         self.var_data = np.empty((self.nvar, maxiter+1))
 
-        
         #------------------------- convergence test initialization ------------------------
         if pyqcm.is_sequence(convergence) == False:
             convergence = (convergence,)
@@ -281,7 +278,7 @@ class CDMFT:
             print('frequency cutoff = ', wc)
         if alpha is float : print('damping factor = ', self.alpha)
         print('-'*100)
-        
+
         # ------------------------------------- CDMFT loop --------------------------------
         converged = False
 
@@ -317,10 +314,10 @@ class CDMFT:
                         actual_method = 'fixed_point'
                         self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
                     except Exception as E:
-                        print(E)    
+                        print(E)
                         raise pyqcm.SolverError('Failure of the CDMFT method')
                 else:
-                    print(E)    
+                    print(E)
                     raise pyqcm.SolverError('Failure of the CDMFT method')
 
         elif iteration == 'fixed_point':
@@ -336,14 +333,14 @@ class CDMFT:
                         actual_method = 'Broyden'
                         self.CDMFT_params, self.niter, self.alpha = pyqcm.broyden(F, self.CDMFT_params, self.alpha, maxiter=maxiter, miniter=miniter, xtol=1e-6, convergence_test=G)
                     except Exception as E:
-                        print(E)    
+                        print(E)
                         raise pyqcm.SolverError('Failure of the CDMFT method')
                 else:
-                    print(E)    
+                    print(E)
                     raise pyqcm.SolverError('Failure of the CDMFT method')
 
         else: raise ValueError('unknown iteration method in CDMFT. must be either "Broyden" or "fixed_point". Check spelling.')
-            
+
         # Here we have converged
         self.I = pyqcm.model_instance(self.model)  # a last instance with the converged parameters
 
@@ -355,7 +352,7 @@ class CDMFT:
 
         self.I.ground_state()
         ave = self.I.averages(pr=True)
-        if compute_potential_energy : 
+        if compute_potential_energy :
             self.I.potential_energy()
             omega=self.I.Potthoff_functional(hartree)
         if SEF:
@@ -375,7 +372,7 @@ class CDMFT:
             self.I.write_summary(file)
 
         pyqcm.banner('CDMFT completed successfully', '*')
- 
+
 
     #-----------------------------------------------------------------------------------------------
     def CDMFT_step(self):
@@ -395,7 +392,7 @@ class CDMFT:
             raise ValueError
 
         for i in range(self.nvar):
-            self.model.set_parameter(self.var[i], self.CDMFT_params[i]) 
+            self.model.set_parameter(self.var[i], self.CDMFT_params[i])
         for i in range(self.nhartree):
             self.model.set_parameter(self.hartree[i].Vm, self.CDMFT_params[i+self.nvar])
         self.I = pyqcm.model_instance(self.model)
@@ -426,10 +423,10 @@ class CDMFT:
                 W = np.linspace(self.wc[0]+0.125*self.wc[2], self.wc[1]+0.125*self.wc[2], len(H))
                 plt.plot(W, H, 'r-')
                 max = np.max(H)
-                plt.plot(W, Hc, 'b-') 
+                plt.plot(W, Hc, 'b-')
                 try:
-                    plt.plot(W, self.H0, 'r--', lw=0.5) 
-                    plt.plot(W, self.Hc0, 'b--', lw=0.5) 
+                    plt.plot(W, self.H0, 'r--', lw=0.5)
+                    plt.plot(W, self.Hc0, 'b--', lw=0.5)
                 except:
                     pass
                 plt.xlim(self.wc[0], self.wc[1])
@@ -440,7 +437,7 @@ class CDMFT:
                 self.Hc0 = Hc
                 self.H0 = H
 
-            
+
 
         elif self.host_function == None:
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
@@ -463,36 +460,37 @@ class CDMFT:
             x_new[self.nvar + i] = P[h.Vm]
 
         gs = self.I.ground_state()
-        
 
         # optimization of the bath parameters
         def DIST(y):
             d = qcm.CDMFT_distance(y, self.I.label, KS)
             return d
+
         dist0 = self.dist
-        sol, iter_done, self.dist = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        sol = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        opt_x, opt_iter_done, opt_success, opt_fun = sol
         self.delta_dist = np.abs((self.dist - dist0)/dist0)
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
-        if self.method != 'ANNEAL' and not sol.success:
+        if self.method != 'ANNEAL' and not opt_success:
             print(sol)
             pyqcm.banner('Error in the scipy minimization procedure within CDMFT ', '!')
             raise pyqcm.MinimizationError()
 
-        if sol.nfev > self.max_function_eval:
+        if opt_iter_done > self.max_function_eval:
             print(sol)
             pyqcm.banner('number of function evaluations exceeds preset maximum of {:d}'.format(self.max_function_eval), '!')
             raise pyqcm.MinimizationError()
-        
-        if np.any(np.isnan(sol.x)):
+
+        if np.any(np.isnan(opt_x)):
             print(sol)
             pyqcm.banner('NaN found in optimization of bath parameters', '!')
             raise pyqcm.MinimizationError('NaN found in optimization of bath parameters')
 
         # push back into array
-        x_new[0:self.nvar] = np.copy(sol.x)
-        
+        x_new[0:self.nvar] = np.copy(opt_x)
+
         try:
             check_bounds(x_new[0:self.nvar], self.max_value, v=self.var)
         except pyqcm.OutOfBoundsError as error:
@@ -500,19 +498,19 @@ class CDMFT:
         except:
             raise ValueError
 
-
         # writing the parameters in a progress file
         self.I.write_summary('cdmft_iter.tsv')
 
         print('GS sector : ', [X[1] for X in gs])
-        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(iter_done, time_MIN/time_ED, sol.fun, 100*self.delta_dist), flush=True)
+        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(opt_iter_done, time_MIN/time_ED, opt_fun, 100*self.delta_dist), flush=True)
 
-        var_val = pyqcm.varia_table(self.var,x_new)
+        var_val = pyqcm.varia_table(self.var, x_new)
         print('updated bath parameters:\n{:s}'.format(var_val))
 
         self.CDMFT_params = np.copy(x_new)
 
-            
+        return
+
     #-----------------------------------------------------------------------------------------------
     def check_convergence(self):
         """
@@ -531,18 +529,18 @@ class CDMFT:
 
             elif C.name == 'self-energy':
                 self.set_sigma()
-                if self.model.mixing == 4: 
+                if self.model.mixing == 4:
                     T = C.test((self.sigma,self.sigma_down))
                     converged = converged and T
-                else: 
+                else:
                     T = C.test(self.sigma)
                     converged = converged and T
 
             elif C.name == 'hybridization':
-                if self.model.mixing == 4: 
+                if self.model.mixing == 4:
                     T = C.test((self.Hyb,self.Hyb_down))
                     converged = converged and T
-                else: 
+                else:
                     T = C.test(self.Hyb)
                     converged = converged and T
 
@@ -556,13 +554,13 @@ class CDMFT:
 
         for C in self.convergence_test:
             C.print()
-        
+
         return converged
 
     #-----------------------------------------------------------------------------------------------
     def set_Hyb(self):
         """Computes the hybridization function, i.e.
-        an array of arrays of matrices. 
+        an array of arrays of matrices.
         Hyb[i], for cluster #i, is a (nw,d,d) Numpy array. with nw frequencies, and d sites
         Hyb_down[i] is the same, for the spin-down part, if mixing=4
 
@@ -589,7 +587,7 @@ class CDMFT:
             for i in range(self.grid.nw):
                 for j in range(self.model.nclus):
                     self.Hyb_down[j][i, :, :] = self.I.hybridization_function(self.grid.w[i], j, spin_down=True)
-            
+
 
     #-----------------------------------------------------------------------------------------------
     def diff_matrix(self, X, Y):
@@ -598,7 +596,7 @@ class CDMFT:
         :param object X : the current test object
         :param object Y : any past test object (same structure as X)
         :returns float: the difference in hybridization arrays
-        
+
         """
 
         diff = 0.0
@@ -626,7 +624,7 @@ class CDMFT:
             diff *= 2
         elif self.model.mixing == 3:
             diff /= 2
-        diff /= g.nw  
+        diff /= g.nw
         return np.sqrt(diff)
 
     #-----------------------------------------------------------------------------------------------
@@ -664,7 +662,7 @@ class CDMFT:
         Computes a difference in self-energy between the current iteration (sigma) and the previous one (sigma0)
 
         :returns float: the difference in self-energy arrays
-        
+
         """
 
         diff = 0.0
@@ -686,7 +684,7 @@ class CDMFT:
             diff *= 2
         elif self.model.mixing == 3:
             diff /= 2
-        diff /= g.nw  
+        diff /= g.nw
         return np.sqrt(diff)
 
     #-----------------------------------------------------------------------------------------------
@@ -712,7 +710,7 @@ class frequency_grid:
     """
     This class contains the imaginary frequency grid data, including weights
 
-    :param model_instance I: current model instance 
+    :param model_instance I: current model instance
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self'
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
@@ -767,7 +765,7 @@ class general_bath:
     :param boolean singlet: if True, defines anomalous singlet hybridizations
     :param boolean triplet: if True, defines anomalous triplet hybridizations
     :param boolean complex: if True, defines imaginary parts as well, when appropriate
-    :param [[int]] sites: 2-level list of sites to couple to the bath orbitals (labels from 1 to ns). Format resembles [[site labels to bind to orbital 1], ...] . 
+    :param [[int]] sites: 2-level list of sites to couple to the bath orbitals (labels from 1 to ns). Format resembles [[site labels to bind to orbital 1], ...] .
 
     :ivar int ns: number of physical sites in the cluster
     :ivar int nb: number of bath orbitals in the cluster
@@ -840,7 +838,7 @@ class general_bath:
                         self.CM.new_operator(param_name, 'one-body', [(y+no, x+ns+no, 1)])
                         self.CM.var_H.append(param_name)
 
-            
+
                 if complex:
                     for y in self.sites[x-1][1:]:
                         param_name = 'tb{:d}u{:d}ui'.format(x,y)
@@ -857,7 +855,7 @@ class general_bath:
                             param_name = 'tb{:d}d{:d}ui'.format(x,y)
                             self.CM.new_operator_complex(param_name, 'one-body', [(y+no, x+ns+no, 1j)])
                             self.CM.var_H.append(param_name)
-        
+
         else:
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
@@ -871,7 +869,7 @@ class general_bath:
                         self.CM.new_operator_complex(param_name, 'one-body', [(y, x+ns, 1j), (y+no, x+ns+no, 1j)])
                         self.CM.var_H.append(param_name)
 
-        if singlet:    
+        if singlet:
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
                     param_name = 'sb{:d}{:d}'.format(x,y)
@@ -885,7 +883,7 @@ class general_bath:
                         self.CM.new_operator_complex(param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, 1j)])
                         self.CM.var_H.append(param_name)
 
-        if triplet:    
+        if triplet:
             for x in range(1,nb+1):
                 for y in self.sites[x-1]:
                     param_name = 'pb{:d}{:d}'.format(x,y)
@@ -930,7 +928,7 @@ class general_bath:
         """
         v = []
         for x in self.CM.var_E:
-            v.append(x+'_'+str(c)) 
+            v.append(x+'_'+str(c))
         return v
 
     #-----------------------------------------------------------------------------------------------
@@ -943,19 +941,19 @@ class general_bath:
         """
         v = []
         for x in self.CM.var_H:
-            v.append(x+'_'+str(c)) 
+            v.append(x+'_'+str(c))
         return v
 
 
     #-----------------------------------------------------------------------------------------------
     def  varia(self, H=None, E=None, c=1, spin_down=False):
         """creates a dict of variational parameters to values taken from the hybridization matrix H and the energies E, for cluster c
-        
+
         :param ndarray H: matrix of hybridization values
         :param ndarray E: array of energy values
         :param boolean spin_down: True for the spin-down values
         :return {str,float}: dict of variational parameters to values
-        
+
         """
         nb = self.nb
         ns = self.ns
@@ -964,7 +962,7 @@ class general_bath:
 
         if H.shape != (self.nmixed*self.nb, self.nmixed*self.ns):
             raise ValueError('shape of hybridization matrix does not match model in general bath back propagation')
-        
+
         D = {}
         # bath energies
         if self.spin_flip:
@@ -1001,7 +999,7 @@ class general_bath:
                     param_name = 'tb{:d}d{:d}u_{:d}'.format(x,y,c)
                     D[param_name] = H[x+nb-1, y+ns-1].real
 
-            
+
                 if self.complex:
                     for y in self.sites[1:]:
                         param_name = 'tb{:d}u{:d}ui_{:d}'.format(x,y,c)
@@ -1022,7 +1020,7 @@ class general_bath:
                     else:
                         param_name = 'tb{:d}u{:d}u_{:d}'.format(x,y,c)
                     D[param_name] = H[x-1, y-1].real
-            
+
                 if self.complex:
                     for y in self.sites[1:]:
                         if spin_down:
@@ -1030,7 +1028,7 @@ class general_bath:
                         else:
                             param_name = 'tb{:d}u{:d}ui_{:d}'.format(x,y,c)
                         D[param_name] = H[x-1, y-1].imag
-        
+
         else:
             for x in range(1,nb+1):
                 for y in self.sites:
@@ -1042,7 +1040,7 @@ class general_bath:
                         param_name = 'tb{:d}{:d}i_{:d}'.format(x,y,c)
                         D[param_name] = H[x-1, y-1].imag
 
-        if self.singlet:    
+        if self.singlet:
             for y in self.sites:
                 param_name = 'sb{:d}{:d}_{:d}'.format(x,y,c)
                 D[param_name] = H[x+nn-1, y-1].real # à modifier
@@ -1053,7 +1051,7 @@ class general_bath:
                     param_name = 'sb{:d}{:d}i_{:d}'.format(x,y,c)
                     D[param_name] = H[x+nn-1, y-1].imag # à modifier
 
-        if self.triplet:    
+        if self.triplet:
             for y in self.sites:
                 param_name = 'pb{:d}{:d}_{:d}'.format(x,y,c)
                 D[param_name] = H[x+nn-1, y-1].real # à modifier
@@ -1165,15 +1163,15 @@ class general_bath:
 
 
 ######################################################################
-class hybridization:    
+class hybridization:
     """
     Defines hybridization data from a data file.
     the frequency is purely imaginary; it is its imaginary part that appears in the file
 
     :param str file: name of the file or string. Format : each line starts with a frequency and then has N*N columns for Delta_{ij}(w)
-    
+
     """
-        
+
 
     def  __init__(self, file):
         NN = [1,4,9,16,25,36,49,64,81,100,121,144]
@@ -1192,7 +1190,7 @@ class hybridization:
         self.Delta = np.zeros((self.nw,self.n,self.n), dtype=np.complex128)
         for i in range(self.nw):
             self.Delta[i,:,:] = np.reshape(data[i, 1:], (self.n,self.n))
-        
+
     #-----------------------------------------------------------------------------------------------
     def distance(self, I):
         """
@@ -1203,10 +1201,10 @@ class hybridization:
         M = np.zeros((self.nw, self.n, self.n), dtype=np.complex128)
         for i in range(self.nw):
             M[i,:,:] = I.hybridization_function(self.w[i]*1j, spin_down=False)
-        
+
         # print('M : '); print(M)
         # print('Delta : '); print(self.Delta)
-        
+
         dist = np.linalg.norm(M-self.Delta)
         return dist*dist/self.nw
 
@@ -1266,60 +1264,71 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
     :param (float) x: array of variables
     :param str method: method to use, as used in scipy.optimize.minimize()
     :param float initial_step: initial step in the minimization procedure
-    :param float accur: requested accuracy in the parameters 
+    :param float accur: requested accuracy in the parameters
     :param float accur_dist: requested accuracy in the distance function
 
     """
-    import scipy.optimize
-
-    displaymin = False
-    nvar = len(x)
+    displaymin, nvar = False, len(x)
+    nlopt_methods = {
+        'COBYLA': nlopt.LN_COBYLA,
+        'BOBYQA': nlopt.LN_BOBYQA,
+        'PRAXIS': nlopt.LN_PRAXIS,
+        'NELDERMEAD': nlopt.LN_NELDERMEAD,
+        'SUBPLEX': nlopt.LN_SBPLX
+    }
     if method == 'Nelder-Mead':
-        initial_simplex = np.zeros((nvar+1,nvar))
-        for i in range(nvar+1):
+        initial_simplex = np.zeros((nvar + 1, nvar))
+        for i in range(nvar + 1):
             initial_simplex[i, :] = x
         for i in range(nvar):
-            initial_simplex[i+1, i] += initial_step
+            initial_simplex[i + 1, i] += initial_step
         sol = scipy.optimize.minimize(F, x, method='Nelder-Mead', options={'disp':displaymin, 'maxfev':maxfev, 'xatol': accur, 'fatol': accur_dist, 'initial_simplex': initial_simplex, 'adaptive':True, 'disp': True})
-        iter_done = sol.nit
-
-    elif method == 'Nelder-Mead2':
-        SciPy_method = False
-        initial_simplex = np.zeros((nvar+1,nvar))
-        for i in range(nvar+1):
-            initial_simplex[i, :] = x
-        for i in range(nvar):
-            initial_simplex[i+1, i] += initial_step
-        NM = pyqcm.NelderMead(F, initial_simplex, xtol = accur, ftol = accur_dist, maxfev = maxfev)
-        X = NM.minimize(verb=False)
-        sol = scipy.optimize.OptimizeResult(x=X,fun=NM.X[0,0],success=True, nfev=NM.nfev)
-        iter_done = NM.iterdone
+        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == 'Powell':
-        sol = scipy.optimize.minimize(F, x, method='Powell', tol = accur)
-        iter_done = sol.nit
+        sol = scipy.optimize.minimize(F, x, method='Powell', tol=accur)
+        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == 'CG':
-        sol = scipy.optimize.minimize(F, x, method='CG', jac=False, tol = accur, options={'gtol':1e-6, 'eps':1e-6})
-        iter_done = sol.nit
+        sol = scipy.optimize.minimize(F, x, method='CG', jac=False, tol=accur, options={'gtol': 1e-6, 'eps': 1e-6})
+        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == 'BFGS':
-        sol = scipy.optimize.minimize(F, x, method='BFGS', jac=False, tol = accur, options={'eps':accur})
-        iter_done = sol.nit
+        sol = scipy.optimize.minimize(F, x, method='BFGS', jac=False, tol=accur, options={'eps': accur})
+        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method == 'COBYLA':
-        sol = scipy.optimize.minimize(F, x, method='COBYLA', options={'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'rtol': accur_dist})
-        iter_done = sol.nfev
-        
     elif method == 'ANNEAL':
-        sol = scipy.optimize.basinhopping(F, x, minimizer_kwargs = {'method':'COBYLA', 'options':{'disp':displaymin, 'rhobeg':initial_step, 'maxiter':maxfev, 'rtol': accur_dist}})
-        iter_done = sol.nfev
+        sol = scipy.optimize.basinhopping(F, x, minimizer_kwargs={'method': 'COBYLA', 'options': {'disp': displaymin, 'rhobeg': initial_step, 'maxiter': maxfev, 'rtol': accur_dist}})
+        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+
+    elif method in nlopt_methods.keys():
+        optimizer = nlopt.opt(nlopt_methods[method], nvar)
+
+        # Set objective function and parameters bounds (same as in `check_bounds` method)
+        optimizer.set_min_objective(F)
+        optimizer.set_lower_bounds(np.array([-100 for _ in x]))
+        optimizer.set_upper_bounds(np.array([100 for _ in x]))
+
+        # Set function values (ftol) and parameters (xtol) tolerances
+        optimizer.set_ftol_rel(accur)
+        optimizer.set_xtol_rel(accur_dist)
+
+        optimizer.set_maxeval(maxfev)
+        optimizer.set_initial_step(initial_step)
+
+        # Minimizing...
+        sol = optimizer.optimize(x)
+        opt_x, iter_done, success, fun = sol, optimizer.get_numevals(), optimizer.last_optimize_result(), optimizer.last_optimum_value()
 
     else:
         raise ValueError(f'unknown method specified for minimization: {method}')
 
-    if not sol.success:
+    if not success:
         print(sol.message)
         raise pyqcm.MinimizationError()
-    return sol, iter_done, sol.fun
 
+    return opt_x, iter_done, success, fun
+
+
+if __name__ == "__main__":
+    pass
