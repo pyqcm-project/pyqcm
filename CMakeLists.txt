@@ -193,6 +193,18 @@ message(STATUS "Python executable: ${Python3_EXECUTABLE}")
 message(STATUS "Python include dir: ${Python3_INCLUDE_DIRS}")
 message(STATUS "Python libs: ${Python3_LIBRARIES}")
 
+# --------------------------
+# Python Interface for NLopt
+# --------------------------
+find_package(SWIG REQUIRED)
+
+if(NOT SWIG_FOUND)
+  message(
+    FATAL_ERROR
+      "SWIG is required to interface NLopt but was not found. Please install (or load) SWIG."
+  )
+endif()
+
 # -------------------------------------
 # External Dependencies for Hamiltonian
 # -------------------------------------
