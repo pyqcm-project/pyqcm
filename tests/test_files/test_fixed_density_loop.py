@@ -12,6 +12,7 @@ mu = 8
 ##################################################################
 # TEST UNITAIRE
 
+
 def test_fixed_density_loop():
 
     pyqcm.banner('testing fixed_density_loop()', c='#', skip=1)
@@ -21,11 +22,11 @@ def test_fixed_density_loop():
 
     M.model.fixed_density_loop(
         F,
-        1.1, # target density
+        1.1,  # target density
         5,  # starting  value of mu
         kappa=1.0,
         maxdmu=0.5,  # maximum change in mu
-        loop_param='U', 
+        loop_param='U',
         loop_values=np.arange(6, 4, -0.2),
         dens_tol=0.002,
         dir='',
@@ -33,5 +34,4 @@ def test_fixed_density_loop():
     )
 
 
-test_fixed_density_loop()
-
+# test_fixed_density_loop()
