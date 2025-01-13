@@ -1313,8 +1313,8 @@ def optimize(F, x, method='NELDERMEAD', initial_step=0.1, accur = 1e-4, accur_di
         optimizer.set_upper_bounds(np.array([100 for _ in x]))
 
         # Set function values (ftol) and parameters (xtol) tolerances
-        optimizer.set_ftol_rel(accur)
-        optimizer.set_xtol_rel(accur_dist)
+        optimizer.set_ftol_rel(accur_dist)
+        optimizer.set_xtol_rel(accur)
 
         optimizer.set_maxeval(maxfev)
         optimizer.set_initial_step(initial_step)
