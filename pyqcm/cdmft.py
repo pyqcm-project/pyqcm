@@ -324,7 +324,6 @@ class CDMFT:
             try:
                 actual_method = 'fixed_point'
                 self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
-                # self.CDMFT_params, self.niter = pyqcm.fixed_point_iteration(F, self.CDMFT_params, xtol=1e-6, convergence_test=None, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
             except Exception as E:
                 if fallback:
                     pyqcm.banner('restarting CDMFT with Broyden method', '+', skip=1)
@@ -431,7 +430,7 @@ class CDMFT:
                     pass
                 plt.xlim(self.wc[0], self.wc[1])
                 plt.grid()
-                plt.xlabel('$\omega$')
+                plt.xlabel(r'$\omega$')
                 plt.ylabel('cumulative (diagonal) hybridization')
                 plt.savefig('KS.pdf')
                 self.Hc0 = Hc
@@ -471,6 +470,7 @@ class CDMFT:
         sol = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
         opt_x, opt_iter_done, opt_success, opt_fun = sol
 
+        self.dist = opt_fun
         self.delta_dist = np.abs((self.dist - dist0)/dist0)
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
@@ -1254,6 +1254,7 @@ def check_bounds(x, B=100, v=None):
                 S = 'parameter {:s} = {:g} is out of bounds!'.format(v[i], x[i])
             else:
                 S = 'parameter no {:d}  = {:g} is out of bounds!'.format(i+1, x[i])
+            print('Try setting `self.max_value` to a bigger value within the CDMFT procedure!')
             raise pyqcm.OutOfBoundsError(S)
 
 #---------------------------------------------------------------------------------------------------
@@ -1309,8 +1310,8 @@ def optimize(F, x, method='NELDERMEAD', initial_step=0.1, accur = 1e-4, accur_di
 
         # Set objective function and parameters bounds (same as in `check_bounds` method)
         optimizer.set_min_objective(F)
-        optimizer.set_lower_bounds(np.array([-100 for _ in x]))
-        optimizer.set_upper_bounds(np.array([100 for _ in x]))
+        optimizer.set_lower_bounds(np.array([-np.inf for _ in x]))
+        optimizer.set_upper_bounds(np.array([np.inf for _ in x]))
 
         # Set function values (ftol) and parameters (xtol) tolerances
         optimizer.set_ftol_rel(accur_dist)
