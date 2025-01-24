@@ -402,29 +402,6 @@ static PyObject *CDMFT_host_python(PyObject *self, PyObject *args) {
   return Py_BuildValue("");
 }
 
-//==============================================================================
-const char *CDMFT_host_cumul_help =
-    R"{(
-computes the CDMFT host function in the Kolmogorov-Smirnov sense (real frequencies)
-arguments:
-1. a vector of double : frequencies
-2. int : label of instance
-){";
-//------------------------------------------------------------------------------
-static PyObject *CDMFT_host_cumul_python(PyObject *self, PyObject *args) {
-  double w1, w2, eta;
-  int label = 0;
-
-  try {
-    if (!PyArg_ParseTuple(args, "ddd|i", &w1, &w2, &eta, &label))
-      qcm_throw(
-          "failed to read parameters in call to CDMFT_host_cumul (python)");
-    QCM::CDMFT_host_cumul(w1, w2, eta, label);
-  } catch (const string &s) {
-    qcm_catch(s);
-  }
-  return Py_BuildValue("");
-}
 
 //==============================================================================
 const char *set_CDMFT_host_help =
@@ -506,94 +483,25 @@ static PyObject *get_CDMFT_host_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
-const char *get_CDMFT_host_cumul_help =
-    R"{(
-retrieves the CDMFT host function
-arguments:
-1. int : label of instance
-){";
-//------------------------------------------------------------------------------
-static PyObject *get_CDMFT_host_cumul_python(PyObject *self, PyObject *args) {
-  int label = 0;
-  PyObject *out;
-
-  try {
-    if (!PyArg_ParseTuple(args, "|i", &label))
-      qcm_throw(
-          "failed to read parameters in call to get_CDMFT_host_cumul (python)");
-    auto g = QCM::get_CDMFT_host_cumul(label);
-
-    npy_intp dims[1];
-    dims[0] = g.size();
-
-    out = PyArray_SimpleNew(1, dims, NPY_DOUBLE);
-    memcpy(PyArray_DATA((PyArrayObject *)out), g.data(),
-           dims[0] * sizeof(double));
-    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
-
-  } catch (const string &s) {
-    qcm_catch(s);
-  }
-  return out;
-}
-
-//==============================================================================
-const char *hybridization_cumul_help =
-    R"{(
-retrieves the cumulative hybridization function (real frequencies)
-arguments:
-1. int : label of instance
-){";
-//------------------------------------------------------------------------------
-static PyObject *hybridization_cumul_python(PyObject *self, PyObject *args) {
-  int label = 0;
-  PyObject *out;
-
-  try {
-    if (!PyArg_ParseTuple(args, "|i", &label))
-      qcm_throw(
-          "failed to read parameters in call to hybridization_cumul (python)");
-    auto g = QCM::hybridization_cumul(label);
-
-    npy_intp dims[1];
-    dims[0] = g.size();
-
-    out = PyArray_SimpleNew(1, dims, NPY_DOUBLE);
-    memcpy(PyArray_DATA((PyArrayObject *)out), g.data(),
-           dims[0] * sizeof(double));
-    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
-
-  } catch (const string &s) {
-    qcm_catch(s);
-  }
-  return out;
-}
-
-//==============================================================================
 const char *CDMFT_distance_help =
     R"{(
 defines the set of CDMFT variational parameters
 arguments:
 1. a vector of double : values of variational parameters
 2. int : label of the instance
-3. int : 0 if usual distance along imaginary axis; otherwise Kolmogorov-distance along real axis
 returns : a float
 ){";
 //------------------------------------------------------------------------------
 static PyObject *CDMFT_distance_python(PyObject *self, PyObject *args) {
   PyObject *val = nullptr;
   int label = 0;
-  int KS = 0;
   double d;
   try {
-    if (!PyArg_ParseTuple(args, "O|ii", &val, &label, &KS))
+    if (!PyArg_ParseTuple(args, "O|i", &val, &label))
       qcm_throw(
           "failed to read parameters in call to CPT_Green_function (python)");
     vector<double> _val = doubles_from_Py(val);
-    if (KS)
-      d = QCM::CDMFT_distance_KS(_val, label);
-    else
-      d = QCM::CDMFT_distance(_val, label);
+    d = QCM::CDMFT_distance(_val, label);
   } catch (const string &s) {
     qcm_catch(s);
   }

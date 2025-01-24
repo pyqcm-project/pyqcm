@@ -31,7 +31,6 @@ namespace QCM {
     new_global_int(64,"max_dim_print","Maximum dimension for printing vectors and matrices");
     new_global_int(8, "GK_min_regions","minimum number of regions in the Gauss-Kronrod method");
     new_global_int(9,"print_precision","precision of printed output");
-    new_global_int(500,"KS_end_weight","weight of the last grid point in the Kolmogorov-Smirnov CDMFT scheme");
 
     new_global_char('G', "periodization", "periodization scheme: G, S, M, C or N (None)");
 

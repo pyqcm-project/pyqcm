@@ -552,7 +552,7 @@ class lattice_model:
 
         :param str out_file: name of output file from which parameters are read
         :param int n: line number of data in output file (excluding titles); -1 means the last line
-        :return: nothing
+        :return: a dict of the line read in out_file
 
         """
         par = qcm.parameter_set()
@@ -560,18 +560,24 @@ class lattice_model:
             D = np.genfromtxt(out_file, names=True, dtype=None, encoding='utf8')
         except:
             raise ValueError("The file containing the solutions could not be read!")
+        data = {}
         if len(D.shape) == 0:
             for x in par:
                 if par[x][1] != None:
                     continue
                 if x in D.dtype.names:
                     self.set_parameter(x,D[x],pr=True)
+            for x in D.dtype.names:
+                data[x] = D[x]
         else:
             for x in par:
                 if par[x][1] != None:
                     continue
                 if x in D.dtype.names:
                     self.set_parameter(x,D[x][n],pr=True)
+                for x in D.dtype.names:
+                    data[x] = D[x][n]
+        return data
 
 
     #-----------------------------------------------------------------------------------------------

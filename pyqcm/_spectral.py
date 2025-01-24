@@ -1047,7 +1047,7 @@ def Fermi_surface(self, nk=64, orb=None, quadrant=False, plane='xy', k_perp=0.0,
     :param float k_perp: momentum component in the third direction (in multiple of :math:`\pi`)
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
-    :param kwargs: keyword arguments passed to the matplotlib 'plot' function
+    :param kwargs: keyword arguments passed to the matplotlib 'contour' function
     :return: None
 
     """

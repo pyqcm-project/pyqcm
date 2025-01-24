@@ -116,7 +116,7 @@ class CDMFT:
     :param [str] varia: list of variational parameters
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
-    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt', 'KS'
+    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt'
     :param int maxiter: maximum number of CDMFT iterations
     :param int miniter: minimum number of CDMFT iterations
     :param float accur_bath: the x-tolerance for distance function optimization
@@ -141,7 +141,6 @@ class CDMFT:
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
     :param boolean fallback: if True, falls back to the other iteration method (Broyden or fixed_point) if the current one fails
-    :param boolean KS_show: if True, plots de host and impurity hybridization weights after each iteration (KS scheme)
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -179,7 +178,6 @@ class CDMFT:
         pre_host = None,
         max_value = 100,
         fallback=False,
-        KS_show=False
     ):
 
         self.model =model
@@ -201,7 +199,6 @@ class CDMFT:
         self.max_function_eval = max_function_eval
         self.max_value = max_value
         self.alpha = alpha
-        self.KS_show = KS_show
         self.dist = 1e6
         self.delta_dist = 1e6
         self.check_ground_state = check_ground_state
@@ -231,8 +228,6 @@ class CDMFT:
         if len(convergence) != len(accur):
             raise ValueError('The number of convergence tests must be the same as the length of "accur"')
         n_convergence_test = len(convergence)
-        if(self.grid_type == 'KS' and n_convergence_test>1 and convergence[0] != 'parameters'):
-            raise ValueError('convergence tests other than "parameters" cannot be used if the frequency grid type is "KS"')
         self.convergence_test = []
         convergence_test_string = ''
         for i, C in enumerate(convergence):
@@ -270,12 +265,8 @@ class CDMFT:
 
         #-------------- first define the frequency grid for the distance function ---------
         print('frequency grid type = ', grid_type)
-        if grid_type == 'KS':
-            if type(wc) != tuple: raise ValueError("if grid_type = 'KS', the argument wc must be the tuple (w_min, w_max, eta)")
-            print('Kolmogorov-Smirnov grid from {:.3g} to {:.3g} (+ i*{:.3g})'.format(wc[0], wc[1], wc[2]))
-        else:
-            print('fictitious inverse temperature = ', beta)
-            print('frequency cutoff = ', wc)
+        print('fictitious inverse temperature = ', beta)
+        print('frequency cutoff = ', wc)
         if alpha is float : print('damping factor = ', self.alpha)
         print('-'*100)
 
@@ -356,10 +347,7 @@ class CDMFT:
         if SEF:
             omega=self.I.Potthoff_functional(hartree)
 
-        if grid_type == 'KS':
-            dist_function = 'KS_({:.2g},{:.2g},{:.3g})'.format(self.wc[0], self.wc[1], self.wc[2])
-        else:
-            dist_function = self.grid.dist_function
+        dist_function = self.grid.dist_function
 
         if file != None:
             self.I.props['opt_method'] = method
@@ -380,9 +368,6 @@ class CDMFT:
         parameters and updates it to the next set of values
         """
 
-        if self.grid_type == 'KS': KS = True
-        else: KS = False
-
         try:
             check_bounds(self.CDMFT_params, self.max_value, v=self.var)
         except pyqcm.OutOfBoundsError as error:
@@ -400,10 +385,7 @@ class CDMFT:
             m = 2.0
             self.wc = max([2.0, max(self.CDMFT_params[0:self.nvar])])
 
-        if KS:
-            self.grid = None
-        else:
-            self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
+        self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
 
 
         # solve the impurity problem
@@ -414,31 +396,8 @@ class CDMFT:
             self.pre_host(self.I)
 
         # computing or transferring the host array --------------------------------------
-        if KS:
-            qcm.CDMFT_host_cumul(self.wc[0], self.wc[1], self.wc[2], self.I.label)
-            if self.KS_show:
-                H = qcm.get_CDMFT_host_cumul(self.I.label)
-                Hc = -qcm.hybridization_cumul(self.I.label)
-                W = np.linspace(self.wc[0]+0.125*self.wc[2], self.wc[1]+0.125*self.wc[2], len(H))
-                plt.plot(W, H, 'r-')
-                max = np.max(H)
-                plt.plot(W, Hc, 'b-')
-                try:
-                    plt.plot(W, self.H0, 'r--', lw=0.5)
-                    plt.plot(W, self.Hc0, 'b--', lw=0.5)
-                except:
-                    pass
-                plt.xlim(self.wc[0], self.wc[1])
-                plt.grid()
-                plt.xlabel(r'$\omega$')
-                plt.ylabel('cumulative (diagonal) hybridization')
-                plt.savefig('KS.pdf')
-                self.Hc0 = Hc
-                self.H0 = H
 
-
-
-        elif self.host_function == None:
+        if self.host_function == None:
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
         else:
             self.host_function(self.I)
@@ -446,7 +405,7 @@ class CDMFT:
 
         self.I.GS_consistency(self.check_ground_state)
 
-        if KS == False: self.set_Hyb()
+        self.set_Hyb()
         t2 = timeit.default_timer()
         time_ED = t2 - t1
 
@@ -462,7 +421,7 @@ class CDMFT:
 
         # optimization of the bath parameters
         def DIST(y, grad=None):
-            d = qcm.CDMFT_distance(y, self.I.label, KS)
+            d = qcm.CDMFT_distance(y, self.I.label)
             return d
 
         dist0 = self.dist

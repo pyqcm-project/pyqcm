@@ -929,14 +929,6 @@ check_instance(label);
     lattice_model_instances.at(label)->CDMFT_host(freqs, weights); 
   }
 
-  void CDMFT_host_cumul(const double& w1, const double& w2, const double& eta, int label)
-  {
-    #ifdef QCM_DEBUG
-    check_instance(label);
-    #endif
-    lattice_model_instances.at(label)->CDMFT_host_cumul(w1, w2, eta); 
-  }
-
   void set_CDMFT_host(int label, const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down)
   {
     #ifdef QCM_DEBUG
@@ -954,38 +946,12 @@ check_instance(label);
     return lattice_model_instances.at(label)->get_CDMFT_host(spin_down); 
   }
 
-  vector<double> get_CDMFT_host_cumul(int label)
-  {
-    #ifdef QCM_DEBUG
-    check_instance(label);
-    #endif
-    return lattice_model_instances.at(label)->get_CDMFT_host_cumul(); 
-  }
-
-  vector<double> hybridization_cumul(int label)
-  {
-    #ifdef QCM_DEBUG
-    check_instance(label);
-    #endif
-    return lattice_model_instances.at(label)->hybridization_cumul(); 
-  }
-
-
-
   double CDMFT_distance(const vector<double>& p, int label)
   {
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
     return lattice_model_instances.at(label)->CDMFT_distance(p); 
-  }
-
-  double CDMFT_distance_KS(const vector<double>& p, int label)
-  {
-    #ifdef QCM_DEBUG
-    check_instance(label);
-    #endif
-    return lattice_model_instances.at(label)->CDMFT_distance_KS(p); 
   }
 
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label)
