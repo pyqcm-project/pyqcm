@@ -130,6 +130,7 @@ class CDMFT:
     :param boolean displaymin: displays the minimum distance function when minimized
     :param str method: method to use, as used in scipy.optimize.minimize(). Choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', or a choice of NLopt methods : 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'
     :param str file: name of the file where the solution is written
+    :param str iter_file: name of the file where the CDMFT iterations are recorded
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :param float initial_step: initial step in the minimization routine
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
@@ -160,13 +161,14 @@ class CDMFT:
         depth=2,
         accur_bath=1e-3,
         accur=1e-4,
-        accur_dist=1e-5,
+        accur_dist=1e-8,
         accur_dist_outer=1e-3,
         converge_with_stdev = False,
         iteration = 'Broyden', # or 'fixed_point'
         alpha = 0.0,
         method='Nelder-Mead',
         file='cdmft.tsv',
+        iter_file='cdmft_iter.tsv',
         eps_algo=0,
         initial_step = 0.1,
         hartree=None,
@@ -202,6 +204,7 @@ class CDMFT:
         self.dist = 1e6
         self.delta_dist = 1e6
         self.check_ground_state = check_ground_state
+        self.iter_file = iter_file
 
         if pyqcm.is_sequence(accur) == False:
             accur = (accur,)
@@ -347,15 +350,14 @@ class CDMFT:
         if SEF:
             omega=self.I.Potthoff_functional(hartree)
 
-        dist_function = self.grid.dist_function
-
         if file != None:
             self.I.props['opt_method'] = method
             self.I.props['GS_consistency'] = GS_cons
             self.I.props['CDMFT_method'] = actual_method
             self.I.props['CDMFT_iterations'] = self.niter
-            self.I.props['dist_function'] = dist_function
+            self.I.props['dist_function'] = self.grid.dist_function
             self.I.props['convergence'] = convergence_test_string
+            self.I.props['min_dist'] = self.dist
             self.I.write_summary(file)
 
         pyqcm.banner('CDMFT completed successfully', '*')
@@ -460,7 +462,11 @@ class CDMFT:
             raise ValueError
 
         # writing the parameters in a progress file
-        self.I.write_summary('cdmft_iter.tsv')
+        self.I.props['opt_method'] = self.method
+        self.I.props['dist_function'] = self.grid.dist_function
+        self.I.props['min_dist'] = self.dist
+
+        self.I.write_summary(self.iter_file)
 
         print('GS sector : ', [X[1] for X in gs])
         print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(opt_iter_done, time_MIN/time_ED, opt_fun, 100*self.delta_dist), flush=True)
