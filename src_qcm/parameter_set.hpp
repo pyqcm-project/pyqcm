@@ -40,6 +40,7 @@ struct parameter_set{
   map<string,double> value_map();
   void set_value(shared_ptr<parameter> P, const double &v);
   void set_value(const string& name, const double &v);
+  void set_multiplier(const string& name, const double &v);
   void check_existence(string& S);
   void copy_to(vector<double> &x);
   void copy_from(const vector<double> &x);

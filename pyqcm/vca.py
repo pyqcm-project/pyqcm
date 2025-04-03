@@ -5,6 +5,8 @@
 import numpy as np
 import pyqcm
 import time
+import nlopt
+
 from scipy.optimize import minimize
 
 #-------------------------------------------------------------------------------
@@ -56,7 +58,7 @@ def _evalF_mpi(func, x):
 # quasi-Newton method function evaluation
 
 def _QN_values(func, x, step):
-    """Computes the function func of n variables at :math:`2n+1` points at x and at n pairs of points located at :math:`\pm` step from x in each direction. For use in the quasi-Newton method.
+    """Computes the function func of n variables at :math:`2n+1` points at x and at n pairs of points located at +/- step from x in each direction. For use in the quasi-Newton method.
 
     :param func: function of n variables
     :param x: base point (n components NumPy array)
@@ -223,7 +225,7 @@ def _quasi_newton_step(iteration = 0, func=None, x=None, step=None, gradient=Non
 # Newton-Raphson method :  computation of the Hessian
 
 def _NR_Hessian(func, x, step):
-    """Computes the function func of n variables at :math:`1 + 2n + n(n-1)/2` points in order to fit a quadratic form x and n pairs of points located at :math:`\pm` step from x in each direction
+    """Computes the function func of n variables at :math:`1 + 2n + n(n-1)/2` points in order to fit a quadratic form x and n pairs of points located at +/- step from x in each direction
     
     :param func: the function
     :param [float] x: the base point 
@@ -574,6 +576,7 @@ class VCA:
         elif len(start) != nvar:
             print('the argument "start" should have ', nvar, ' components')
             raise pyqcm.MissingArgError('start')
+        start = np.array(start)
 
         if accur is None:
             accur = 1e-4*np.ones(nvar)
@@ -587,7 +590,7 @@ class VCA:
         self.consistency_check = consistency_check
 
         SEF_eval = 0
-        def var2x(x):
+        def var2x(x, grad=None):
             global current_instance, root
             for i in range(len(x)):
                 if np.abs(x[i]) > max[i]:
@@ -612,17 +615,25 @@ class VCA:
             var_val = pyqcm.varia_table(varia,start)
             print(var_val)
 
-        scipy_minimization = False
-        if method == 'Nelder-Mead' or method == 'COBYLA' or method == 'Powell'  or method == 'CG'  or method == 'BFGS'  or method == 'minimax':
-            scipy_minimization = True
+        nlopt_methods = {
+            'COBYLA': nlopt.LN_COBYLA,
+            'BOBYQA': nlopt.LN_BOBYQA,
+            'PRAXIS': nlopt.LN_PRAXIS,
+            'NELDERMEAD': nlopt.LN_NELDERMEAD,
+            'SUBPLEX': nlopt.LN_SBPLX
+        }
 
-        if scipy_minimization and hartree_self_consistent:
-            raise ValueError('Hartree self-consistency not allowed when using SciPy minimization methods in VCA')
+        lib_minimization = False
+        if method == 'Nelder-Mead' or method == 'COBYLA' or method == 'Powell'  or method == 'CG'  or method == 'BFGS'  or method == 'minimax' or method in nlopt_methods.keys():
+            lib_minimization = True
+        if lib_minimization and hartree_self_consistent:
+            raise ValueError('Hartree self-consistency not allowed when using SciPy or nlopt minimization methods in VCA')
 
         ftol = 2*pyqcm.qcm.get_global_parameter('accur_SEF')
         iH = None
 
         #..................................... SWITCH ACCORDING TO METHOD .........................................
+        maxfev = 30*nvar*max_iter
         try:
             if method == 'altNR':
                 if nvar != 1:
@@ -646,7 +657,7 @@ class VCA:
                     initial_simplex[i+1, i] += steps[i]
                 if type(accur) == list:
                     accur = accur[0]
-                solution = minimize(var2x, start, method='Nelder-Mead', options={'maxfev':3*max_iter, 'xatol': accur, 'fatol':ftol, 'initial_simplex': initial_simplex, 'adaptive': True, 'disp':True})
+                solution = minimize(var2x, start, method='Nelder-Mead', options={'maxfev':maxfev, 'xatol': accur, 'fatol':ftol, 'initial_simplex': initial_simplex, 'adaptive': True, 'disp':True})
                 iter_done = solution.nit
                 sol = solution.x
 
@@ -670,12 +681,34 @@ class VCA:
                 iH = solution.hess_inv
 
             elif method == 'COBYLA':
-                solution = minimize(var2x, start, method='COBYLA', options={'rhobeg':steps[0], 'maxiter':3*max_iter, 'tol': ftol, 'disp':True})
+                solution = minimize(var2x, start, method='COBYLA', options={'rhobeg':steps[0], 'maxiter':30*nvar*max_iter, 'tol': ftol, 'disp':True})
                 iter_done = solution.nfev
                 sol = solution.x
 
             elif method == 'minimax':
                 sol = self._minimax(varia, var_max_start, start, steps, accur, max, max_iteration=max_iter, hartree=hartree)
+
+            elif method in nlopt_methods.keys():
+                optimizer = nlopt.opt(nlopt_methods[method], len(start))
+
+                # Set objective function and parameters bounds (same as in `check_bounds` method)
+                optimizer.set_min_objective(var2x)
+                optimizer.set_lower_bounds(np.array([-np.inf for _ in start]))
+                optimizer.set_upper_bounds(np.array([np.inf for _ in start]))
+
+                # Set function values (ftol) and parameters (xtol) tolerances
+                optimizer.set_ftol_rel(ftol)
+                optimizer.set_xtol_rel(accur[0])
+
+                optimizer.set_maxeval(maxfev)
+                optimizer.set_initial_step(steps[0])
+
+                # Minimizing...
+                sol = optimizer.optimize(start)
+                # iter_done = optimizer.get_numevals()
+                # success = optimizer.last_optimize_result(), optimizer.last_optimum_value()
+                # fun = optimizer.last_optimum_value()
+
             else:
                 raise ValueError('method {:s} unknown in VCA'.format(method))
 
@@ -694,7 +727,7 @@ class VCA:
             if iH is not None: 
                 H = np.linalg.inv(iH)  # Hessian at the solution (inverse of iH)
             print('saddle point = ', sol)
-            if scipy_minimization is False: 
+            if lib_minimization is False: 
                 print('gradient = ', grad)
                 print('second derivatives :', np.diag(H))
                 print('eigenvalues of Hessian :', np.linalg.eigh(H)[0])
@@ -720,7 +753,7 @@ class VCA:
             pyqcm.banner('VCA ended normally', '*')
 
         self.hessian = None
-        if scipy_minimization is False:
+        if lib_minimization is False:
             self.hessian = 1.0/np.diag(iH)
 
 

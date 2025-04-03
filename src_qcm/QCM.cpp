@@ -125,6 +125,17 @@ void erase_lattice_model_instance(size_t label){
   
   
   /**
+   sets the value of the  parameter 'name' in the parameter set with label 'label' to 'value'
+   */
+  void set_multiplier(const string& name, double value)
+  {
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    qcm_model->param_set->set_multiplier(name, value);
+  }
+  
+  
+  
+  /**
    outputs a map of the parameters for model instance 'label'
    */
   map<string,double> parameters()
@@ -521,6 +532,34 @@ check_instance(label);
   
   
   
+  /**
+   returns the dispersion relation for an array of wavevectors
+ * @param spin_down true if the spin-down sector is covered (mixing = 4)
+   */
+  vector<matrix<Complex>> epsilon(const vector<vector3D<double>> &k, bool spin_down, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    lattice_model_instance& inst = *lattice_model_instances.at(label);
+    
+    vector<vector3D<double>> K(k.size());
+    for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
+    Green_function G = inst.cluster_Green_function({0.0,0.05}, false, spin_down);
+    
+    vector<matrix<Complex>> R(K.size());
+    for(size_t i = 0; i< K.size(); i++) {
+      Green_function_k M(G, K[i]);
+      R[i] = inst.epsilon(M);
+    }
+    return R;
+  }
+
+
   
   /**
    returns the self-energy associated with periodized Green function at a given frequency and for an array of wavevectors

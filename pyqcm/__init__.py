@@ -461,6 +461,29 @@ class lattice_model:
             raise ValueError('Error in set_parameter()')
 
     #-----------------------------------------------------------------------------------------------
+    def set_multiplier(self, name, value, pr=False):
+        """
+        sets the multiplier value of a dependent parameter within a parameter_set. Also applied to a list.
+
+        :param str name: name of the parameter of iterable of names
+        :param float value: its value (or iterable of values)
+        :return: None
+
+        """
+        if pr:
+            print('-----> ', name, 'has new multiplier ', value)
+        try:
+            if is_sequence(name):
+            # if type(name) == list:
+                assert len(name) == len(value), 'The length of "name" and "value" must be the same in "set_parameter"'
+                for i,x in enumerate(name):
+                    qcm.set_multiplier(x, value[i])
+            else:
+                qcm.set_multiplier(name, value)
+        except:
+            raise ValueError('Error in set_multiplier()')
+
+    #-----------------------------------------------------------------------------------------------
     def parameter_string(self, clus=None, CR=False, constr=False):
         """
         Returns a string with the model parameters. Used for including in plots.
@@ -978,6 +1001,18 @@ class model_instance:
 
         """
         return qcm.dispersion(k, spin_down, self.label)
+
+    #-----------------------------------------------------------------------------------------------
+    def epsilon(self, k, spin_down=False, label=0):
+        """
+        Computes the hopping matrix (orbital basis) for a single or an array of wavevectors
+
+        :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`\pi`
+        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :return: a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
+
+        """
+        return qcm.epsilon(k, spin_down, self.label)
 
     #-----------------------------------------------------------------------------------------------
     def dos(self, z):

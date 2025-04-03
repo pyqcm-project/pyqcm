@@ -677,6 +677,67 @@ static PyObject *dispersion_python(PyObject *self, PyObject *args) {
   return out;
 }
 
+
+//==============================================================================
+const char *epsilon_help =
+    R"{(
+computes the dispersion relation for a single or an array of wavevectors in the orbital basis
+arguments:
+1. k : single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3))
+2. spin_down (optional): true is the spin down sector is to be computed (applies if mixing = 4)
+3. label (optional): label of the model instance (default 0)
+returns: a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
+){";
+//------------------------------------------------------------------------------
+static PyObject *epsilon_python(PyObject *self, PyObject *args) {
+  int label = 0;
+  int spin_down = 0;
+  PyArrayObject *k_pyobj = nullptr;
+  PyObject *out;
+
+  try {
+    if (!PyArg_ParseTuple(args, "O|ii", &k_pyobj, &spin_down, &label))
+      qcm_throw("failed to read parameters in call to epsilon (python)");
+
+    int ndim = PyArray_NDIM(k_pyobj);
+    if (ndim > 2)
+      qcm_throw("Argument 2 of 'epsilon' should be of dimension 1 or 2");
+
+    vector<vector3D<double>> kk;
+    if (ndim == 1) {
+      vector3D<double> k = vector_from_Py(k_pyobj);
+      kk.assign(1, k);
+    } else {
+      kk = many_vectors_from_Py(k_pyobj);
+    }
+    vector<matrix<Complex>> g;
+    try {
+      g = QCM::epsilon(kk, (bool)spin_down, label);
+    } catch (const string &s) {
+      qcm_catch(s);
+    }
+
+    size_t d = QCM::reduced_Green_function_dimension();
+
+    npy_intp dims[3];
+    dims[0] = g.size();
+    dims[1] = d;
+    dims[2] = d;
+
+    out = PyArray_SimpleNew(3, dims, NPY_COMPLEX128);
+
+    for (size_t j = 0; j < g.size(); j++) {
+      memcpy((complex<double> *)PyArray_DATA((PyArrayObject *)out) + j * d * d, g[j].data(),
+             d * d * sizeof(complex<double>));
+    }
+    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
+  } catch (const string &s) {
+    qcm_catch(s);
+  }
+  return out;
+}
+
+
 //==============================================================================
 const char *tk_help =
     R"{(
@@ -1737,6 +1798,29 @@ static PyObject *set_parameter_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "sd", &s1, &v))
       qcm_throw("failed to read parameters in call to set_parameter (python)");
     QCM::set_parameter(string(s1), v);
+  } catch (const string &s) {
+    qcm_catch(s);
+  }
+  return Py_BuildValue("");
+}
+
+//==============================================================================
+const char *set_multiplier_help =
+    R"{(
+sets the multiplier of a dependent parameter within a parameter_set
+arguments:
+1. param : name of the parameter
+2. value : the new value of the multiplier
+returns : void
+){";
+//------------------------------------------------------------------------------
+static PyObject *set_multiplier_python(PyObject *self, PyObject *args) {
+  char *s1 = nullptr;
+  double v = 0.0;
+  try {
+    if (!PyArg_ParseTuple(args, "sd", &s1, &v))
+      qcm_throw("failed to read parameters in call to set_parameter (python)");
+    QCM::set_multiplier(string(s1), v);
   } catch (const string &s) {
     qcm_catch(s);
   }

@@ -22,15 +22,15 @@ def _set_legend_mdc(plane, k_perp):
     if plane=='z' or plane=='xy':
         ax.set_xlabel('$k_x$')
         ax.set_ylabel('$k_y$')
-        return '$k_z = {:1.3f}\pi$'.format(k_perp)
+        return '$k_z = {:1.3f}\\pi$'.format(k_perp)
     elif plane=='x' or plane=='yz':
         ax.set_xlabel('$k_y$')
         ax.set_ylabel('$k_z$')
-        return '$k_x = {:1.3f}\pi$'.format(k_perp)
+        return '$k_x = {:1.3f}\\pi$'.format(k_perp)
     elif plane=='y' or plane=='xz':
         ax.set_xlabel('$k_z$')
         ax.set_ylabel('$k_x$')
-        return '$k_y = {:1.3f}\pi$'.format(k_perp)
+        return '$k_y = {:1.3f}\\pi$'.format(k_perp)
 
 #---------------------------------------------------------------------------------------------------
 def __frequency_array(wmax=6.0, eta=0.05, imaginary=False):
@@ -69,8 +69,8 @@ def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
     k = pyqcm.wavevector_grid(nk, orig, size*2, k_perp, plane)
     ax.set_xticks((x1, x2))
     ax.set_yticks((y1, y2))
-    ax.set_xticklabels(('${:1.4g}\pi$'.format(x1), '${:1.4g}\pi$'.format(x2)))
-    ax.set_yticklabels(('${:1.4g}\pi$'.format(y1), '${:1.4g}\pi$'.format(y2)))
+    ax.set_xticklabels(('${:1.4g}\\pi$'.format(x1), '${:1.4g}\\pi$'.format(x2)))
+    ax.set_yticklabels(('${:1.4g}\\pi$'.format(y1), '${:1.4g}\\pi$'.format(y2)))
     x = np.linspace(x1, x2, nk)
     y = np.linspace(y1, y2, nk)
     return k, x, y
@@ -588,7 +588,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
             plt.plot(-np.real(w), A[:, i+nband], '-', label=labels[i], linewidth=0.8, **kwargs)
     elif mix>0:
         for i in range(nband):
-            plt.plot(np.real(w), A[:, i+nband], '-', label=labels[i]+'$\downarrow$', linewidth=0.8, **kwargs)
+            plt.plot(np.real(w), A[:, i+nband], '-', label=labels[i]+'$\\downarrow$', linewidth=0.8, **kwargs)
     if sum:
         plt.plot(np.real(w), np.sum(A, 1), 'r-', label = 'total', **kwargs)
     plt.xlabel(r'$\omega$')
@@ -691,7 +691,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='G
         ax1 = 'y'
         ax2 = 'z'
     if freq != 0.0:
-        axis += ', $\omega = {:1.3f}$'.format(freq)
+        axis += ', $\\omega = {:1.3f}$'.format(freq)
 
     title = axis
     if opt == 'self':
@@ -712,7 +712,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='G
     if plt_ax is None:
         title = _set_legend_mdc(plane, k_perp)
         if freq != 0.0 :
-            title += ', $\omega = {:1.3f}$'.format(freq)
+            title += ', $\\omega = {:1.3f}$'.format(freq)
         ax.set_title('mdc: '+title, fontsize=6)
         ax.set_xlabel('$k_'+ax1+'$')
         ax.set_ylabel('$k_'+ax2+'$')
@@ -804,7 +804,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, zone=((0,0),1), opt='spin', freq =
         ax1 = 'y'
         ax2 = 'z'
     if freq != 0.0:
-        axis += ', $\omega = {:1.3f}$'.format(freq)
+        axis += ', $\\omega = {:1.3f}$'.format(freq)
 
     title = axis
     if type(orb) is int:
@@ -836,7 +836,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, zone=((0,0),1), opt='spin', freq =
     if plt_ax is None:
         title = _set_legend_mdc(plane, k_perp)
         if freq != 0.0 :
-            title += ', $\omega = {:1.3f}$'.format(freq)
+            title += ', $\\omega = {:1.3f}$'.format(freq)
         ax.set_title('spin texture: '+title, fontsize=6)
         ax.set_xlabel('$k_'+ax1+'$')
         ax.set_ylabel('$k_'+ax2+'$')
@@ -1302,7 +1302,7 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
     ax.plot(w, hyb[:,e[0],e[1]].imag,'rs--',label='hyb. (imag)', lw=1, ms=4, **kwargs)
     if plt_ax is None:
         ax.legend()
-        ax.set_xlabel('$i\omega_n$')
+        ax.set_xlabel('$i\\omega_n$')
         if file is not None:
             plt.savefig(file)
             plt.close()
@@ -1351,8 +1351,8 @@ def Berry_curvature(self, nk=200, eta=0.0, period='G', range=None, orb=None, sub
     else:
         ax.set_xticks((-1, 0, 1))
         ax.set_yticks((-1, 0, 1))
-        ax.set_xticklabels(('$-\pi$', '$0$', '$\pi$'))
-        ax.set_yticklabels(('$-\pi$', '$0$', '$\pi$'))
+        ax.set_xticklabels(('$-\\pi$', '$0$', '$\\pi$'))
+        ax.set_yticklabels(('$-\\pi$', '$0$', '$\\pi$'))
         range = [0.0, 0.0, 0.5]
         ext = [-1, 1,-1,1]
 
@@ -1531,8 +1531,8 @@ def monopole_map(self, nk=40, orb=None, plane='z', k_perp=0.0, file=None, plt_ax
     max = np.abs(B).max()
     CS = ax.imshow(np.flip(B2,0), vmin=-max, vmax = max, cmap='bwr', extent=ext, **kwargs)
     if plt_ax is None:
-        plt.xticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
-        plt.yticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
+        plt.xticks((-1, 0, 1), ('$-\\pi$', '$0$', '$\\pi$'))
+        plt.yticks((-1, 0, 1), ('$-\\pi$', '$0$', '$\\pi$'))
         plt.colorbar(CS, shrink=0.8, extend='neither')
         plt.title('monopole map, '+axis, fontsize=6)
     if file is not None:
@@ -1589,8 +1589,8 @@ def Berry_flux_map(self, nk=40, plane='z', dir='z', k_perp=0.0, orb=None, npoint
     max = np.abs(B).max()
     CS = plt.imshow(np.flip(B2,0), vmin=-max, vmax = max, cmap='bwr', extent=ext)
     if plt_ax is None:
-        plt.xticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
-        plt.yticks((-1, 0, 1), ('$-\pi$', '$0$', '$\pi$'))
+        plt.xticks((-1, 0, 1), ('$-\\pi$', '$0$', '$\\pi$'))
+        plt.yticks((-1, 0, 1), ('$-\\pi$', '$0$', '$\\pi$'))
         plt.colorbar(CS, shrink=0.8, extend='neither')
         plt.title(axis, fontsize=6)
 

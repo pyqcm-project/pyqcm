@@ -158,6 +158,21 @@ void parameter_set::set_value(shared_ptr<parameter> P, const double &v)
 
 
 /**
+ sets the multiplier of a dependent parameter (changes its initial value)
+ @param name [in] name of parameter
+ @param v [in] new value of the multiplier
+ */
+void parameter_set::set_multiplier(const string& name, const double &v)
+{
+  if(param.find(name) == param.end()) qcm_throw("parameter "+name+" does not exist! impossible to set multiplier");
+  if(param[name]->ref == nullptr)
+    qcm_throw("parameter "+name+" is independent! impossible to set multiplier");
+  param[name]->multiplier = v;
+}
+
+
+
+/**
  checks the existence of a parameter name in the parameter_set
  @param name [in] name of the parameter
  */

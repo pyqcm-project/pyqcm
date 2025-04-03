@@ -70,6 +70,7 @@ namespace QCM{
   vector<pair<vector<double>, vector<double>>> Lehmann_Green_function(vector<vector3D<double>> &k, int orb, bool spin_down, int label);
   vector<tuple<string, int, int, int, int>> cluster_info();
   vector<vector<double>> dispersion(const vector<vector3D<double>> &k, bool spin_down, int label);
+  vector<matrix<Complex>> epsilon(const vector<vector3D<double>> &k, bool spin_down, int label);
   void add_cluster(const string &name, const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref=0);
   void anomalous_operator(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb1, int orb2, const string& type);
   void density_wave(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type);
@@ -84,6 +85,7 @@ namespace QCM{
   void qcm_init();
   void set_basis(vector<double> &basis);
   void set_parameter(const string& name, double value);
+  void set_multiplier(const string& name, double value);
   void set_parameters(vector<pair<string,double>>&, vector<tuple<string, double, string>>&);
   void wk_integral(int dim, function<void (Complex w, vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy,bool verb=false);
   void Green_function_solve(int label);
