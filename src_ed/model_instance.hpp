@@ -1047,6 +1047,7 @@ pair<double, string> model_instance<HilbertField>::one_body_solve()
   else if(mixing == HS_mixing::full) GS_energy *= 0.5;
   S->energy = GS_energy;
   S->weight = 1.0;
+  E0 = GS_energy;
   
   states.insert(S);
   gf_solved = true;

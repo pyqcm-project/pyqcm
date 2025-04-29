@@ -346,7 +346,6 @@ class CDMFT:
         ave = self.I.averages(pr=True)
         if compute_potential_energy :
             self.I.potential_energy()
-            omega=self.I.Potthoff_functional(hartree)
         if SEF:
             omega=self.I.Potthoff_functional(hartree)
 

@@ -442,7 +442,9 @@ double lattice_model_instance::Potthoff_functional()
     omega_trace *= 0.5;
   }
   omega = omega_trace - omega_diag + omega_clus;
-
+  // cout << "omega_trace = " << omega_trace << endl;
+  // cout << "omega_diag = " << omega_diag << endl;
+  // cout << "omega_clus = " << omega_clus << endl;
 
   //-------------------------------------------------------------------------------
 	// We want the energy density (or per atom), so we divide by the number of cluster orbitals

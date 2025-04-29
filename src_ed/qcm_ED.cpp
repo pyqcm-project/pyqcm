@@ -327,9 +327,6 @@ namespace ED{
   
   double Potthoff_functional(const size_t label){
     model_instance_base& M = *model_instances.at(label);
-
-    if(!M.is_correlated) qcm_throw("The Potthoff functional cannot be computed in the noninteracting case!");
-
     if(!M.gf_solved) M.Green_function_solve();
     return M.SEF_bath + M.E0;
   }

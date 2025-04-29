@@ -102,8 +102,11 @@ void lattice_model_instance::inverse_Gcpt(const block_matrix<Complex> &Ginv, Gre
  */
 matrix<Complex> lattice_model_instance::epsilon(Green_function_k &M)
 {
+	char periodization = global_char("periodization");
 	set_V(M);
-	return model->periodize(M.k,M.t);
+
+	if(periodization == 'N') return M.t;
+	else return model->periodize(M.k,M.t);
 }
 
 
@@ -189,6 +192,9 @@ void lattice_model_instance::periodized_Green_function(Green_function_k &M)
 		assert(n_clus==1);
 		matrix<Complex> Gc = M.G.G.block[0];
 		M.g = model->periodize(M.k, Gc);
+	}
+	else if(periodization == 'N'){ // None
+		M.g = M.Gcpt;
 	}
 	else{
 		qcm_throw("undefined periodization scheme");

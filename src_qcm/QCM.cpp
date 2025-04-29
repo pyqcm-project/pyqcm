@@ -664,7 +664,9 @@ check_instance(label);
    */
   size_t reduced_Green_function_dimension()
   {
-    return qcm_model->dim_reduced_GF;
+    char periodization = global_char("periodization");
+    if(periodization == 'N') return qcm_model->dim_GF;
+    else return qcm_model->dim_reduced_GF;
   }
   
   

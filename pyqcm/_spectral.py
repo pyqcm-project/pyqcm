@@ -79,13 +79,14 @@ def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
 ####################################################################################################
 # Additional methods of the model_instance class
 
-def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  data_file='spectral_data', **kwargs):
+def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  data_file='spectral_data', **kwargs):
     """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
     :param float eta: Lorentzian broadening
     :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
+    :param str period: periodization scheme ('G' - default, 'M', 'S', 'C', 'N'). If 'N', deals with a bigger matrix (sites in the repeated unit).
     :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
     :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
     :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
@@ -118,11 +119,16 @@ def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, orb=None, offs
     else:
         ax = plt_ax
 
+    pyqcm.set_global_parameter('periodization', period)
+    if period == 'N':
+        norb=self.model.nband
+    else:
+        norb=self.model.nband
+
     mix = self.model.mixing
-    norb=self.model.nband
 
     if orb is not None:
-        assert (orb <= self.model.nband and orb > 0), 'The orbital index in plot_spectrum() must vary from 1 to {:d}'.format(self.model.nband)
+        assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
         orb -= 1
 
     w = __frequency_array(wmax, eta)
