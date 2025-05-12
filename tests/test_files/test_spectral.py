@@ -50,7 +50,7 @@ def test_spectral():
 
     F = 'test_cluster_spectral_function.pdf'
     pyqcm.banner('testing cluster_spectral_function()', c='#', skip=1); I.cluster_spectral_function(file = F, plt_ax=ax)
-    
+
     F = 'test_DoS.pdf'
     pyqcm.banner('testing DoS()', c='#', skip=1); I.plot_DoS(w=1, eta=0.2, file = F, plt_ax=ax)
     pyqcm.banner('testing DoS()', c='#', skip=1); I.plot_DoS(w=np.linspace(-1,1,40), eta=0.2, file = F, plt_ax=ax)
@@ -68,10 +68,13 @@ def test_spectral():
     pyqcm.banner('testing momentum_profile()', c='#', skip=1); I.plot_momentum_profile('t', nk=10, file = F, plt_ax=ax)
     
     F = 'test_spectral_function.pdf'
-    F2 = 'test_spectral_function_M.pdf'
     pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F, plt_ax=ax)
-    pyqcm.set_global_parameter('periodization', 'M')
-    pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F2, plt_ax=ax)
+    F2 = 'test_spectral_function_M.pdf'
+    pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F2, period='M', plt_ax=ax)
+    F2 = 'test_spectral_function_N.pdf'
+    pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F2, period='N', plt_ax=ax)
+    F2 = 'test_spectral_function_self.pdf'
+    pyqcm.banner('testing spectral_function()', c='#', skip=1); I.spectral_function(nk=8, file = F2, opt='self', offset=30, plt_ax=ax)
 
     F = 'test_spectral_function_Lehmann.pdf'
     pyqcm.banner('testing spectral_function_Lehmann()', c='#', skip=1); I.spectral_function_Lehmann(lims=(-5,5), nk=8, file = F, plt_ax=ax)

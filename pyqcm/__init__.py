@@ -34,7 +34,7 @@ except:
     print('version number not found. Will not be able to record version number in output files')
     __version__ = 'NA'
 
-np.set_printoptions(precision=6, linewidth=200, suppress=True, sign=' ')
+np.set_printoptions(precision=6, linewidth=500, suppress=True, sign=' ')
 
 ####################################################################################################
 # GLOBAL MODULE VARIABLES
@@ -768,7 +768,7 @@ class model_instance:
 
         """
         for i in range(self.model.nclus):
-            self.write(filename+'_{:d}.sol'.format(i))
+            self.write(filename+'_{:d}.sol'.format(i), clus=i)
 
     #-----------------------------------------------------------------------------------------------
     def read_all(self, filename):
@@ -780,7 +780,7 @@ class model_instance:
 
         """
         for i in range(self.model.nclus):
-            self.read(filename+'_{:d}.sol'.format(i))
+            self.read(filename+'_{:d}.sol'.format(i), clus=i)
     
 
     #-----------------------------------------------------------------------------------------------
@@ -1016,7 +1016,7 @@ class model_instance:
         return qcm.dispersion(k, spin_down, self.label)
 
     #-----------------------------------------------------------------------------------------------
-    def epsilon(self, k, spin_down=False, label=0):
+    def epsilon(self, k, spin_down=False):
         """
         Computes the hopping matrix (orbital basis) for a single or an array of wavevectors
 

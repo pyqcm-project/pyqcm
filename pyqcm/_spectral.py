@@ -220,7 +220,10 @@ def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', 
 
     if style == 'color':
         aspect = len(k)/(w[-1].real-w[0].real)*0.618
-        CS = ax.imshow(np.flip(A,0), vmin=0, vmax = np.max(np.abs(A)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
+        if plot_down:
+            CS = ax.imshow(np.flip(A+A_down,0), vmin=0, vmax = np.max(np.abs(A+A_down)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
+        else:
+            CS = ax.imshow(np.flip(A,0), vmin=0, vmax = np.max(np.abs(A)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
         ax.set_xticks(tick_pos)
         ax.set_xticklabels(tick_str)
 
@@ -377,7 +380,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
         if opt is None:
             g = self.cluster_Green_function(w[i], clus, spin_down, blocks) # run of the mill cluster green function
         elif opt == "self":
-            g = self.cluster_self_energy(w[i], clus, spin_down) # self-energy functionnal
+            g = self.cluster_self_energy(w[i], clus, spin_down) # self-energy
         elif opt == "hyb":
             g = self.hybridization_function(w[i], clus, spin_down) # hybridization function
         else:
