@@ -333,7 +333,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
 
 
 #---------------------------------------------------------------------------------------------------
-def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, color = 'b', **kwargs):
+def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, orbs=None, color = 'b', **kwargs):
     """Plots the spectral function of the cluster in the site basis
     
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
@@ -348,6 +348,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
     :param boolean blocks: if True, gives the GF in the symmetry basis (block diagonal)
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param [int] orbs: list of orbitals to plot (starts at 1). If None, all are included.   
     :param color: matplotlib color of the curves
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: the array of frequencies, the spectral weight
@@ -363,17 +364,24 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
     w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
     # d = self.model.dimGFC[clus]
     d = self.model.clus[clus].nsites
+
+    if orbs == None:
+        O = range(d)
+    else:
+        d = len(orbs)
+        O = [orbs[i]-1 for i in range(d)]
+
     if full:
         dd = d*d
         # dd = (d*(d+1))//2
         T = []
         for j in range(d):
             for k in range(d):
-                T.append('({0:d},{1:d})'.format(j+1,k+1))
+                T.append('({0:d},{1:d})'.format(O[j],O[k]))
         plt.yticks(offset*np.arange(0, dd), T)
     else:
         dd = d
-        plt.yticks(offset*np.arange(0, d), [str(i) for i in range(1,d+1)])
+        plt.yticks(offset*np.arange(0, d), [str(O[i]) for i in range(d)])
 
     A = np.zeros((len(w), dd))
     for i in range(len(w)):
@@ -389,11 +397,11 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
             l = 0
             for j in range(d):
                 for k in range(d):
-                    A[i, l] += -g[j, k].imag
+                    A[i, l] += -g[O[j], O[k]].imag
                     l += 1
         else:        
             for j in range(d):
-                A[i, j] += -g[j, j].imag
+                A[i, j] += -g[O[j], O[j]].imag
 
     max = np.max(A)
     plt.ylim(0, dd * offset + max)
