@@ -65,7 +65,7 @@ option(USE_OPENMP "Enable parallelization using OpenMP" ON)
 option(
   GENERIC_BUILD
   "Compile qcm_wed with the minimum optimization flag to target generic machine"
-  OFF)
+  ON)
 
 # set the project name and version
 set(GIT_DESCRIBE_CMD "")
