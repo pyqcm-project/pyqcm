@@ -332,31 +332,7 @@ endif()
 # ----------------------------
 
 if(USE_OPENMP)
-  if(APPLE)
-    # Let's try once
-    find_package(OpenMP)
-    # If can't be find automatically
-    if(NOT OpenMP_FOUND)
-      if(NOT ${APPLE_LIBOMP_PREFIX})
-        execute_process(
-          COMMAND brew --prefix libomp
-          OUTPUT_VARIABLE APPLE_LIBOMP_PREFIX
-          OUTPUT_STRIP_TRAILING_WHITESPACE)
-      endif()
-      message(STATUS "Apple OpenMP library: ${APPLE_LIBOMP_PREFIX}")
-      # OpenMP_C
-      set(OpenMP_C_FLAGS "-Xclang -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
-      set(OpenMP_C_LIB_NAMES "omp")
-      # OpenMP_CXX
-      set(OpenMP_CXX_FLAGS "-Xclang -fopenmp -I${APPLE_LIBOMP_PREFIX}/include")
-      set(OpenMP_CXX_LIB_NAMES "omp")
-      # OpenMP libs name
-      set(OpenMP_omp_LIBRARY "${APPLE_LIBOMP_PREFIX}/lib/libomp.dylib")
-      find_package(OpenMP REQUIRED)
-    endif()
-  else()
-    find_package(OpenMP REQUIRED)
-  endif()
+  find_package(OpenMP REQUIRED)
 endif()
 
 # -----------------

@@ -469,13 +469,13 @@ static PyObject *matrix_elements_python(PyObject *self, PyObject *args) {
 
   auto ET = ED::matrix_elements(string(S1), string(S2));
   auto E = ET.second;
-  PyObject *lst = PyList_New(E.size());
+  PyObject *lst = PyTuple_New(E.size());
   for (size_t i = 0; i < E.size(); i++) {
     PyObject *elem = PyTuple_New(3);
     PyTuple_SetItem(elem, 0, Py_BuildValue("i", E[i].r));
     PyTuple_SetItem(elem, 1, Py_BuildValue("i", E[i].c));
-    PyTuple_SetItem(elem, 2, Py_BuildValue("D", E[i].v));
-    PyList_SET_ITEM(lst, i, elem);
+    PyTuple_SetItem(elem, 2, Py_BuildValue("D", &E[i].v));
+    PyTuple_SET_ITEM(lst, i, elem);
   }
   return Py_BuildValue("sO", ET.first.c_str(), lst);
 }

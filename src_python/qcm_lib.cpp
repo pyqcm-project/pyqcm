@@ -172,7 +172,6 @@ void QCM::qcm_init() {
   QCM::global_parameter_init();
 
 #ifdef _OPENMP
-  // omp_set_num_threads((int) *getenv("OMP_NUM_THREADS") - 48);
   omp_set_max_active_levels(2);
   cout << "Number of OpenMP threads = " << omp_get_max_threads() << endl;
 #endif

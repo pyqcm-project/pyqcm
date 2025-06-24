@@ -433,7 +433,7 @@ namespace ED{
     shared_ptr<model> M = models.at(model_name);
     if(M->term.find(op_name) == M->term.end())
       qcm_ED_throw("operator "+op_name+" is not defined in model . Check spelling.");
-    return {M->term[model_name]->type(), M->term[model_name]->matrix_elements()};
+    return {M->term[op_name]->type(), M->term[op_name]->matrix_elements()};
   }
 }
 
