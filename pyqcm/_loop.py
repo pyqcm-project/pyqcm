@@ -314,55 +314,59 @@ def fade(self, task, P, n):
 		task()
 
 #---------------------------------------------------------------------------------------------------
-def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broyden'):
-	"""
-	fades the model between two sets of parameters, in n steps
+# def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broyden'):
+# # IN DEVELOPMENT
+# 	"""
+# 	fades the model between two sets of parameters, in n steps
 
-	:param task: task to perform wihtin the loop
-	:param dict P: dict of parameters with a tuple of values (start and finish) for each
-	:param n: number of steps
-	:param C: list of adjustable parameters whose average should stay fixed during the fade
-	:param str file: file to which the converged results are written
-	:param float tol: precision on the averages
+# 	:param task: task to perform wihtin the loop
+# 	:param dict P: dict of parameters with a tuple of values (start and finish) for each
+# 	:param n: number of steps
+# 	:param dict C: dict of adjustable parameters whose average (the value of C) should stay fixed during the fade
+# 	:param str file: file to which the converged results are written
+# 	:param float tol: precision on the averages
 
-	"""
-	assert type(P) is dict
-	assert type(C) is list
-	for x in P:
-		assert type(P[x]) is tuple
-	print('Fading procedure in ', n, 'steps :')
-	for x in P:
-		print(x, ' from ', P[x][0], ' to ', P[x][1])
+# 	"""
+# 	assert type(P) is dict
+# 	assert type(C) is dict
+# 	for x in P:
+# 		assert type(P[x]) is tuple
 
-	A = np.zeros(len(C)) # allocating the array of fixed average values 
-	def F(x):
-		global I_current
-		self.set_parameter(C, x)
-		I = task()
-		ave = I.averages()
-		B = np.array([ave[x] for x in C]) # average values
-		return B-A
+# 	print('Fading procedure in ', n, 'steps :')
+# 	for x in P:
+# 		print(x, ' from ', P[x][0], ' to ', P[x][1])
 
-	par = self.parameters()
-	Cv = np.array([par[x] for x in C])
-	Z = np.linspace(0.0, 1.0, n)
-	for i, z in enumerate(Z):
-		for p in P:
-			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
-		if i==0:
-			A = F(Cv)
-			x0 = Cv
-		else:
-			try:
-				alpha = X[2]
-			except:
-				alpha = 0.0
-			if method == 'Broyden' : X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=32)
-			else : X = pyqcm.fixed_point_iteration(F, x0, xtol=tol, maxiter=32,  alpha = 0.0)
-			I = pyqcm.model_instance(self)
-			I.averages()
-			I.write_summary(file)
-			x0 = X[0]
+# 	A = np.zeros(len(C)) # allocating the array of fixed average values 
+	
+# 	def F(x):
+# 		global I_current
+# 		for y in C :
+# 			self.set_parameter(y, x, pr=True)
+# 		I = task()
+# 		ave = I.averages()
+# 		B = np.array([ave[y] for y in C]) # average values
+# 		return B-A
+
+# 	par = self.parameters()
+# 	Cv = np.array([par[x] for x in C])
+# 	Z = np.linspace(0.0, 1.0, n)
+# 	for i, z in enumerate(Z):
+# 		for p in P:
+# 			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
+# 		if i==0:
+# 			A = F(Cv)
+# 			x0 = Cv
+# 		else:
+# 			try:
+# 				alpha = X[2]
+# 			except:
+# 				alpha = 0.0
+# 			if method == 'Broyden' : X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=32)
+# 			else : X = pyqcm.fixed_point_iteration(F, x0, xtol=tol, maxiter=32,  alpha = 0.0)
+# 			I = pyqcm.model_instance(self)
+# 			I.averages()
+# 			I.write_summary(file)
+# 			x0 = X[0]
 			
 
 #---------------------------------------------------------------------------------------------------

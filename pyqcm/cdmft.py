@@ -114,6 +114,7 @@ class CDMFT:
     class containing the elements of a CDMFT computation. The constructor executes the computation.
 
     :param [str] varia: list of variational parameters
+    :param [(str,str,float)] phase_constraint: phase constraint between real and imaginary variational parameters
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid)
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self', 'adapt'
@@ -152,6 +153,7 @@ class CDMFT:
     def __init__(self,
         model,
         varia,
+        phase_constraint=None,
         beta=50,
         wc=2.0,
         grid_type = 'sharp',
@@ -217,10 +219,28 @@ class CDMFT:
             raise ValueError("the argument 'iteration' of CDMFT() should be one of 'Broyden', 'fixed_point'")
 
         # variational parameters
-        self.var = list(set(varia)) # makes sure there are no duplicates
+        varia_set = set(varia) # makes sure there are no duplicates
+        if phase_constraint:
+            constraint_set = set()
+            for c in phase_constraint:
+                constraint_set.add(c[0])
+                constraint_set.add(c[1])
+                assert constraint_set <= varia_set # both real and imaginary parts must be variational parameters
+            varia_set = varia_set - constraint_set
+        self.var = [] # constructs a list of variational parameters with the complex pairs at the end
+        for x in varia_set : self.var.append(x)
         self.var.sort()
-        self.nvar = len(self.var)
-        if self.nvar == 0:
+        self.nconstr = 0
+        if phase_constraint:
+            self.nconstr = len(phase_constraint)
+            for x in phase_constraint: 
+                self.var.append(x[0])
+                self.var.append(x[1])
+
+        self.phase_constraint = phase_constraint
+        self.nvar_comp = len(self.var)
+        self.nvar = self.nvar_comp - self.nconstr  # net number of variational parameters
+        if self.nvar <= 0:
             raise ValueError('CDMFT requires at least one variational parameter...Aborting.')
         qcm.CDMFT_variational_set(self.var)
         self.var_data = np.empty((self.nvar, maxiter+1))
@@ -276,10 +296,13 @@ class CDMFT:
         # ------------------------------------- CDMFT loop --------------------------------
         converged = False
 
-        # initializaing the array of parameters
+        # initializaing the array of parameters for optimization (size nvar + nhartree)
         self.CDMFT_params = np.zeros(self.nvar + self.nhartree)
         vartot = self.var + [x.Vm for x in self.hartree]
-        self.CDMFT_params = model.parameters(vartot)
+        V = model.parameters(vartot)
+        self.CDMFT_params[0:self.nvar] = self.to_varia_array(V[0:self.nvar_comp])
+        for i,x in enumerate(self.hartree):
+            self.CDMFT_params[self.nvar+i] = model.parameters()[x]
 
         #------------------------------- CDMFT main iteration loop ------------------------
         self.niter = 0
@@ -339,7 +362,7 @@ class CDMFT:
 
         # check consistency
         GS_cons = self.I.GS_consistency(self.check_ground_state)
-        var_val = pyqcm.varia_table(self.var,self.CDMFT_params)
+        var_val = pyqcm.varia_table(self.var,self.expand_varia_array(self.CDMFT_params))
         pyqcm.banner('converged variational parameters ({:d} iterations)'.format(self.niter), '-')
         print(var_val)
 
@@ -362,6 +385,28 @@ class CDMFT:
         pyqcm.banner('CDMFT completed successfully', '*')
 
 
+    def to_varia_array(self, x):
+        """
+        Produces the numerical array of variational parameters passed to the optimizer
+        Takes into account phase constraints
+        """
+        y = np.empty(self.nvar)
+        y[0:(self.nvar-self.nconstr)] = x[0:(self.nvar-self.nconstr)]
+        for i in range(self.nconstr):
+        	y[self.nvar-self.nconstr+i] = np.sqrt(x[self.nvar-self.nconstr+2*i]**2+x[self.nvar-self.nconstr+2*i+1]**2)
+        return y
+
+    def expand_varia_array(self, x):
+        """
+        Expand the array x to replace amplitude data with real and imaginary parts
+        """
+        y = np.empty(self.nvar_comp)
+        y[0:(self.nvar-self.nconstr)] = x[0:(self.nvar-self.nconstr)]
+        for i in range(self.nconstr):
+            y[self.nvar-self.nconstr+2*i] = np.cos(self.phase_constraint[i][2])*x[self.nvar-self.nconstr+i]
+            y[self.nvar-self.nconstr+2*i+1] = np.sin(self.phase_constraint[i][2])*x[self.nvar-self.nconstr+i]
+        return y
+
     #-----------------------------------------------------------------------------------------------
     def CDMFT_step(self):
         """
@@ -376,10 +421,8 @@ class CDMFT:
         except:
             raise ValueError
 
-        for i in range(self.nvar):
-            self.model.set_parameter(self.var[i], self.CDMFT_params[i])
-        for i in range(self.nhartree):
-            self.model.set_parameter(self.hartree[i].Vm, self.CDMFT_params[i+self.nvar])
+        y = self.expand_varia_array(self.CDMFT_params[0:self.nvar])
+        self.model.set_parameter(self.var, y)
         self.I = pyqcm.model_instance(self.model)
 
         if self.grid_type == 'adapt':  # find the maximum value of variational (bath) parameters
@@ -422,12 +465,15 @@ class CDMFT:
 
         # optimization of the bath parameters
         def DIST(y, grad=None):
-            d = qcm.CDMFT_distance(y, self.I.label)
+            # HERE WE COULD TRANSLATE y in terms of model parameters
+            ym = self.expand_varia_array(y)
+            d = qcm.CDMFT_distance(ym, self.I.label)
             return d
 
         dist0 = self.dist
-
-        sol = optimize(DIST, self.CDMFT_params[0:self.nvar], self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+        
+        x0 = self.CDMFT_params[0:self.nvar]
+        sol = optimize(DIST, x0, self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
         opt_x, opt_iter_done, opt_success, opt_fun = sol
 
         self.dist = opt_fun
@@ -470,7 +516,7 @@ class CDMFT:
         print('GS sector : ', [X[1] for X in gs])
         print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(opt_iter_done, time_MIN/time_ED, opt_fun, 100*self.delta_dist), flush=True)
 
-        var_val = pyqcm.varia_table(self.var, x_new)
+        var_val = pyqcm.varia_table(self.var, self.expand_varia_array(x_new))
         print('updated bath parameters:\n{:s}'.format(var_val))
 
         self.CDMFT_params = np.copy(x_new)

@@ -649,7 +649,8 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     # imports further functions from other source files
 
-    from ._loop import loop_from_file, loop_from_table, linear_loop, controlled_loop, Hartree_procedure, fade, controlled_fade, flexible_loop
+    from ._loop import loop_from_file, loop_from_table, linear_loop, controlled_loop, Hartree_procedure, fade
+    # controlled_fade, flexible_loop
 
     from ._draw import draw_operator, draw_cluster_operator
 
