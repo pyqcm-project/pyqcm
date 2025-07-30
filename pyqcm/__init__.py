@@ -688,6 +688,10 @@ class model_instance:
         if solver != None:
             solver(self)
 
+        # booleans to record tasks that risk being asked more than once
+        self.averages_done = False
+
+
     #-----------------------------------------------------------------------------------------------
     def __del__(self):
         qcm.erase_model_instance(self.label)
@@ -808,16 +812,18 @@ class model_instance:
         self.ground_state()
         ave = qcm.averages(ops, self.label)
 
-        self.props['E_kin'] = qcm.kinetic_energy(self.label)
-        for x in ave:
-            self.props[x+'_ave'] = ave[x]
-
-        if pr:
+        if self.averages_done is False:
+            self.props['E_kin'] = qcm.kinetic_energy(self.label)
             for x in ave:
-                print('<{:s}> = {:1.9g}'.format(x, ave[x]))
-            
-        self.GS_consistency()
-        self.write_summary(file)
+                self.props[x+'_ave'] = ave[x]
+
+            if pr:
+                for x in ave:
+                    print('<{:s}> = {:1.9g}'.format(x, ave[x]))
+                
+            self.GS_consistency()
+            self.write_summary(file)
+            self.averages_done = True
         return ave
 
     #-----------------------------------------------------------------------------------------------
@@ -2317,14 +2323,14 @@ def fixed_point_iteration(F, x0, xtol=1e-6, convergence_test=None, maxiter=32,  
             print('epsilon algorithm : ', x0, " ---> ", x)
         #-------------------------------------------------------------------------------
         x0 = np.copy(x)
-
+    
+        iter += 1
         if convergence_test is None:
             if dx < xtol and iter >= miniter: 
                 break
         else:
             if convergence_test(): 
                 break;
-        iter += 1
         if iter > maxiter:
             raise TooManyIterationsError(maxiter)
 
@@ -2372,6 +2378,8 @@ def broyden(F, x0, iJ0 = 0.0, xtol=1e-6, convergence_test=None, maxiter=32, mini
         print('\nBroyden iteration {:d}'.format(iter+1))
         print('|delta x| = {:1.6g}'.format(dx))
         if dx < xtol and iter >= miniter:
+            banner(' Procedure converged on parameters ', '-')
+            convergence_test()
             break
         if convergence_test != None:
             if convergence_test() and iter >= miniter: 

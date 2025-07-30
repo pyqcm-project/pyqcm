@@ -25,6 +25,7 @@ class convergence_manager:
     * 'GS energy' : the ground state energy of the impurity problem is used. In the case of more than one cluster, the sum is used.
     * 'hybridization' : the hybridization function (or set thereof, in the case of many clusters). The test is based on the norm of the matrix differences, summed over grid frequencies.
     * 'self-energy' : same as above, but using the impurity self-energy instead.
+    * 'distance' : the distance function (difference between successive iterations)
     * any one-body or anomalous lattice operator name. The lattice average is used as test value.
     """
 
@@ -104,7 +105,7 @@ class convergence_manager:
             S = '---> ave({:s}) = {:1.7g} +/- {:1.4g}'.format(self.name, self.ave, self.std)
         else:
             S = 'differences in ' + self.name + ' : '
-            for i in range(self.depth): S += '{:1.3g}\t'.format(self.diff[i])
+            for i in range(self.depth): S += '{:g}\t'.format(self.diff[i])
         if self.converged: S += ' * converged * '
         print(S, flush=True)
 
@@ -124,7 +125,6 @@ class CDMFT:
     :param [str] convergence: the convergence tests (sequence of strings or single string)
     :param [float] accur: the tolerance for the various convergence tests (sequence of floats or single float)
     :param [float] accur_dist: relative tolerance of the distance function when minimizing it
-    :param [float] accur_dist_outer: convergence criteria based on the relative change of the distance function
     :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
     :param str iteration: method of iteration of parameters ('fixed_point' or 'Broyden')
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='Broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
@@ -164,7 +164,6 @@ class CDMFT:
         accur_bath=1e-3,
         accur=1e-4,
         accur_dist=1e-8,
-        accur_dist_outer=1e-3,
         converge_with_stdev = False,
         iteration = 'Broyden', # or 'fixed_point'
         alpha = 0.0,
@@ -199,7 +198,6 @@ class CDMFT:
         self.initial_step = initial_step
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
-        self.accur_dist_outer = accur_dist_outer
         self.max_function_eval = max_function_eval
         self.max_value = max_value
         self.alpha = alpha
@@ -272,10 +270,13 @@ class CDMFT:
                     conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
                 elif C == 'GS energy':
                     conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
+                elif C == 'distance':
+                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y)/y, accur[i], depth)
                 else:
                     raise ValueError('type of convergence test "' + C + '" in CDMFT does not exist')
             self.convergence_test.append(conv_manager)
         convergence_test_string = convergence_test_string[:-1]
+        
 
         #-------------------------- Hartree mean field parameters -------------------------
         self.nhartree=0
@@ -314,8 +315,7 @@ class CDMFT:
             else: return x - self.CDMFT_params
 
         def G():
-            if self.delta_dist < self.accur_dist_outer: return True
-            else: return self.check_convergence()
+            return self.check_convergence()
 
         CDMFT_params0 = self.CDMFT_params
 
@@ -469,15 +469,12 @@ class CDMFT:
             ym = self.expand_varia_array(y)
             d = qcm.CDMFT_distance(ym, self.I.label)
             return d
-
-        dist0 = self.dist
         
         x0 = self.CDMFT_params[0:self.nvar]
         sol = optimize(DIST, x0, self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
         opt_x, opt_iter_done, opt_success, opt_fun = sol
 
         self.dist = opt_fun
-        self.delta_dist = np.abs((self.dist - dist0)/dist0)
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
@@ -542,7 +539,7 @@ class CDMFT:
             elif C.name == 'self-energy':
                 self.set_sigma()
                 if self.model.mixing == 4:
-                    T = C.test((self.sigma,self.sigma_down))
+                    T = C.test((self.sigma, self.sigma_down))
                     converged = converged and T
                 else:
                     T = C.test(self.sigma)
@@ -560,14 +557,21 @@ class CDMFT:
                 T = C.test(np.copy(self.CDMFT_params))
                 converged = converged and T
 
+            elif C.name == 'distance':
+                T = C.test(self.dist)
+                converged = converged and T
+
             elif C.op != None:
                 T = C.test(self.I.averages()[C.op])
                 converged = converged and T
 
         for C in self.convergence_test:
             C.print()
+            
+        if converged: 
+            pyqcm.banner('CDMFT has converged', '=')
+            for C in self.convergence_test: C.print()
 
-        if converged: pyqcm.banner('CDMFT has converged', '=')
         return converged
 
     #-----------------------------------------------------------------------------------------------
@@ -668,37 +672,6 @@ class CDMFT:
             for i in range(self.grid.nw):
                 for j in range(self.model.nclus):
                     self.sigma_down[j][i, :, :] = self.I.cluster_self_energy(self.grid.w[i], j, spin_down=True)
-
-    #-----------------------------------------------------------------------------------------------
-    def diff_sigma(self):
-        """
-        Computes a difference in self-energy between the current iteration (sigma) and the previous one (sigma0)
-
-        :returns float: the difference in self-energy arrays
-
-        """
-
-        diff = 0.0
-        g = self.grid
-        for i in range(g.nw):
-            for j in range(self.model.nclus):
-                delta = self.sigma[j][i,:,:] - self.sigma0[j][i,:,:]
-                norm = np.linalg.norm(delta)
-                diff += g.weight[i]*norm*norm
-
-        if self.model.mixing==4:
-            for i in range(g.nw):
-                for j in range(self.model.nclus):
-                    delta = self.sigma_down[j][i,:,:] - self.sigma0_down[j][i,:,:]
-                    norm = np.linalg.norm(delta)
-                    diff += g.weight[i]*norm*norm
-
-        if self.model.mixing == 0:
-            diff *= 2
-        elif self.model.mixing == 3:
-            diff /= 2
-        diff /= g.nw
-        return np.sqrt(diff)
 
     #-----------------------------------------------------------------------------------------------
     def plot_iterations(self):
