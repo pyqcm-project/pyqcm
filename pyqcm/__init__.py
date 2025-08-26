@@ -2253,6 +2253,7 @@ def varia_table(var, val, prefix = ''):
 
     """
     s = prefix
+    assert(len(var) == len(val))
     for i,p in enumerate(var):
         s += '{:<9} = {: .5g}\t'.format(p,val[i])
         if (i+1)%5 == 0:

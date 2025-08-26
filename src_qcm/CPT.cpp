@@ -455,7 +455,7 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 	}
 	auto I = lattice_model_instance(model, label+999);
 	
-	// #pragma omp parallel for reduction (+:dist)
+	#pragma omp parallel for reduction (+:dist)
 	for(int i=0; i<CDMFT_freqs.size(); i++){
 		double distw = 0.0;
 		Complex w(0.0, CDMFT_freqs[i]);
@@ -468,7 +468,7 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 	}
 
 	if(model->mixing & HS_mixing::up_down){
-		// #pragma omp parallel for reduction (+:dist)
+		#pragma omp parallel for reduction (+:dist)
 		for(int i=0; i<CDMFT_freqs.size(); i++){
 			double distw = 0.0;
 			Complex w(0.0, CDMFT_freqs[i]);

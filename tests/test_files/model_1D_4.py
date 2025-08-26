@@ -4,6 +4,7 @@ CM = pyqcm.cluster_model(4)
 clus = pyqcm.cluster(CM,((0,0,0),(1,0,0),(2,0,0),(3,0,0)))
 model = pyqcm.lattice_model('1D_L4', clus, ((4,0,0),))
 
+model.current_dir='x'
 model.interaction_operator('U')
 model.interaction_operator('J', link=(1,0,0), type='Hund')
 model.hopping_operator('t', (1,0,0), -1)  # NN hopping
