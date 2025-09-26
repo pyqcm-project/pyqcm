@@ -1299,11 +1299,14 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
 
     """
 
-    try:
-        H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label) # second argument 0 means "spin up part"
-    except:
-        qcm.CDMFT_host(w, np.ones(len(w)), self.label)
-        H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label)
+    # try:
+    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label) # second argument 0 means "spin up part"
+    # except:
+    #     qcm.CDMFT_host(w, np.ones(len(w)), self.label)
+    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label)
+
+    qcm.CDMFT_host(w, np.ones(len(w)), self.label)
+    H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label)
 
     assert(H.shape[0] == w.shape[0])
 
@@ -1318,10 +1321,10 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, **kwargs):
     for i in range(w.shape[0]):
         hyb[i,:,:] = self.hybridization_function(w[i]*1j, clus)
 
-    ax.plot(w, -H[:,e[0],e[1]].real,'bo-',label='host (real)', lw=0.5, **kwargs)
-    ax.plot(w, -H[:,e[0],e[1]].imag,'bo--',label='host (imag)', lw=0.5, **kwargs)
-    ax.plot(w, hyb[:,e[0],e[1]].real,'rs-',label='hyb. (real)', lw=0.5, ms=3, **kwargs)
-    ax.plot(w, hyb[:,e[0],e[1]].imag,'rs--',label='hyb. (imag)', lw=0.5, ms=3, **kwargs)
+    ax.plot(w, -H[:,e[0],e[1]].real,'bo-',label='host (real)', lw=0.5, ms=2, **kwargs)
+    ax.plot(w, -H[:,e[0],e[1]].imag,'bo--',label='host (imag)', lw=0.5, ms=2, **kwargs)
+    ax.plot(w, hyb[:,e[0],e[1]].real,'rs-',label='hyb. (real)', lw=0.5, ms=2, **kwargs)
+    ax.plot(w, hyb[:,e[0],e[1]].imag,'rs--',label='hyb. (imag)', lw=0.5, ms=2, **kwargs)
     if plt_ax is None:
         ax.legend()
         ax.set_xlabel('$i\\omega_n$')

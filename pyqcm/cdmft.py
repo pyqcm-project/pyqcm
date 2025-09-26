@@ -192,7 +192,6 @@ class CDMFT:
     :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
     :param str iteration: method of iteration of parameters ('fixed_point' or 'Broyden')
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='Broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
-    :param boolean displaymin: displays the minimum distance function when minimized
     :param str method: method to use, as used in scipy.optimize.minimize(). Choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', or a choice of NLopt methods : 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'
     :param str file: name of the file where the solution is written
     :param str iter_file: name of the file where the CDMFT iterations are recorded

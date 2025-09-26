@@ -454,6 +454,9 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 		model->param_set->set_value(model->param_set->CDMFT_variational[i], p[i]);
 	}
 	auto I = lattice_model_instance(model, label+999);
+
+	double dw = CDMFT_freqs[1]-CDMFT_freqs[0];
+	int dim = G_host[0][0].r;
 	
 	#pragma omp parallel for reduction (+:dist)
 	for(int i=0; i<CDMFT_freqs.size(); i++){
@@ -483,6 +486,9 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p)
 
 	if(model->mixing == 0) dist *= 2;
 	else if(model->mixing == 3) dist *= 0.5;
+
+	dist *= dw; // normalizes by the frequency step, to give something that does not depend on the step when step --> 0
+	dist /= (dim*dim); // divides by the number of elements in the matrices, to obtain an average distance per matrix element
 
 	return dist;
 }
