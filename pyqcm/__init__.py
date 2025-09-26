@@ -45,6 +45,9 @@ solver = None
 graphene_M = (2/3)*np.array(( 1, 0, 0))
 graphene_K = (2/3)*np.array([1,1/np.sqrt(3),0])
 
+# names of clusters
+cluster_model_names = set()
+
 ####################################################################################################
 # EXCEPTIONS
 
@@ -94,7 +97,10 @@ class cluster_model:
 
     """
     def __init__(self, n_sites, n_bath=0, name='clus', generators=None, bath_irrep=False):
-        self.name = name 
+        self.name = name
+        if name in cluster_model_names:
+            raise(ValueError("the name '{:s}' has already been used for another cluster model".format(name)))
+        cluster_model_names.add(name)
         self.n_sites = n_sites 
         self.n_bath = n_bath 
         self.generators = generators 
@@ -2454,6 +2460,7 @@ def reset_model():
     """
     banner("RESETTING THE MODEL", c='#', skip=1)
     lattice_model.defined = False
+    cluster_model_names = set()
     qcm.great_reset()
 
 #---------------------------------------------------------------------------------------------------

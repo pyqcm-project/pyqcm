@@ -247,7 +247,6 @@ class CDMFT:
         self.alpha = alpha
         self.beta = beta
         self.check_ground_state = check_ground_state
-        self.delta_dist = 1e6
         self.dist = 1e6
         self.grid_type = grid_type
         self.host_function = host_function
@@ -320,7 +319,7 @@ class CDMFT:
         
 
         #----------- Banner (depending on the presence of hartree parameters) -------------
-        if self.varia.hartree is None:
+        if len(self.varia.hartree) == 0:
             pyqcm.banner('CDMFT procedure', '*', skip=1)
         else:
             pyqcm.banner('CDMFT procedure (combined with Hartree procedure)', '*', skip=1)
@@ -508,7 +507,7 @@ class CDMFT:
         self.I.write_summary(self.iter_file)
 
         print('GS sector : ', [X[1] for X in gs])
-        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}, delta_dist = {:0.3g}%'.format(opt_iter_done, time_MIN/time_ED, opt_fun, 100*self.delta_dist), flush=True)
+        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}'.format(opt_iter_done, time_MIN/time_ED, opt_fun), flush=True)
 
         var_val = pyqcm.varia_table(self.varia.var, self.varia.x[0:self.varia.nvar])
         print('updated bath parameters:\n{:s}'.format(var_val))

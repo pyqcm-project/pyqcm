@@ -74,7 +74,7 @@ namespace QCM {
 
     new_global_char('E', "Hamiltonian_format", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix))");
 #ifdef WITH_PRIMME
-    new_global_char('L', "Ground_state_method", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)");
+    new_global_char('P', "Ground_state_method", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)");
     new_global_int(0,"PRIMME_preconditionning","Choose of preconditionner to solve ground state (if qcm_wed was compiled with PRIMME): 0 (No preconditionning), 1 (Jacobi preconditionner)");
     new_global_int(1, "PRIMME_algorithm", "PRIMME algorithm to solve ground state (if qcm_wed was compiled with PRIMME): 1 (PRIMME_DYNAMIC - default), 2 (PRIMME_DEFAULT_MIN_TIME), 3 (PRIMME_DEFAULT_MIN_MATVECS), 4 (PRIMME_Arnoldi), 5 (PRIMME_GD), 6 (PRIMME_GD_plusK), 7 (PRIMME_GD_Olsen_plusK), 8 (PRIMME_JD_Olsen_plusK), 9 (PRIMME_RQI), 10 (PRIMME_JDQR), 11 (PRIMME_JDQMR), 12 (PRIMME_JDQMR_ETol), 13 (PRIMME_STEEPEST_DESCENT), 14 (PRIMME_LOBPCG_OrthoBasis), 15 (PRIMME_LOBPCG_OrthoBasis_Window). See PRIMME documentation for more information");
     new_global_bool(false,"Ground_state_init_last", "Keep ground state in memory for initializing eigenvector in further ground state solving");
