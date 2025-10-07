@@ -1581,7 +1581,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     # methods from _spectral.py
     
-    from ._spectral import spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile, wavevector_path_2_str
+    from ._spectral import compute_spectral_function_shared, plot_spectral_function, spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile, wavevector_path_2_str
 
 
 ####################################################################################################
@@ -2222,6 +2222,31 @@ def print_options(opt=0):
 
     """
     return qcm.print_options(opt)
+
+#---------------------------------------------------------------------------------------------------
+def frequency_array(wmax=6.0, eta=0.05, imaginary=False):
+    """Returns an array of complex frequencies for plotting spectral quantities
+
+    """
+
+    if type(wmax) is tuple:
+        w = np.arange(wmax[0], wmax[1] + 1e-6, eta/4.0)  # defines the array of frequencies
+    elif type(wmax) is float or type(wmax) is int:
+        w = np.arange(-wmax, wmax + 1e-6, eta/4.0)  # defines the array of frequencies
+    elif type(wmax) is np.ndarray and wmax.dtype == float:
+        return wmax + eta*1j
+    elif type(wmax) is np.ndarray and wmax.dtype == complex:
+        return wmax
+    else:
+        raise TypeError('the type of argument "wmax" in frequency_array() is wrong')
+
+    if imaginary:
+        wc = w*1j
+    else:
+        wc = np.array([x + eta*1j for x in w], dtype=complex)
+
+    return wc
+
 
 #---------------------------------------------------------------------------------------------------
 def banner(s, c='-', skip=0):

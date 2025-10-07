@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.patches as patches
 from matplotlib.colors import hsv_to_rgb
 import pyqcm
+from multiprocessing.shared_memory import SharedMemory
 from . import qcm
 
 
@@ -33,31 +34,6 @@ def _set_legend_mdc(plane, k_perp):
         return '$k_y = {:1.3f}\\pi$'.format(k_perp)
 
 #---------------------------------------------------------------------------------------------------
-def __frequency_array(wmax=6.0, eta=0.05, imaginary=False):
-    """Returns an array of complex frequencies for plotting spectral quantities
-
-    """
-
-    if type(wmax) is tuple:
-        w = np.arange(wmax[0], wmax[1] + 1e-6, eta/4.0)  # defines the array of frequencies
-    elif type(wmax) is float or type(wmax) is int:
-        w = np.arange(-wmax, wmax + 1e-6, eta/4.0)  # defines the array of frequencies
-    elif type(wmax) is np.ndarray and wmax.dtype == float:
-        return wmax + eta*1j
-    elif type(wmax) is np.ndarray and wmax.dtype == complex:
-        return wmax
-    else:
-        raise TypeError('the type of argument "wmax" in __frequency_array() is wrong')
-
-    if imaginary:
-        wc = w*1j
-    else:
-        wc = np.array([x + eta*1j for x in w], dtype=complex)
-
-    return wc
-
-
-#---------------------------------------------------------------------------------------------------
 def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
 
     size = zone[1]
@@ -79,6 +55,236 @@ def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
 ####################################################################################################
 # Additional methods of the model_instance class
 
+#---------------------------------------------------------------------------------------------------
+def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', orb=None, opt='A', Nambu_redress=True, inverse_path=False):
+    """Computes the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
+    This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
+    This is a shared-memory implementation. The arrays A and A_down are shared across multiple processes.
+
+    :param (int,int) irange: range of indices of the memory array to treat
+    :param  A_sh_name: name of the memory buffer for the array A
+    :param  A_down_sh_name: name of the memory buffer for the array A_down
+    :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
+    :param float eta: Lorentzian broadening
+    :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
+    :param str period: periodization scheme ('G' - default, 'M', 'S', 'C', 'N'). If 'N', deals with a bigger matrix (sites in the repeated unit).
+    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
+    :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
+    :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
+    :param boolean Nambu_redress: if True, evaluates the Nambu component at the opposite frequency
+    :param boolean inverse_path: if True, inverts the path (k --> -k)
+    :return: None
+
+    """
+
+    orbs = pyqcm.orbital_manager(orb, from_zero=True)
+
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
+
+    pyqcm.set_global_parameter('periodization', period)
+    norb=self.model.nband
+
+    mix = self.model.mixing
+
+    if orb is not None:
+        assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
+        orb -= 1
+
+    w = pyqcm.frequency_array(wmax, eta)
+
+    k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
+    if inverse_path:
+        k *= -1
+        for i,s in enumerate(tick_str):
+            tick_str[i] = '-'+s
+    k_str = self.wavevector_path_2_str(k)
+
+    A_shm = SharedMemory(name=A_sh_name)
+    A = np.ndarray((len(w), len(k)), buffer=A_shm.buf)
+    A_down_shm = SharedMemory(name=A_down_sh_name)
+    A_down = np.ndarray((len(w), len(k)), buffer=A_down_shm.buf)
+ 
+    plot_down = False
+    for i in range(irange[0], irange[1]):
+        if opt=='selfabs':
+            g = self.self_energy(w[i], k, False)
+            for j in range(len(k)):
+                A[i, j] += np.sqrt(np.linalg.norm(g[j, 0:norb, 0:norb]))
+
+        else:
+            if opt=='self':
+                g = self.self_energy(w[i], k, False)
+            elif opt=='A':
+                g = self.periodized_Green_function(w[i], k, False)
+            for j in range(len(k)):
+                for l in orbs: 
+                    A[i, j] += -g[j, l, l].imag
+
+                if mix&2:  
+                    plot_down = True
+                    for l in orbs: 
+                        A_down[i, j] += -g[j, norb+l, norb+l].imag
+
+    if mix == 1:
+        # add the contribution to the Nambu channel, but with opposite frequency
+        if Nambu_redress:
+            k *= -1
+        for i in range(irange[0], irange[1]):
+            if Nambu_redress:
+                W = -np.conj(w[i])
+            else:
+                W = w[i]
+            if opt=='selfabs':
+                g = self.self_energy(W, k, False)
+                for j in range(len(k)):
+                    A[i, j] += np.sqrt(np.linalg.norm(g[j, norb:2*norb, norb:2*norb]))
+            else:
+                if opt=='self':
+                    g = self.self_energy(W, k, False)
+                elif opt=='A':
+                    g = self.periodized_Green_function(W, k, False)
+                for j in range(len(k)):
+                    plot_down = True
+                    for l in orbs: 
+                        A_down[i, j] += -g[j, norb+l, norb+l].imag
+
+    if mix == 4:
+        plot_down = True
+        # add the contribution to the spin-down channel in that case
+        for i in range(irange[0], irange[1]):
+            if opt=='selfabs':
+                g = self.self_energy(w[i], k, False)
+                for j in range(len(k)):
+                    A[i, j] += np.sqrt(np.linalg.norm(g[j,: ,:]))
+            else:
+                if opt=='self':
+                    g = self.self_energy(w[i], k, True)
+                else:
+                    g = self.periodized_Green_function(w[i], k, True)
+                for j in range(len(k)):
+                    for l in orbs: 
+                        A_down[i, j] += -g[j, l, l].imag
+    
+
+#---------------------------------------------------------------------------------------------------
+def plot_spectral_function(self, w, A, A_down, path=None, nk=32, orb=None, offset=2, opt='A', inverse_path=False, title=None, file=None, plt_ax=None, style = None,  **kwargs):
+    """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
+    This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
+
+    :param ndarray w: array of complex frequencies, from 'compute_spectral_function()'
+    :param ndarray A: spectral function data, from 'compute_spectral_function()'
+    :param ndarray A_down: spectral function data (spin down), from 'compute_spectral_function()'
+    :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
+    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
+    :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
+    :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
+    :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
+    :param boolean inverse_path: if True, inverts the path (k --> -k)
+    :param str title: optional title for the plot. If None, a string with the model parameters will be used.
+    :param str file: if not None, saves the plot in a file with that name
+    :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param str style: if None, draws the curves for different values of k offset by offset; if '3D', draws a real 3D version of the plot; if 'color', draws a colorplot (wavevector on the horizontal axis).
+    :param kwargs: keyword arguments passed to the matplotlib 'plot' function
+    :return: None
+
+    """
+
+    eta = w[0].imag
+
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
+
+    if plt_ax is None:
+        if style == '3D':
+            ax = plt.figure().add_subplot(projection='3d')
+        else:
+            ax = plt.gca()
+            plt.gcf().set_size_inches(13.5/2.54, 9/2.54)
+        
+    else:
+        ax = plt_ax
+
+    mix = self.model.mixing
+    plot_down = False
+    if mix&4 : plot_down = True
+
+
+    if orb is not None:
+        assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
+        orb -= 1
+
+    k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
+    if inverse_path:
+        k *= -1
+        for i,s in enumerate(tick_str):
+            tick_str[i] = '-'+s
+
+    k_str = self.wavevector_path_2_str(k)
+
+    if opt=='A':
+        title_prefix = r'$A(\mathbf{k},\omega)$: '
+    elif opt=='self':
+        title_prefix = r'$\Sigma_{ii}(\mathbf{k},\omega)$: '
+    elif opt=='selfabs':
+        title_prefix = r'$|\Sigma(\mathbf{k},\omega)|$: '    
+
+    if style == 'color':
+        aspect = len(k)/(w[-1].real-w[0].real)*0.618
+        if plot_down:
+            CS = ax.imshow(np.flip(A+A_down,0), vmin=0, vmax = np.max(np.abs(A+A_down)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
+        else:
+            CS = ax.imshow(np.flip(A,0), vmin=0, vmax = np.max(np.abs(A)), cmap='Blues', aspect=aspect, extent=[tick_pos[0],tick_pos[-1],w[0].real,w[-1].real], **kwargs)
+        ax.set_xticks(tick_pos)
+        ax.set_xticklabels(tick_str)
+
+    elif style == '3D':
+        for j in range(len(k)):
+            ax.plot(np.real(w), A[:, j], 'k-', lw=0.5, zdir='y', zs = offset * j, **kwargs)
+        ax.set_ylim(0, (1+len(k))* offset)
+        ax.set_zlim(0, 2*np.max(A))
+        ax.xaxis.pane.fill = False
+        ax.yaxis.pane.fill = False
+        ax.zaxis.pane.fill = False
+        ax.xaxis.pane.set_edgecolor('w')
+        ax.yaxis.pane.set_edgecolor('w')
+        ax.zaxis.pane.set_edgecolor('w')
+        ax.set_zticks([])
+        ax.zaxis.line.set_lw(0.)
+        ax.xaxis.line.set_c('b')
+        ax.yaxis.line.set_c('b')
+        ax.grid(False)
+
+    else:
+        for j in range(len(k)):
+            if plot_down:
+                ax.plot(np.real(w), A_down[:, j] + offset * j, 'r-', lw=0.5, **kwargs)
+            ax.plot(np.real(w), A[:, j] + offset * j, 'b-', lw=0.5, **kwargs)
+        ax.axvline(0, ls='solid', lw=0.5)
+
+    if title is None and plt_ax is None:
+        ax.set_title(title_prefix+self.model.parameter_string(clus=0), fontsize=6)
+    else:
+        ax.set_title(title, fontsize=6)
+
+    if style != 'color':
+        ax.set_xlim(np.real(w[0]), np.real(w[-1]))
+        ax.set_ylim(0, (1+len(k)) * offset + 1 / eta)
+        ax.set_yticks(offset * tick_pos)
+        ax.set_yticklabels(tick_str)
+        if plt_ax is None:
+            ax.set_xlabel(r'$\omega$')
+            plt.tight_layout()
+
+    if file is not None:
+        plt.savefig(file)
+        plt.close()
+    elif plt_ax is None:
+        plt.show()
+
+#---------------------------------------------------------------------------------------------------
 def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  data_file='spectral_data', **kwargs):
     """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
@@ -131,7 +337,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', 
         assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
         orb -= 1
 
-    w = __frequency_array(wmax, eta)
+    w = pyqcm.frequency_array(wmax, eta)
 
     k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
     if inverse_path:
@@ -296,7 +502,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
     else:
         ax = plt_ax
 
-    w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
+    w = pyqcm.frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
     eta = 0.05j
     d = self.model.dimGF
     A = np.zeros((len(w), d*d))
@@ -361,7 +567,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
     else:
         ax = plt_ax
 
-    w = __frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
+    w = pyqcm.frequency_array(wmax, eta, imaginary)  # defines the array of frequencies
     # d = self.model.dimGFC[clus]
     d = self.model.clus[clus].nsites
 
@@ -549,7 +755,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
         else:
             ax = plt_ax
 
-    w = __frequency_array(w, eta)
+    w = pyqcm.frequency_array(w, eta)
 
     nw = len(w)
     mix = self.model.mixing
