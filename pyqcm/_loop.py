@@ -290,10 +290,13 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 
 	if nretry > max_retry:
 		pyqcm.banner('controlled loop ended on signal by control function', '%')
+		return 1
 	elif abort:
 		pyqcm.banner('controlled loop ended with error', '%')
+		return 2
 	else:
 		pyqcm.banner('controlled loop ended normally', '%')
+		return 0
 
 
 #---------------------------------------------------------------------------------------------------
@@ -314,59 +317,85 @@ def fade(self, task, P, n):
 		task()
 
 #---------------------------------------------------------------------------------------------------
-# def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broyden'):
-# # IN DEVELOPMENT
-# 	"""
-# 	fades the model between two sets of parameters, in n steps
+def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broyden', maxiter=32, alpha=0.0, eps_algo=0, bracket=None, delta=None, verb=False):
+# IN DEVELOPMENT
+	"""
+	fades the model between two sets of parameters, in n steps
 
-# 	:param task: task to perform wihtin the loop
-# 	:param dict P: dict of parameters with a tuple of values (start and finish) for each
-# 	:param n: number of steps
-# 	:param dict C: dict of adjustable parameters whose average (the value of C) should stay fixed during the fade
-# 	:param str file: file to which the converged results are written
-# 	:param float tol: precision on the averages
+	:param task: task to perform wihtin the loop
+	:param dict P: dict of parameters with a tuple of values (start and finish) for each
+	:param n: number of steps
+	:param dict C: dict of adjustable parameters whose average (the value of C) should stay fixed during the fade
+	:param str file: file to which the converged results are written
+	:param float tol: precision on the averages
+	:param str method: method used for solving the nonlinear constraints
+	:param maxiter: maximum number of iterations for solving the constraints
+	:param float alpha: parameter used in some non linear solvers (broyden)
+	:param int eps_algo: convergence accelerator parameter in fixed_point
+	:param (float,float) bracket: bracket used in some nonlinear 1D solvers
+	:param float delta: interval used to update the bracket used in some nonlinear 1D solvers
+	:param boolean verb: If True, writes progress reports
 
-# 	"""
-# 	assert type(P) is dict
-# 	assert type(C) is dict
-# 	for x in P:
-# 		assert type(P[x]) is tuple
+	"""
+	assert type(P) is dict
+	assert type(C) is dict
+	for x in P:
+		assert type(P[x]) is tuple
 
-# 	print('Fading procedure in ', n, 'steps :')
-# 	for x in P:
-# 		print(x, ' from ', P[x][0], ' to ', P[x][1])
+	print('Fading procedure in ', n, 'steps :')
+	for x in P:
+		print(x, ' from ', P[x][0], ' to ', P[x][1])
 
-# 	A = np.zeros(len(C)) # allocating the array of fixed average values 
+	# A = np.zeros(len(C)) # allocating the array of fixed average values 
+	A = np.array([C[y] for y in C])
+	nconstr = A.shape[0]
 	
-# 	def F(x):
-# 		global I_current
-# 		for y in C :
-# 			self.set_parameter(y, x, pr=True)
-# 		I = task()
-# 		ave = I.averages()
-# 		B = np.array([ave[y] for y in C]) # average values
-# 		return B-A
+	def F(x):
+		global I_current
+		for y in C :
+			self.set_parameter(y, x, pr=True)
+		I = task()
+		ave = I.averages()
+		B = np.array([ave[y] for y in C]) # average values
+		if verb: print('-------> root search function value: ', B-A)
+		return B-A
 
-# 	par = self.parameters()
-# 	Cv = np.array([par[x] for x in C])
-# 	Z = np.linspace(0.0, 1.0, n)
-# 	for i, z in enumerate(Z):
-# 		for p in P:
-# 			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
-# 		if i==0:
-# 			A = F(Cv)
-# 			x0 = Cv
-# 		else:
-# 			try:
-# 				alpha = X[2]
-# 			except:
-# 				alpha = 0.0
-# 			if method == 'Broyden' : X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=32)
-# 			else : X = pyqcm.fixed_point_iteration(F, x0, xtol=tol, maxiter=32,  alpha = 0.0)
-# 			I = pyqcm.model_instance(self)
-# 			I.averages()
-# 			I.write_summary(file)
-# 			x0 = X[0]
+	par = self.parameters()
+	Cv = np.array([par[x] for x in C])
+	x0 = Cv
+	Z = np.linspace(0.0, 1.0, n, endpoint=True)
+
+	from scipy.optimize import root, root_scalar
+	methods = ['hybr', 'lm', 'broyden1', 'broyden2', 'anderson', 'linearmixing', 'diagbroyden', 'excitingmixing', 'krylov', 'df-sane']
+
+	methods1D = ['bisect','brentq','brenth','ridder','toms748','newton','secant','halley']
+
+	for i, z in enumerate(Z):
+		for p in P:
+			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
+		try:
+			alpha = X[2]
+		except:
+			alpha = 0.0
+		if method == 'Broyden' : 
+			X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=maxiter)
+		elif method == 'fixed_point' : 
+			X = pyqcm.fixed_point_iteration(F, x0, xtol=tol, maxiter=maxiter,  alpha = alpha, eps_algo=eps_algo)
+		elif nconstr==1 and method in methods1D:
+			sol = root_scalar(F, method=method, bracket=bracket, fprime=None, fprime2=None, x0=x0, x1=None, xtol=tol, maxiter=None, options=None)
+			if sol.converged is False:
+				raise(ValueError('Failure of the scipy root_scalar method ' + method + ' in controlled_fade:\n' + sol.flag))
+			X = (sol.root,)
+			bracket = (sol.root-delta, sol.root+delta)
+		elif method in methods:
+			sol_root = root(F, x0, method=method, jac=None, tol=tol, callback=None)
+			if sol_root.success is False:
+				raise(ValueError('Failure of the scipy root method ' + method + ' in controlled_fade:\n' + sol_root.message))
+			X = (sol_root.x,)
+		I = pyqcm.model_instance(self)
+		I.averages()
+		I.write_summary(file)
+		x0 = X[0]
 			
 
 #---------------------------------------------------------------------------------------------------

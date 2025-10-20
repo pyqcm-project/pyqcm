@@ -23,6 +23,7 @@ except ImportError:
     root = True
 
 current_instance = None
+verbose = True
 
 ################################################################################
 # PRIVATE FUNCTIONS
@@ -103,7 +104,7 @@ def _quasi_newton(func=None, start=None, step=None, accur=None, max=10, gtol=1e-
     :return (float, [float], [[float]]): tuple of x (the solution), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
 
     """
-    global root
+    global root, verbose
 
     n = len(start)
     gradient = np.zeros(n)
@@ -126,11 +127,11 @@ def _quasi_newton(func=None, start=None, step=None, accur=None, max=10, gtol=1e-
             hartree_converged = True
             for C in hartree:
                 C.update(current_instance)
-                if root : C.print()
+                if root and verbose: C.print()
                 hartree_converged = hartree_converged and C.converged()
 
         if (np.linalg.norm(gradient) < gtol) and hartree_converged :
-            if root:
+            if root and verbose:
                 print('convergence on gradient after ', iteration, ' iterations')
             break
 
@@ -140,7 +141,7 @@ def _quasi_newton(func=None, start=None, step=None, accur=None, max=10, gtol=1e-
                 converged = False
                 break
         if converged and hartree_converged:
-            if root:
+            if root and verbose:
                 print('convergence on position after ', iteration, ' iterations')
             break
 
@@ -174,6 +175,8 @@ def _quasi_newton_step(iteration = 0, func=None, x=None, step=None, gradient=Non
     :return (float, float, [float], [[float]]): tuple of x (the new point), dx (the difference between the current and previous point), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
 
     """
+    global verbose
+
     n = len(x)
     y = np.zeros(n)
     ihessian = np.eye(n)  # inverse Hessian matrix
@@ -213,10 +216,10 @@ def _quasi_newton_step(iteration = 0, func=None, x=None, step=None, gradient=Non
             if root:
                 s1 = 'Norm of QN iteration variation dx is out of bounds: {} > {}'.format(norm_dx, max_diff)
                 s2 = 'Readjusting: dx = dx * {:.4}%'.format(ratio * 100)
-                print(s1, '\n', s2)
+                if verbose: print(s1, '\n', s2)
 
     x += dx
-    if root: print('QN iteration no ', iteration+1)
+    if root and verbose: print('QN iteration no ', iteration+1)
 
     return x, dx, gradient, ihessian
 
@@ -315,7 +318,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
     :returns (float, [float], [[float]]): the value of the function, the gradient, and the Hessian
 
     """
-    global current_instance
+    global current_instance, root, verbose
 
     n = len(start)
     gradient = np.zeros(n)
@@ -341,7 +344,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
                 hartree_converged  = hartree_converged and C.converged()
 
         if np.linalg.norm(gradient) < gtol and hartree_converged:
-            if root:
+            if root and verbose:
                 print('convergence on gradient after ', iteration, ' iterations')
             break
 
@@ -353,7 +356,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
                 dx *= ratio
                 s1 = 'Norm of NR iteration variation dx is out of bounds: {} > {}'.format(norm_dx, max_iter_diff)
                 s2 = 'Readjusting: dx = dx * {:.4}%'.format(ratio * 100)
-                if root:
+                if root and verbose:
                     print(s1, '\n', s2)
                     
         x += dx
@@ -367,7 +370,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
             if step[i] < step_multiplier*accur[i]:
                 step[i] = step_multiplier*accur[i]
 
-        if root:
+        if root and verbose:
             print('NR iteration no ', iteration, '\t x = ', x, '\t steps = ', step, '\t dx = ', dx)
 
         converged = True
@@ -376,7 +379,7 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
                 converged = False
                 break
         if converged and hartree_converged:
-            if root:
+            if root and verbose:
                 print('convergence on position after ', iteration, ' iterations')
             break
 
@@ -409,11 +412,12 @@ def _newton_raphson_step(func=None, x=None, step=None):
 # checking consistency of accuracy with effective precision
 
 def _vca_accuracy_warning(accur, ihessian):
+    global verbose
 
     accur_SEF = pyqcm.get_global_parameter('accur_SEF')
     inv_der2 = np.diagonal(ihessian)
     inv_der2 = np.sqrt(accur_SEF*np.abs(inv_der2))
-    print('effective VCA precision: ', inv_der2)
+    if verbose: print('effective VCA precision: ', inv_der2)
     for i in range(len(accur)):
         if inv_der2[i] > accur[i]:
             print('WARNING : effective accuracy of variable {:d} lower than what is required. Maybe lower required accuracy (i.e. increase "accur") or lower "accur_SEF"'.format(i+1))
@@ -437,6 +441,7 @@ def _altNR(func=None, start=None, step=None, accur=None, max=10, gtol=1e-4, max_
     :returns (float, float, float): the value of the function, the gradient, and the 2nd derivative
 
     """
+    global verbose
 
     # initial three points
     X = np.zeros(3)
@@ -459,18 +464,18 @@ def _altNR(func=None, start=None, step=None, accur=None, max=10, gtol=1e-4, max_
         der1 = 2*C[0]*xp0 + C[1]
         der2 = 2*C[0]
         dx = np.sqrt(accur_SEF/np.abs(der2))
-        if iter > 1:
+        if iter > 1 and verbose:
             print('---> X :', X, '\tder1 = {:.6g}\tder2 = {:.3g}'.format(der1, der2), '\teffective precision: {:.3g}'.format(dx))
             if dx > accur:
                 print('WARNING : effective accuracy lower than what is required. Maybe lower required accuracy (i.e. increase "accur") or lower "accur_SEF"')
         if np.abs(der1) < gtol:
-            print('VCA 1D : convergence on gradient')
+            if verbose: print('VCA 1D : convergence on gradient')
             break
         I = np.argmax(np.abs(X-xp))
         X[I] = xp
         Y[I] = func([X[I]])
         if iter > 1 and np.abs(xp-xp0) < accur:
-            print('VCA 1D : convergence on position')
+            if verbose: print('VCA 1D : convergence on position')
             break
         xp0 = xp
     if iter == max_iteration:
@@ -502,6 +507,7 @@ class VCA:
     :param boolean hartree_self_consistent: True if the Hartree approximation is treated in the self-consistent, rather than variational, way.
     :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
     :param int var_max_start: label of the first variable for which the function is a maximum (minimal vars first, maximal vars last)
+    :param boolean verb: if True (default) prints ample progress messages
     :return: None
 
     :ivar lattice_model model: (unique) model on which the computation is based
@@ -526,9 +532,12 @@ class VCA:
         hartree_self_consistent=False,
         symmetrized_operator=None,
         var_max_start = None,
-        consistency_check=False
+        consistency_check=False,
+        verb = True
     ):
+        global verbose
         self.model = model
+        verbose = verb
         global SEF_eval
         # type and length checks
         if pyqcm.is_sequence(varia) == False:
@@ -573,6 +582,7 @@ class VCA:
             for i,v in enumerate(varia):
                 start[i] = P[v]
 
+        if pyqcm.is_sequence(start) == False: start = (start,)*nvar
         elif len(start) != nvar:
             print('the argument "start" should have ', nvar, ' components')
             raise pyqcm.MissingArgError('start')
@@ -599,7 +609,7 @@ class VCA:
             if var2sef is None:
                 for i in range(len(varia)): 
                     model.set_parameter(varia[i], x[i])
-                print('x = ', x) # new
+                if verbose: print('x = ', x) # new
             else:
                 var2sef(x)    
             SEF_eval += 1
@@ -613,7 +623,7 @@ class VCA:
             else:
                 pyqcm.banner('VCA procedure, (combined with Hartree procedure) method {:s}'.format(method), '*')
             var_val = pyqcm.varia_table(varia,start)
-            print(var_val)
+            if verbose: print(var_val)
 
         nlopt_methods = {
             'COBYLA': nlopt.LN_COBYLA,
@@ -726,13 +736,14 @@ class VCA:
         if root:
             if iH is not None: 
                 H = np.linalg.inv(iH)  # Hessian at the solution (inverse of iH)
-            print('saddle point = ', sol)
-            if lib_minimization is False: 
-                print('gradient = ', grad)
-                print('second derivatives :', np.diag(H))
-                print('eigenvalues of Hessian :', np.linalg.eigh(H)[0])
-            print('computing properties of converged solution...')
-            print('omega = ', omega)
+            if verbose:
+                print('saddle point = ', sol)
+                if lib_minimization is False: 
+                    print('gradient = ', grad)
+                    print('second derivatives :', np.diag(H))
+                    print('eigenvalues of Hessian :', np.linalg.eigh(H)[0])
+                print('computing properties of converged solution...')
+                print('omega = ', omega)
         self.I.ground_state()
         ave = self.I.averages()
 
@@ -788,7 +799,7 @@ class VCA:
             global SEF_eval
             for i in range(nvar_min): 
                 self.model.set_parameter(names[i], x[i])
-            print('(min) x = ', x) # new
+            if verbose: print('(min) x = ', x) # new
             SEF_eval += 1
             self.I = pyqcm.model_instance(self.model)
             return self.I.Potthoff_functional(hartree)
@@ -796,7 +807,7 @@ class VCA:
             global SEF_eval
             for i in range(nvar_max): 
                 self.model.set_parameter(names[i+nvar_min], x[i])
-            print('(max) x = ', x) # new
+            if verbose: print('(max) x = ', x) # new
             SEF_eval += 1
             self.I = pyqcm.model_instance(self.model)
             return -self.I.Potthoff_functional(hartree)

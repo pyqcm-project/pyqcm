@@ -668,8 +668,7 @@ class lattice_model:
     #-----------------------------------------------------------------------------------------------
     # imports further functions from other source files
 
-    from ._loop import loop_from_file, loop_from_table, linear_loop, controlled_loop, Hartree_procedure, fade
-    # controlled_fade, flexible_loop
+    from ._loop import loop_from_file, loop_from_table, linear_loop, controlled_loop, Hartree_procedure, fade, controlled_fade #,flexible_loop
 
     from ._draw import draw_operator, draw_cluster_operator
 
@@ -1581,7 +1580,7 @@ class model_instance:
                 banner("GROUND STATE INCONSISTENCY FOR CLUSTER {:d}: {:1.7g} (WF) vs {:1.7g} (GF) [diff = {:1.7g} > {:1.7g}]".format(i+1,ave['mu'][0], ng, diffGS, threshold), '+', skip=1)
                 if check_ground_state:
                     raise ValueError("failed GS consistency for cluster {:d}".format(i+1))
-            self.props['ConsistencyCheck_{:d}'.format(i+1)] = diffGS
+            self.props['ConsistencyCheck_{:d}'.format(i+1)] = np.round(diffGS, 8)
 
     #-----------------------------------------------------------------------------------------------
     # methods from _spectral.py
@@ -2421,7 +2420,7 @@ def broyden(F, x0, iJ0 = 0.0, xtol=1e-6, convergence_test=None, maxiter=32, mini
         print('|delta x| = {:1.6g}'.format(dx))
         if dx < xtol and iter >= miniter:
             banner(' Procedure converged on parameters ', '-')
-            convergence_test()
+            if convergence_test != None: convergence_test()
             break
         if convergence_test != None:
             if convergence_test() and iter >= miniter: 
