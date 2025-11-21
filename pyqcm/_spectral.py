@@ -169,7 +169,7 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
     
 
 #---------------------------------------------------------------------------------------------------
-def plot_spectral_function(self, w, A, A_down, path=None, nk=32, orb=None, offset=2, opt='A', inverse_path=False, title=None, file=None, plt_ax=None, style = None,  **kwargs):
+def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='A', inverse_path=False, title=None, file=None, plt_ax=None, style = None,  **kwargs):
     """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
@@ -178,7 +178,6 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, orb=None, offse
     :param ndarray A_down: spectral function data (spin down), from 'compute_spectral_function()'
     :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
     :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
-    :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
     :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
     :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
     :param boolean inverse_path: if True, inverts the path (k --> -k)
@@ -210,11 +209,6 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, orb=None, offse
     mix = self.model.mixing
     plot_down = False
     if mix&4 : plot_down = True
-
-
-    if orb is not None:
-        assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
-        orb -= 1
 
     k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
     if inverse_path:
@@ -539,7 +533,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
 
 
 #---------------------------------------------------------------------------------------------------
-def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, orbs=None, color = 'b', **kwargs):
+def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, orbs=None, real_part=False, color = 'b', **kwargs):
     """Plots the spectral function of the cluster in the site basis
     
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
@@ -554,7 +548,8 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
     :param boolean blocks: if True, gives the GF in the symmetry basis (block diagonal)
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
-    :param [int] orbs: list of orbitals to plot (starts at 1). If None, all are included.   
+    :param [int] orbs: list of orbitals to plot (starts at 1). If None, all are included.
+    :param boolean real_part: if True, plots the real part instead of the imaginary part.
     :param color: matplotlib color of the curves
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: the array of frequencies, the spectral weight
@@ -589,7 +584,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
         dd = d
         plt.yticks(offset*np.arange(0, d), [str(O[i]) for i in range(d)])
 
-    A = np.zeros((len(w), dd))
+    A = np.zeros((len(w), dd), dtype=complex)
     for i in range(len(w)):
         if opt is None:
             g = self.cluster_Green_function(w[i], clus, spin_down, blocks) # run of the mill cluster green function
@@ -603,23 +598,25 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
             l = 0
             for j in range(d):
                 for k in range(d):
-                    A[i, l] += -g[O[j], O[k]].imag
+                    A[i, l] += g[O[j], O[k]]
                     l += 1
         else:        
             for j in range(d):
-                A[i, j] += -g[O[j], O[j]].imag
+                A[i, j] += g[O[j], O[j]]
 
-    max = np.max(A)
+    max = np.max(np.abs(A))
     plt.ylim(0, dd * offset + max)
 
     if imaginary:
         ax.set_xlim(np.imag(w[0]), np.imag(w[-1]))
         for j in range(dd):
-            plt.plot(np.imag(w), A[:, j] + offset * j, '-', lw=0.5, color=color, **kwargs)
+            if real_part: plt.plot(np.imag(w), A[:, j].real + offset * j, '-', lw=0.5, color=color, **kwargs)
+            else: plt.plot(np.imag(w), -A[:, j].imag + offset * j, '-', lw=0.5, color=color, **kwargs)
     else:
         ax.set_xlim(np.real(w[0]), np.real(w[-1]))
         for j in range(dd):
-            plt.plot(np.real(w), A[:, j] + offset * j, '-', lw=0.5, color=color, **kwargs)
+            if real_part: plt.plot(np.real(w), A[:, j].real + offset * j, '-', lw=0.5, color=color, **kwargs)
+            else: plt.plot(np.real(w), -A[:, j].imag + offset * j, '-', lw=0.5, color=color, **kwargs)
 
     plt.xlabel(r'$\omega$')
     plt.axvline(0, ls='solid', lw=0.5)
@@ -736,7 +733,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param boolean spin_up: only plots the spin up bands, even if mixing is nonzero
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :return: None
+    :return: w, A : the complex frequency array and the DoS array
     
     """
     from cycler import cycler
@@ -794,7 +791,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
         for i in range(nband):
             head += 'cumul_down_{:d}\t'.format(i+1)
     np.savetxt(data_file, np.hstack((np.reshape(np.real(w), (nw, 1)), A, accum)), header=head, delimiter='\t', fmt='%1.6g', comments='')
-    self.write_summary(data_file)
+    self.write_summary(data_file, commented=True)
     print('DoS totals: ', total)
 
     if plot == False: return
@@ -823,6 +820,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     elif plt_ax is None:
         plt.show()
 
+    return w, A
 
 #---------------------------------------------------------------------------------------------------
 def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='GF', k_perp = 0, freq = 0.0, max=None, plane = 'xy', band_basis=False, sym=None, file=None, plt_ax=None, data_file=None, **kwargs):
@@ -1172,7 +1170,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
     if self.model.mixing != 4 and spin_down:
         raise ValueError("cannot use spin_down=True in 'plot_dispersion()' when mixing not equal to 4")
         
-    orbs = pyqcm.orbital_manager(orb, from_zero=False)
+    orbs = pyqcm.orbital_manager(orb, from_zero=True)
 
     if plt_ax is None:
         plt.figure()
@@ -1223,7 +1221,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
         plt.show()
 
 #---------------------------------------------------------------------------------------------------
-def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = None, **kwargs):
+def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = None, colors=None, **kwargs):
     """Plots the dispersion relation in the Brillouin zone along a wavevector path
 
     :param str path: wavevector path, as used by the function wavevector_path()
@@ -1231,6 +1229,7 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param orb: orbital (or sequence of orbitals) to plot. None for all.
+    :param [str] : colors of the different orbitals
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: None
 
@@ -1248,6 +1247,12 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
     else:
         ax = plt_ax
 
+    if colors is None: 
+        prop_cycle = plt.rcParams['axes.prop_cycle']
+        colors = prop_cycle.by_key()['color'] 
+    elif type(colors) is not list: colors = [colors]
+    ncol = len(colors)
+
     k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
     d = self.model.dimGF_red
     e = self.dispersion(k)
@@ -1256,12 +1261,12 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
         orb = range(1,d+1)
 
     for i in orb:
-        ax.plot(e[:,i-1], label=str(i+1), **kwargs)
+        ax.plot(e[:,i-1], label=str(i+1), c=colors[i%ncol], **kwargs)
 
     if self.model.mixing == 4:
         e = self.dispersion(k, True)
         for i in orb:
-            ax.plot(e[:,i-1], label=str(i+1), **kwargs)
+            ax.plot(e[:,i-1], label=str(i+1), c=colors[i], **kwargs)
 
     
     for x in tick_pos:
@@ -1277,6 +1282,97 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
         plt.close()
     elif plt_ax is None:
         plt.show()
+
+#---------------------------------------------------------------------------------------------------
+def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, plt_ax=None, scale=1, **kwargs):
+    """Plots the dispersion relation in the Brillouin zone along a wavevector path
+
+    :param str path: wavevector path, as used by the function wavevector_path()
+    :param orb: orbital (or sequence of orbitals) to plot.
+    :param boolean width: if True, plots the fat bands with variable width (otherwise uses a gray scale)
+    :param int nk: number of wavevectors on each side of the grid
+    :param str file: if not None, saves the plot in a file with that name
+    :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param [str] : colors of the different orbitals
+    :param kwargs: keyword arguments passed to the matplotlib 'plot' function
+    :return: None
+
+    """
+    from matplotlib.patches import Rectangle
+    from matplotlib.collections import LineCollection
+    import matplotlib.colors as colors
+
+    if path==None:
+        if self.model.dim == 1 : path = 'line'
+        else : path = 'triangle'
+
+    if plt_ax is None:
+        plt.figure()
+        plt.gcf().set_size_inches(14/2.54, 14/2.54)
+        ax = plt.gca()
+        plt.title(self.model.parameter_string(clus=0), fontsize=6)
+    else:
+        ax = plt_ax
+
+    if type(orb) is int:
+        orb = (orb,)
+    
+    k, tick_pos, tick_str = pyqcm.wavevector_path(nk, path)  # defines the array of wavevectors
+    nk = k.shape[0]
+    d = self.model.dimGF_red
+    M = self.epsilon(k)
+    e = np.zeros((nk,d))
+    w = np.zeros((nk,d))
+
+    min_e = 1e6
+    max_e = -1e6
+    for i in range(nk):
+        V, W = np.linalg.eigh(M[i,:,:])
+        for o in orb:
+            w[i,:] += np.abs(W[o,:])**2
+        e[i,:] = V
+        min_e = np.min((min_e, np.min(e)))
+        max_e = np.max((max_e, np.max(e)))
+    norm = colors.Normalize(vmin=0, vmax=np.max(w))
+    ax.set_ylim(min_e,max_e)
+    wi = 1
+    max = np.max(w)
+    scale = 10*scale/max
+
+    N = 256
+    col = np.zeros((N, 4))
+    col[:, 0] = 0.0
+    col[:, 1] = 0.0
+    col[:, 2] = 0.0
+    col[:, 3] = np.linspace(0, 1, N)   # alpha gradient
+    cmap = colors.ListedColormap(col)
+
+    for i in range(d):
+        points = np.column_stack([np.arange(nk), e[:,i]])
+        seg = np.stack([points[:-1], points[1:]], axis=1)
+        if width:
+            lc = LineCollection(seg, colors='b', linewidths = scale*w[:,i])
+        else:
+            lc = LineCollection(seg, cmap=cmap, norm=norm, array=w[:,i], linewidth=2)
+
+        ax.add_collection(lc)
+
+    for x in tick_pos:
+        ax.axvline(x, ls='solid', lw=0.5)
+    ax.axhline(0, ls='solid', lw=0.5, color='r')
+    
+    ax.set_xticks(tick_pos)
+    ax.set_xticklabels(tick_str)
+    ax.set_xlim(0,len(k)-1)
+
+    if file is not None:
+        plt.savefig(file)
+        plt.close()
+    elif plt_ax is None:
+        plt.show()
+        if width is False: plt.colorbar(lc, label="weight")
+    
+    return lc
 
 #---------------------------------------------------------------------------------------------------
 def Fermi_surface(self, nk=64, orb=None, zone=((0,0),1), plane='xy', k_perp=0.0, file=None, plt_ax=None, **kwargs):
@@ -1721,10 +1817,11 @@ def Berry_flux(self, k0, R, nk=40, plane='xy', orb=None):
     return qcm.Berry_flux(k, orb, self.label)
 
 #---------------------------------------------------------------------------------------------------
-def monopole_map(self, nk=40, orb=None, plane='z', k_perp=0.0, file=None, plt_ax = None, **kwargs):
+def monopole_map(self, nk=40, nk_cube=5, orb=None, plane='z', k_perp=0.0, file=None, plt_ax = None, **kwargs):
     """Creates a plot of the monopole density (divergence of B) as a function of wavevector
 
     :param int nk: number of wavevector grid points on each side
+    :param int nk_cube: number of wavevector grid points on each side of each cube around each point
     :param str plane: momentum plane, 'xy'='z', 'yz'='x'='zy' or 'xz'='zx'='y'
     :param str k_perp: offset in wavevector in the direction perpendicular to the plane (x pi)
     :param int orb: the orbital to use in the computation (1 to number of bands). None (default) means a sum over all bands.
@@ -1750,7 +1847,7 @@ def monopole_map(self, nk=40, orb=None, plane='z', k_perp=0.0, file=None, plt_ax
     K = pyqcm.wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
     B = np.zeros(nk*nk)
     for i, k in enumerate(K):
-        B[i] = self.monopole(2.0*k, a=2.0/nk, nk=5, orb=orb)
+        B[i] = self.monopole(2.0*k, a=2.0/nk, nk=nk_cube, orb=orb)
 
     ext = [-1, 1,-1,1]
     B = np.reshape(B,(nk,nk)) # transpose because y affects the row number and x the column number

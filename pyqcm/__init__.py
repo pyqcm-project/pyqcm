@@ -104,6 +104,7 @@ class cluster_model:
         self.n_sites = n_sites 
         self.n_bath = n_bath 
         self.generators = generators 
+        self.gbath = None
         self.is_closed = False 
         qcm.new_model(name, n_sites, n_bath, generators, bath_irrep)
 
@@ -204,6 +205,8 @@ class cluster:
         elif isinstance(X, cluster):
             self.ref = X
             self.cluster_model = X.cluster_model
+        else:
+            raise ValueError('first argument of cluster() must be a cluster model or another cluster')
         self.pos = pos
         self.sites = sites
         self.index = 0
@@ -1507,7 +1510,7 @@ class model_instance:
         return 0.5*S
 
     #-----------------------------------------------------------------------------------------------
-    def write_summary(self, f):
+    def write_summary(self, f, commented=False):
         """
         Writes a summary of the properties of the model instance in a file
         
@@ -1519,8 +1522,12 @@ class model_instance:
         self.props['version'] = __version__
         self.props['time'] = time.strftime("%Y-%m-%d@%H:%M", time.localtime()) # adds the timestamp
 
-        des = ''
-        val = ''
+        if commented:
+            des = '#'
+            val = '#'
+        else:
+            des = ''
+            val = ''
         for x in sorted(self.props.keys()):
             des += x + '\t'
             if type(self.props[x]) == float:
@@ -1585,7 +1592,7 @@ class model_instance:
     #-----------------------------------------------------------------------------------------------
     # methods from _spectral.py
     
-    from ._spectral import compute_spectral_function_shared, plot_spectral_function, spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile, wavevector_path_2_str
+    from ._spectral import compute_spectral_function_shared, plot_spectral_function, spectral_function, plot_hybridization_function, cluster_spectral_function, spectral_function_Lehmann, gap, plot_DoS, mdc, spin_mdc, mdc_anomalous, plot_dispersion, segment_dispersion, segment_dispersion_fat, Fermi_surface, G_dispersion, Luttinger_surface, plot_momentum_profile, plot_host_hybrid, Berry_field_map, Berry_flux_map, monopole_map, Berry_flux, monopole, Chern_number, Berry_curvature, plot_profile, wavevector_path_2_str
 
 
 ####################################################################################################
@@ -2190,7 +2197,8 @@ def orbital_manager(orbitals, from_zero=False):
 
     if orbitals is None:
         nbands = qcm.model_size()[1]
-        orb_list = [i for i in range(1, nbands+1)]
+        if qcm.mixing() == 2 : nbands *= 2
+        orb_list = range(1, nbands+1)
 
     elif type(orbitals) is int:
         orb_list = [orbitals]

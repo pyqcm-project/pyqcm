@@ -57,7 +57,6 @@ void gauss_kronrod(const int ncomp, integrand_t_vec integrand, double a, double 
 double w_domain; //! domain of the frequency integral
 double iw_cutoff;
 Complex frequency; //! frequency of a particular k-integral
-double the_accuracy;
 
 function<void (Complex w, const int *nv, double I[])> w_integrand;
 function<void (Complex w, vector3D<double> &k, const int *nv, double I[])> wk_integrand;
