@@ -57,7 +57,7 @@ def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
 
 #---------------------------------------------------------------------------------------------------
 def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', orb=None, opt='A', Nambu_redress=True, inverse_path=False):
-    """Computes the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
+    r"""Computes the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
     This is a shared-memory implementation. The arrays A and A_down are shared across multiple processes.
 
@@ -170,7 +170,7 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
 
 #---------------------------------------------------------------------------------------------------
 def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='A', inverse_path=False, title=None, file=None, plt_ax=None, style = None,  **kwargs):
-    """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
+    r"""Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
     :param ndarray w: array of complex frequencies, from 'compute_spectral_function()'
@@ -280,7 +280,7 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='
 
 #---------------------------------------------------------------------------------------------------
 def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', orb=None, offset=2, opt='A', Nambu_redress=True, inverse_path=False, title=None, file=None, plt_ax=None, style = None,  data_file='spectral_data', **kwargs):
-    """Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
+    r"""Plots the spectral function :math:`A(\mathbf{k},\omega)` along a wavevector path in the Brillouin zone.
     This version plots the spin-down part with the correct sign of the frequency in the Nambu formalism.
 
     :param float wmax: the frequency range is from -wmax to wmax if w is a float. If wmax is a tuple then the range is (wmax[0], wmax[1]). wmax can also be an explicit list of real frequencies
@@ -1287,15 +1287,15 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
 def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, plt_ax=None, scale=1, **kwargs):
     """Plots the dispersion relation in the Brillouin zone along a wavevector path
 
-    :param str path: wavevector path, as used by the function wavevector_path()
     :param orb: orbital (or sequence of orbitals) to plot.
     :param boolean width: if True, plots the fat bands with variable width (otherwise uses a gray scale)
+    :param str path: wavevector path, as used by the function wavevector_path()
     :param int nk: number of wavevectors on each side of the grid
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
-    :param [str] : colors of the different orbitals
+    :param float scale : relative scale of the fat bands, multiplied by the default, which is one fifieth of the maximum range of vertical data.
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :return: None
+    :return: None or LineCollection, depending on the value of width
 
     """
     from matplotlib.patches import Rectangle
@@ -1333,29 +1333,29 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, p
         e[i,:] = V
         min_e = np.min((min_e, np.min(e)))
         max_e = np.max((max_e, np.max(e)))
-    norm = colors.Normalize(vmin=0, vmax=np.max(w))
-    ax.set_ylim(min_e,max_e)
-    wi = 1
-    max = np.max(w)
-    scale = 10*scale/max
 
-    N = 256
-    col = np.zeros((N, 4))
-    col[:, 0] = 0.0
-    col[:, 1] = 0.0
-    col[:, 2] = 0.0
-    col[:, 3] = np.linspace(0, 1, N)   # alpha gradient
-    cmap = colors.ListedColormap(col)
+    ax.set_ylim(min_e,max_e)
+    scale = (max_e-min_e)*scale/(50*np.max(w))
+    X = np.arange(nk)
+
+    if width is False:
+        N = 256
+        col = np.zeros((N, 4))
+        col[:, 0] = 0.0
+        col[:, 1] = 0.0
+        col[:, 2] = 0.0
+        col[:, 3] = np.linspace(0, 1, N)   # alpha gradient
+        cmap = colors.ListedColormap(col)
+        norm = colors.Normalize(vmin=0, vmax=np.max(w))
 
     for i in range(d):
-        points = np.column_stack([np.arange(nk), e[:,i]])
-        seg = np.stack([points[:-1], points[1:]], axis=1)
         if width:
-            lc = LineCollection(seg, colors='b', linewidths = scale*w[:,i])
+            ax.fill_between(X, e[:,i] - scale*w[:,i], e[:,i] + scale*w[:,i], color='b', lw=0)
         else:
+            points = np.column_stack([np.arange(nk), e[:,i]])
+            seg = np.stack([points[:-1], points[1:]], axis=1)
             lc = LineCollection(seg, cmap=cmap, norm=norm, array=w[:,i], linewidth=2)
-
-        ax.add_collection(lc)
+            ax.add_collection(lc)
 
     for x in tick_pos:
         ax.axvline(x, ls='solid', lw=0.5)
@@ -1372,11 +1372,12 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, p
         plt.show()
         if width is False: plt.colorbar(lc, label="weight")
     
-    return lc
+    if width: return None
+    else: return lc
 
 #---------------------------------------------------------------------------------------------------
 def Fermi_surface(self, nk=64, orb=None, zone=((0,0),1), plane='xy', k_perp=0.0, file=None, plt_ax=None, **kwargs):
-    """Plots the Fermi surface of the non-interacting model (2D)
+    r"""Plots the Fermi surface of the non-interacting model (2D)
 
     :param int nk: number of wavevectors on each side of the grid
     :param int orb: if None, plots all the orbitals. Otherwise just plots the FS for that orbital (starts at 1)
