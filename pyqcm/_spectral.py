@@ -70,14 +70,19 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
     :param str period: periodization scheme ('G' - default, 'M', 'S', 'C', 'N'). If 'N', deals with a bigger matrix (sites in the repeated unit).
     :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
     :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
-    :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
+    :param str opt: 'A' : spectral function, 'self' : self-energy
     :param boolean Nambu_redress: if True, evaluates the Nambu component at the opposite frequency
     :param boolean inverse_path: if True, inverts the path (k --> -k)
     :return: None
 
     """
 
-    orbs = pyqcm.orbital_manager(orb, from_zero=True)
+    if pyqcm.is_sequence(orb) and pyqcm.is_sequence(orb[0]):
+        n_orbs = len(orb)
+        orbs = [pyqcm.orbital_manager(orb[i], from_zero=True) for i in range(n_orbs)]        
+    else:
+        orbs = [pyqcm.orbital_manager(orb, from_zero=True)]
+        n_orbs = 1
 
     if path==None:
         if self.model.dim == 1 : path = 'line'
@@ -88,9 +93,9 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
 
     mix = self.model.mixing
 
-    if orb is not None:
-        assert (orb <= self.model.nband and orb > 0), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(norb)
-        orb -= 1
+    for os in orbs:
+        for o in os:
+            assert (o < self.model.nband and o > -1), 'The orbital index in spectral_function() must vary from 1 to {:d}'.format(self.model.nband)
 
     w = pyqcm.frequency_array(wmax, eta)
 
@@ -102,30 +107,25 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
     k_str = self.wavevector_path_2_str(k)
 
     A_shm = SharedMemory(name=A_sh_name)
-    A = np.ndarray((len(w), len(k)), buffer=A_shm.buf)
+    A = np.ndarray((n_orbs, len(w), len(k)), buffer=A_shm.buf)
     A_down_shm = SharedMemory(name=A_down_sh_name)
-    A_down = np.ndarray((len(w), len(k)), buffer=A_down_shm.buf)
- 
+    A_down = np.ndarray((n_orbs, len(w), len(k)), buffer=A_down_shm.buf)
+
     plot_down = False
     for i in range(irange[0], irange[1]):
-        if opt=='selfabs':
+        if opt=='self':
             g = self.self_energy(w[i], k, False)
-            for j in range(len(k)):
-                A[i, j] += np.sqrt(np.linalg.norm(g[j, 0:norb, 0:norb]))
-
-        else:
-            if opt=='self':
-                g = self.self_energy(w[i], k, False)
-            elif opt=='A':
-                g = self.periodized_Green_function(w[i], k, False)
-            for j in range(len(k)):
-                for l in orbs: 
-                    A[i, j] += -g[j, l, l].imag
+        elif opt=='A':
+            g = self.periodized_Green_function(w[i], k, False)
+        for j in range(len(k)):
+            for io, o in enumerate(orbs):    
+                for l in o: 
+                    A[io, i, j] += -g[j, l, l].imag
 
                 if mix&2:  
                     plot_down = True
-                    for l in orbs: 
-                        A_down[i, j] += -g[j, norb+l, norb+l].imag
+                    for l in o: 
+                        A_down[io, i, j] += -g[j, norb+l, norb+l].imag
 
     if mix == 1:
         # add the contribution to the Nambu channel, but with opposite frequency
@@ -136,36 +136,28 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, wm
                 W = -np.conj(w[i])
             else:
                 W = w[i]
-            if opt=='selfabs':
+            if opt=='self':
                 g = self.self_energy(W, k, False)
-                for j in range(len(k)):
-                    A[i, j] += np.sqrt(np.linalg.norm(g[j, norb:2*norb, norb:2*norb]))
-            else:
-                if opt=='self':
-                    g = self.self_energy(W, k, False)
-                elif opt=='A':
-                    g = self.periodized_Green_function(W, k, False)
-                for j in range(len(k)):
+            elif opt=='A':
+                g = self.periodized_Green_function(W, k, False)
+            for j in range(len(k)):
+                for io, o in enumerate(orbs):    
                     plot_down = True
-                    for l in orbs: 
-                        A_down[i, j] += -g[j, norb+l, norb+l].imag
+                    for l in o: 
+                        A_down[io, i, j] += -g[j, norb+l, norb+l].imag
 
     if mix == 4:
         plot_down = True
         # add the contribution to the spin-down channel in that case
         for i in range(irange[0], irange[1]):
-            if opt=='selfabs':
-                g = self.self_energy(w[i], k, False)
-                for j in range(len(k)):
-                    A[i, j] += np.sqrt(np.linalg.norm(g[j,: ,:]))
+            if opt=='self':
+                g = self.self_energy(w[i], k, True)
             else:
-                if opt=='self':
-                    g = self.self_energy(w[i], k, True)
-                else:
-                    g = self.periodized_Green_function(w[i], k, True)
-                for j in range(len(k)):
-                    for l in orbs: 
-                        A_down[i, j] += -g[j, l, l].imag
+                g = self.periodized_Green_function(w[i], k, True)
+            for j in range(len(k)):
+                for io, o in enumerate(orbs):    
+                    for l in o: 
+                        A_down[io, i, j] += -g[j, l, l].imag
     
 
 #---------------------------------------------------------------------------------------------------
@@ -1442,6 +1434,9 @@ def G_dispersion(self, nk=64, orb=None, period = 'G', contour=False, inv=False, 
     """
 
     orbs = pyqcm.orbital_manager(orb, from_zero=True)
+
+
+
     if plt_ax is None:
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
