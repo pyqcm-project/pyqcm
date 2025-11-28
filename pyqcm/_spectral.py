@@ -1276,7 +1276,7 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
         plt.show()
 
 #---------------------------------------------------------------------------------------------------
-def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, plt_ax=None, scale=1, **kwargs):
+def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, data_file=None, plt_ax=None, scale=1, **kwargs):
     """Plots the dispersion relation in the Brillouin zone along a wavevector path
 
     :param orb: orbital (or sequence of orbitals) to plot.
@@ -1284,6 +1284,7 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, p
     :param str path: wavevector path, as used by the function wavevector_path()
     :param int nk: number of wavevectors on each side of the grid
     :param str file: if not None, saves the plot in a file with that name
+    :param str data_file: if not None, saves the data in two files with that prefix
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param float scale : relative scale of the fat bands, multiplied by the default, which is one fifieth of the maximum range of vertical data.
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
@@ -1329,6 +1330,11 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, file=None, p
     ax.set_ylim(min_e,max_e)
     scale = (max_e-min_e)*scale/(50*np.max(w))
     X = np.arange(nk)
+
+    # saving data to file
+    if data_file is not None:
+        np.savetxt(data_file+'_e.tsv', e, delimiter='\t', fmt='%1.6g')
+        np.savetxt(data_file+'_w.tsv', w, delimiter='\t', fmt='%1.6g')
 
     if width is False:
         N = 256
