@@ -198,12 +198,19 @@ message(STATUS "Python libs: ${Python3_LIBRARIES}")
 # -------------------------------------
 
 if(EIGEN_HAMILTONIAN)
-  find_package(Eigen3 REQUIRED)
-  target_include_directories(qcm PUBLIC ${EIGEN3_INCLUDE_DIR})
+  find_package(Eigen3 REQUIRED NO_MODULE)
+  target_link_libraries(qcm PUBLIC Eigen3::Eigen)
   message(STATUS "Compile with Eigen Hamiltonian format 'E'")
-  message(STATUS "Eigen3 directory: ${EIGEN3_INCLUDE_DIR}")
   add_compile_definitions(EIGEN_HAMILTONIAN)
 endif()
+
+#if(EIGEN_HAMILTONIAN)
+#  find_package(Eigen3 REQUIRED NO_MODULE)
+#  target_include_directories(qcm PUBLIC ${EIGEN3_INCLUDE_DIR})
+#  message(STATUS "Compile with Eigen Hamiltonian format 'E'")
+#  message(STATUS "Eigen3 directory: ${EIGEN3_INCLUDE_DIR}")
+#  add_compile_definitions(EIGEN_HAMILTONIAN)
+#endif()
 
 # ------------------
 # PRIMME Eigensolver
@@ -332,14 +339,32 @@ endif()
 # ----------------------------
 
 if(USE_OPENMP)
+
+  if(APPLE)
+    execute_process(
+      COMMAND brew --prefix libomp
+      OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+    set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+    set(OpenMP_C_LIB_NAMES "omp")
+    set(OpenMP_CXX_LIB_NAMES "omp")
+    set(OpenMP_omp_LIBRARY "${HOMEBREW_LIBOMP_PREFIX}/lib/libomp.dylib")
+
+    set(OpenMP_ROOT "${HOMEBREW_LIBOMP_PREFIX}")
+    message(STATUS "openMP library : ${HOMEBREW_LIBOMP_PREFIX}")
+  endif()
+
   find_package(OpenMP REQUIRED)
+  target_link_libraries(qcm PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 # -----------------
 # Link dependencies
 # -----------------
 
-target_link_libraries(qcm ${Python3_LIBRARIES} ${LAPACK_LIBRARIES}
+target_link_libraries(qcm PUBLIC ${Python3_LIBRARIES} ${LAPACK_LIBRARIES}
                       ${CUBA_LIBRARY} ${PRIMME_LIBRARY} OpenMP::OpenMP_CXX)
 
 target_include_directories(

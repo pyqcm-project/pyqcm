@@ -79,7 +79,7 @@ void Hamiltonian_Operator<HilbertField>::HS_ops_map(const map<string, double> &v
     }
 
     //construct the Hamiltonian in parallel
-    #pragma omp parallel for schedule(dynamic,1)
+    //#pragma omp parallel for schedule(dynamic,1)
     for (auto& x : keys) {
         Hermitian_operator& op = *this->the_model->term.at(x);
         if(op.HS_operator.find(this->sec) == op.HS_operator.end()){

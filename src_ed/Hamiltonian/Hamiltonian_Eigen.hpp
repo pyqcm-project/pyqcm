@@ -107,12 +107,10 @@ void Hamiltonian_Eigen<HilbertField>::HS_ops_map(const map<string, double> &valu
         keys.push_back(x.first);
     }
     //construct the Hamiltonian in parallel
-    #pragma omp parallel for schedule(dynamic, 1)
-    //for (auto& x : value){
-    for (auto& x : keys) {
-        Hermitian_operator& op = *this->the_model->term.at(x);
+    // #pragma omp parallel for
+    for(size_t i = 0; i < keys.size(); ++i){
+        Hermitian_operator& op = *this->the_model->term.at(keys[i]);
         if(op.HS_operator.find(this->sec) == op.HS_operator.end()){
-            // cout << this->the_model->name+" : building "+op.name+" in "+to_string<sector>(this->sec)+'\n' << std::flush;
             op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex); // ***TEMPO***
         }
     }
