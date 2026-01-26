@@ -1567,8 +1567,16 @@ class model_instance:
         if des != self.model.descrpt[f]:
             first = True
         
+        try:
+            fin = open(f, 'r')
+            head = fin.readline()
+            head = head.rstrip()
+            fin.close()
+        except:
+            head = ''
+            pass
         fout = open(f, 'a')
-        if first:
+        if first and (head.strip() != des.strip()):
             fout.write(des + '\n')
         fout.write(val  + '\n')
         fout.close()

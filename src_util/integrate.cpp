@@ -126,7 +126,7 @@ void QCM::wk_integral(int dim, function<void (Complex w, vector3D<double> &k, co
 	cuba_maxpoints=10000;
 	if(ndim==2){
 		cuba_mineval=(int)global_int("cuba2D_mineval");
-		cuba_maxpoints=100000;
+		cuba_maxpoints=500000;
 	}
 	else if(ndim==3){
 		cuba_mineval=(int)global_int("cuba3D_mineval");
