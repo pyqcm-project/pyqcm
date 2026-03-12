@@ -53,6 +53,7 @@ static PyMethodDef methods[] = {
     //-------------------- QCM
     //--------------------------------------------------------------
     {"add_cluster", add_cluster_python, METH_VARARGS, add_cluster_help},
+    {"add_system", add_system_python, METH_VARARGS, add_system_help},
     {"anomalous_operator", (PyCFunction)anomalous_operator_python, METH_VARARGS | METH_KEYWORDS, anomalous_operator_help},
     {"averages", averages_python, METH_VARARGS, averages_help},
     {"band_Green_function", band_Green_function_python, METH_VARARGS, band_Green_function_help},
@@ -119,7 +120,6 @@ static PyMethodDef methods[] = {
     {"site_and_bond_profile", site_and_bond_profile_python, METH_VARARGS, site_and_bond_profile_help},
     {"spatial_dimension", spatial_dimension_python, METH_VARARGS, spatial_dimension_help},
     {"spectral_average", spectral_average_python, METH_VARARGS, spectral_average_help},
-    {"switch_cluster_model", switch_cluster_model_python, METH_VARARGS, switch_cluster_model_help},
     {"tk", tk_python, METH_VARARGS, tk_help},
     {"V_matrix", V_matrix_python, METH_VARARGS, V_matrix_help},
     {NULL, NULL, 0, NULL}};

@@ -844,7 +844,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='G
     
     """
     if spin_down and self.model.mixing != 4:
-        raise RuntimeError('spin_down can only be True is mixing = 4')
+        raise ValueError('spin_down can only be True is mixing = 4')
     if plt_ax is None:
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
@@ -980,7 +980,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, zone=((0,0),1), opt='spin', freq =
 
     mix = self.model.mixing
     if mix != 2 and mix != 3:
-        raise RuntimeError('spin_mdc() makes sense only if spin-flip terms are present')
+        raise ValueError('spin_mdc() makes sense only if spin-flip terms are present')
     
     k, x, y = __kgrid(ax, nk, zone=zone, k_perp=k_perp, plane=plane)
 
@@ -1628,12 +1628,6 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, yli
     :return: None
 
     """
-
-    # try:
-    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label) # second argument 0 means "spin up part"
-    # except:
-    #     qcm.CDMFT_host(w, np.ones(len(w)), self.label)
-    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label)
 
     qcm.CDMFT_host(w, np.ones(len(w)), self.label)
     H = pyqcm.qcm.get_CDMFT_host(clus, False, self.label)

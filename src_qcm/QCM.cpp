@@ -755,34 +755,49 @@ check_instance(label);
   
   /**
    * Adds a cluster to the supercluster (or repeated unit)
-   * @param name name of the cluster model
    * @param cpos base position of the cluster
    * @param pos array of the positions of the different sites of the cluster, with respect to the base position of the cluster
+   * @param ref if cluster is equivalent to another cluster, index of that cluster. If not, cluster index.
+   * @param conj true if cluster is equivalent to the complex conjugate of its master
    */
-  void add_cluster(const string &name, const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref, bool conj)
+  void add_cluster(const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref, bool conj)
   {
     if(qcm_model->is_closed){
       qcm_warning("model already created. Ignoring.");
       return;
     }
-    auto tmp = ED::model_size(name);
-    try{
-      if(get<0>(tmp) != pos.size()) qcm_throw("The number of sites of cluster "+name+" is inconsistent with the cluster model");
-    } catch(const string& s) {qcm_catch(s);}
-    if(get<1>(tmp) > 0) qcm_model->bath_exists = true;
-    for(size_t i=0; i<pos.size(); i++){
-      qcm_model->sites.push_back({qcm_model->clusters.size(), i, 0, pos[i]+cpos});
-    }
-    if (ref == 0){
-      ref = qcm_model->clusters.size()+1;
-      qcm_model->inequiv.push_back(qcm_model->clusters.size());
-    }
-    qcm_model->clusters.push_back({get<0>(tmp), get<1>(tmp), qcm_model->sites.size(), name, cpos, ref-1, 0, get<2>(tmp), conj});
-    // n_sites, n_bath, offset, name, position, ref, mixing, n_sym
-
+    for(size_t i=0; i<pos.size(); i++) qcm_model->sites.push_back({qcm_model->clusters.size(), i, 0, pos[i]+cpos});
+    if(ref == 0) ref = qcm_model->clusters.size();
+    qcm_model->clusters.push_back({pos.size(), qcm_model->sites.size(), cpos, ref, 0, conj, 0, 0});
+    // n_sites, n_bath, offset, name, position, ref, mixing, sys_start, nsys
   }
   
   
+  /**
+   * Adds a system to the lattice model (or repeated unit)
+   * @param name name of the cluster model
+   * @param clus cluster this model is associated to (starts at 0)
+   */
+  void add_system(const string &name, const int clus)
+  {
+    if(qcm_model->is_closed){
+      qcm_warning("model already created. Ignoring.");
+      return;
+    }
+    if(clus > qcm_model->clusters.size())
+      qcm_throw("This system cannot be added to the cluster (out of range, or maybe clusters not yet added to lattice model)");
+  
+    auto tmp = ED::model_size(name);
+    try{
+      if(get<0>(tmp) != qcm_model->clusters[clus].n_sites) qcm_throw("The number of sites of cluster "+name+" is inconsistent with the cluster model");
+    } catch(const string& s) {qcm_catch(s);}
+    if(get<1>(tmp) > 0) qcm_model->bath_exists = true;
+    // n_sites, n_bath, name, clus, mixing, n_sym
+    qcm_model->systems.push_back({get<0>(tmp), get<1>(tmp), name, clus, 0, get<2>(tmp)});
+  }
+  
+  
+
   /**
    * defines a new lattice model
    * In the current version, there is a single lattice model in memory
@@ -956,21 +971,40 @@ check_instance(label);
   
   /**
    * returns some information about the clusters in an array of 4-tuples
-   * for each cluster of the repeated unit: 1. the name of the cluster model, 2. the number of sites, 3. the number of bath sites, 4. the dimension of the Green function
+   * for each cluster of the repeated unit: 1. the number of sites, 2. the number of systems, 3. the index of the first system, 4. the dimension of the Green function
    */
   vector<tuple<string, int, int, int, int>> cluster_info()
   {
     vector<tuple<string, int, int, int, int>> info(qcm_model->clusters.size());
     for(int i=0; i<info.size(); i++){
-      get<0>(info[i]) = qcm_model->clusters[i].name;
-      get<1>(info[i]) = (int)qcm_model->clusters[i].n_sites;
-      get<2>(info[i]) = (int)qcm_model->clusters[i].n_bath;
+      get<0>(info[i]) = (int)qcm_model->clusters[i].n_sites;
+      get<1>(info[i]) = (int)qcm_model->clusters[i].nsys;
+      get<2>(info[i]) = (int)qcm_model->clusters[i].sys_start;
       get<3>(info[i]) = (int)qcm_model->clusters[i].n_sites*qcm_model->n_mixed;
-      get<4>(info[i]) = (int)qcm_model->clusters[i].n_sym;
     }
     return info;
   }
-  
+
+
+
+  /**
+   * returns some information about the systems in an array of 4-tuples
+   * for each system: 1. the name, 2. the number of sites, 3. the number of bath orbitals, 4. the label of the cluster
+   */
+  vector<tuple<string, int, int, int>> systems_info()
+  {
+    vector<tuple<string, int, int, int>> info(qcm_model->systems.size());
+    for(int i=0; i<info.size(); i++){
+      get<0>(info[i]) = qcm_model->systems[i].name;
+      get<1>(info[i]) = (int)qcm_model->systems[i].n_sites;
+      get<2>(info[i]) = (int)qcm_model->systems[i].n_bath;
+      get<3>(info[i]) = (int)qcm_model->systems[i].clus;
+    }
+    return info;
+  }
+
+
+
   /**
    * returns information about the averages of local operators on sites and bonds
    * @param label label of the model instance
@@ -1054,19 +1088,8 @@ check_instance(label);
     return lattice_model_instances.at(label)->monopole(k, a, nk, orb, rec); 
   }
 
-  /**
-   * replace the cluster model with another one with the same number of sites (for DCA)
-   * @param name name of the new cluster model
-   */
-  void switch_cluster_model(const string &name)
-  {
-    if(models.find(name)==models.end()) qcm_throw("cluster model "+name+" does not exist!");
-    qcm_model->clusters[0].name = name;
-    if (!models[name]->is_closed) qcm_model->close_model(true);
-  }
 
-
-    bool complex_HS(size_t label)
+  bool complex_HS(size_t label)
   {
     #ifdef QCM_DEBUG
     check_instance(label);

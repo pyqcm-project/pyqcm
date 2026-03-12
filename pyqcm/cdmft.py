@@ -224,7 +224,7 @@ class CDMFT:
             if len(p) == 1:
                 raise ValueError("{:s} cannot be a CDMFT variational parameter".format(v))
             else: 
-                var[int(p[2])].append(v)
+                var[model.sys_clus[int(p[2])-1]+1].append(v)
         var[0] = [h.Vm for h in self.hartree]
         self.nvar = np.zeros(model.nclus+1, int)
         for c in range(model.nclus+1): self.nvar[c] = len(var[c])
@@ -293,10 +293,8 @@ class CDMFT:
         self.iter = 0
         def F(x):
             self.x = np.copy(x)
-            try:
-                self.CDMFT_step()
-            except : raise
-            else: return x - self.x
+            self.CDMFT_step()
+            return x - self.x
 
         def G():
             return self.check_convergence()
@@ -306,16 +304,14 @@ class CDMFT:
                 actual_method = 'Broyden'
                 self.x, self.niter, self.alpha = pyqcm.broyden(F, self.x, self.alpha, maxiter=maxiter, miniter=miniter, xtol=1e-6, convergence_test=G)
             except Exception as E:
-                print(E)
-                raise pyqcm.SolverError('Failure of the CDMFT method (Broyden)')
+                raise pyqcm.SolverError('Failure of the CDMFT method (Broyden)') from E
 
         elif iteration == 'fixed_point':
             try:
                 actual_method = 'fixed_point'
                 self.x, self.niter = pyqcm.fixed_point_iteration(F, self.x, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
             except Exception as E:
-                print(E)
-                raise pyqcm.SolverError('Failure of the CDMFT method (fixed-point)')
+                raise pyqcm.SolverError('Failure of the CDMFT method (fixed-point)') from E
 
         else: raise ValueError('unknown iteration method in CDMFT. must be either "Broyden" or "fixed_point". Check spelling.')
 
@@ -353,12 +349,7 @@ class CDMFT:
         parameters and updates it to the next set of values
         """
 
-        try:
-            check_bounds(self.x, self.max_value, v=self.varia)
-        except pyqcm.OutOfBoundsError as error:
-            raise error
-        except:
-            raise ValueError
+        check_bounds(self.x, self.max_value, v=self.varia)
 
         self.model.set_parameter(self.varia, self.x)
         self.I = pyqcm.model_instance(self.model)
@@ -433,12 +424,7 @@ class CDMFT:
             self.x[ic : ic + self.nvar[c]] = np.copy(opt_x)
             self.var_data[ic : ic + self.nvar[c], self.iter] = np.copy(opt_x)
 
-            try:
-                check_bounds(opt_x, self.max_value, v=self.varia[ic:ic+self.nvar[c]])
-            except pyqcm.OutOfBoundsError as error:
-                raise error
-            except:
-                raise ValueError
+            check_bounds(opt_x, self.max_value, v=self.varia[ic:ic+self.nvar[c]])
 
             ic += self.nvar[c]
 
@@ -661,8 +647,10 @@ class frequency_grid:
             self.wr, self.weight = pyqcm.legendre_frequency_grid(wc[0], wc[1], wc[2])
             self.w = self.wr*1j
             self.dist_function = 'legendre/{:.1f}/{:.1f}/{:d}'.format(wc[0], wc[1], wc[2])
+            self.nw = len(self.wr)
         else:
             self.wr = np.arange((np.pi / self.beta), self.wc + 1e-6, 2 * np.pi / self.beta)
+            self.nw = len(self.wr)
             self.w = np.ones(len(self.wr), dtype=np.complex128)
             self.w = self.w * 1j
             self.w *= self.wr
@@ -684,7 +672,6 @@ class frequency_grid:
                 self.dist_function = 'self_wc_{0:.1f}_b_{1:d}'.format(self.wc, int(self.beta))
             else:
                 raise ValueError(f"unknown frequency grid type `{grid_type}`")
-        self.nw = len(self.wr)
 
 
 ####################################################################################################
@@ -1119,7 +1106,7 @@ class hybridization:
         try:
             self.n = NN.index(LL)+1
         except ValueError:
-            raise ValueError('The number of columns in the hybridization table should be 1 + n^2')
+            raise ValueError('The number of columns in the hybridization table should be 1 + n^2') from None
 
         self.w = np.copy(np.real(data[:,0]))
         self.Delta = np.zeros((self.nw,self.n,self.n), dtype=np.complex128)
@@ -1261,7 +1248,7 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
         raise ValueError(f'unknown method specified for minimization: {method}')
 
     if not success:
-        raise pyqcm.MinimizationError()
+        raise pyqcm.MinimizationError('Failure of the optimization of the bath parameters')
 
     return opt_x, iter_done, success, fun
 

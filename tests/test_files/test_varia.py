@@ -19,5 +19,5 @@ model.set_parameters("""
 """)
 
 I = pyqcm.model_instance(model)                
-A = I.cluster_hopping_matrix(full=True)
+A = I.cluster_hopping_matrix()
 print(A)

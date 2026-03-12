@@ -294,11 +294,11 @@ def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_n
 
 ####################################################################################################
 
-def draw_cluster_operator(self, clus, op_name, show_labels=True, values=False, spin_offset = 0.15, plt_ax = None):
+def draw_cluster_operator(self, sys, op_name, show_labels=True, values=False, spin_offset = 0.15, plt_ax = None):
     """
     Draws an operator defined on a cluster model to the screen (for debugging purposes)
 
-    :param cluster clus: instance of a cluster
+    :param int sys: label of a system
     :param str op_name: name of the operator
     :param boolean show_labels: if True, shows the labels of the cluster 
     :param boolean values: if True, prints de values of the elements 
@@ -310,9 +310,9 @@ def draw_cluster_operator(self, clus, op_name, show_labels=True, values=False, s
 
     file = 'tmp_model.out'
 
-    clus_name = clus.cluster_model.name
-    nb = clus.cluster_model.n_bath
-    clus_I = clus.index
+    sys_name = self.systems[sys].name
+    nb = self.systems[sys].n_bath
+    clus_I = self.sys_clus[sys]+1
 
     self.print_model(file)
     fin = open(file, 'r')
@@ -327,8 +327,8 @@ def draw_cluster_operator(self, clus, op_name, show_labels=True, values=False, s
 
     L = fin.readline()
     sites = []
-    orb = []
-    cluster = []
+    # orb = []
+    # cluster = []
     while True:
         L = fin.readline()
         if L == '\n': break
@@ -358,14 +358,15 @@ def draw_cluster_operator(self, clus, op_name, show_labels=True, values=False, s
     for i,s in enumerate(sites):
         S[i,:] = (np.array(s)@B).T
 
+
     #...............................................................................................
     # find the cluster description
 
     L = ''
-    while '  cluster ' + clus_name+'  ' not in L:
+    while '  system ' + sys_name+'  ' not in L:
         L = fin.readline()
         if not L:
-            raise ValueError('file ended without finding cluster {:s}'.format(clus_name))
+            raise ValueError('file ended without finding system {:s}'.format(sys_name))
 
     #...............................................................................................
     # reading operator
@@ -405,7 +406,6 @@ def draw_cluster_operator(self, clus, op_name, show_labels=True, values=False, s
 
     fin.close()
 
-    
     # finding the maximum value of x and y among the sites
     ymax = np.max(S[:,1])
     xmax = np.max(S[:,0])

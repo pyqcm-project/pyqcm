@@ -192,7 +192,7 @@ void lattice_model_instance::periodized_Green_function(Green_function_k &M)
 		M.g.inverse();
 	}
 	else if(periodization == 'C'){ // cluster
-		assert(n_clus==1);
+		assert(model->clusters.size()==1);
 		matrix<Complex> Gc = M.G.G.block[0];
 		M.g = model->periodize(M.k, Gc);
 	}
@@ -314,6 +314,7 @@ void lattice_model_instance::CDMFT_host(const vector<double>& freqs, const vecto
 {
 	CDMFT_weights = weights;
 	CDMFT_freqs = freqs;
+	size_t n_clus = model->clusters.size();
 
 	if(G_host.size()==0){
 		G_host.assign(freqs.size(), vector<matrix<Complex>>(n_clus));
@@ -403,7 +404,7 @@ void lattice_model_instance::CDMFT_host()
 		}
 		Gproj.v *= 1.0/H.nk;
 
-		for(int c=0; c<n_clus; c++){
+		for(int c=0; c<model->clusters.size(); c++){
 			int d = model->GF_dims[c];
 			int o = model->GF_offset[c];
 			Gproj.move_sub_matrix(d, d, o, o, 0, 0, G_host[iw][c]);
@@ -448,7 +449,7 @@ void lattice_model_instance::set_CDMFT_host(const vector<double>& freqs, const i
 {
 	CDMFT_weights.assign(freqs.size(), 1.0/freqs.size());
 	CDMFT_freqs = freqs;
-
+	int n_clus = model->clusters.size();
 	if(G_host.size()==0){
 		G_host.assign(freqs.size(), vector<matrix<Complex>>(n_clus));
 		for(int i=0; i<freqs.size(); i++){

@@ -150,10 +150,7 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 			print(x, ' ===> {:1.4f}'.format(current_value[x]))
 		if iter > 0:
 			print('predictor: ', start, fit_type)
-		try:
-			task()
-		except: raise
-			
+		task()
 		sol[0,:] = self.parameters(varia)
 
 	pyqcm.banner('linear loop ended normally', '%')
@@ -210,10 +207,9 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 		try:
 			I = task()
 
-		except (pyqcm.OutOfBoundsError, pyqcm.TooManyIterationsError, Exception) as E:
-			print(E)
+		except Exception as E:
 			if loop_counter == 0 or not retry:
-				raise ValueError('Out of bound on starting values in controlled_loop(), aborting')
+				raise ValueError('Out of bound on starting values in controlled_loop(), aborting') from E
 			else:
 				try_again = True
 			
@@ -375,7 +371,7 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
 		try:
 			alpha = X[2]
-		except:
+		except (IndexError, TypeError):
 			alpha = 0.0
 		if method == 'Broyden' : 
 			X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=maxiter)
@@ -384,13 +380,13 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 		elif nconstr==1 and method in methods1D:
 			sol = root_scalar(F, method=method, bracket=bracket, fprime=None, fprime2=None, x0=x0, x1=None, xtol=tol, maxiter=None, options=None)
 			if sol.converged is False:
-				raise(ValueError('Failure of the scipy root_scalar method ' + method + ' in controlled_fade:\n' + sol.flag))
+				raise ValueError('Failure of the scipy root_scalar method ' + method + ' in controlled_fade:\n' + sol.flag)
 			X = (sol.root,)
 			bracket = (sol.root-delta, sol.root+delta)
 		elif method in methods:
 			sol_root = root(F, x0, method=method, jac=None, tol=tol, callback=None)
 			if sol_root.success is False:
-				raise(ValueError('Failure of the scipy root method ' + method + ' in controlled_fade:\n' + sol_root.message))
+				raise ValueError('Failure of the scipy root method ' + method + ' in controlled_fade:\n' + sol_root.message)
 			X = (sol_root.x,)
 		I = pyqcm.model_instance(self)
 		I.averages()
@@ -502,8 +498,7 @@ def flexible_loop(self, task, initial_mu, final_n, initial_step, delta_n=0.005, 
 		try:
 			I = task()
 
-		except (pyqcm.OutOfBoundsError, pyqcm.TooManyIterationsError, Exception) as E:
-			print(E)
+		except Exception:
 			return
 					
 		n[0] = I.averages()['mu']

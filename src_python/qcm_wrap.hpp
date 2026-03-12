@@ -44,25 +44,50 @@ const char *add_cluster_help =
     R"{(
 Adds a cluster to the repeated unit
 arguments:
-1. name of cluster model (string)
-2. position of cluster (array of ints)
-3. list of positions of sites (2D array of ints)
-4. label (starts at 1) of cluster to which this one is entirely equivalent [default = 0, no such equivalence]
+1. position of cluster (array of ints)
+2. list of positions of sites (2D array of ints)
+3. label (starts at 1) of cluster to which this one is entirely equivalent [default = 0, no such equivalence]
 returns: None
 ){";
 //------------------------------------------------------------------------------
 static PyObject *add_cluster_python(PyObject *self, PyObject *args) {
-  char *s1 = nullptr;
   PyArrayObject *pos_pyobj = nullptr;
   PyArrayObject *cpos_pyobj = nullptr;
   int ref = 0;
   int conj = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "sOO|ii", &s1, &cpos_pyobj, &pos_pyobj, &ref, &conj))
+    if (!PyArg_ParseTuple(args, "OO|ii", &cpos_pyobj, &pos_pyobj, &ref, &conj))
       qcm_throw("failed to read parameters in call to add_cluster (python)");
 
-    QCM::add_cluster(string(s1), intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref, conj);
+    QCM::add_cluster(intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref, conj);
+
+  } catch (const string &s) {
+    qcm_catch(s);
+  }
+  return Py_BuildValue("");
+}
+
+//==============================================================================
+const char *add_system_help =
+    R"{(
+Adds a system to the repeated unit
+arguments:
+1. name of cluster model (string)
+2. label of cluster
+returns: None
+){";
+//------------------------------------------------------------------------------
+static PyObject *add_system_python(PyObject *self, PyObject *args) {
+  char *s1 = nullptr;
+  int clus = 0;
+
+  try {
+    if (!PyArg_ParseTuple(args, "si", &s1, &clus))
+      qcm_throw("failed to read parameters in call to add_system (python)");
+
+    QCM::add_system(string(s1), clus);
+
   } catch (const string &s) {
     qcm_catch(s);
   }
@@ -1051,25 +1076,11 @@ returns:
   A 4-tuple:
     1. the size of the supercell
     2. the number of lattice orbitals
-    3. a tuple containing the sizes of each cluster
-    4. a tuple containing the sizes of each cluster's bath
   
 )";
 //------------------------------------------------------------------------------
-static PyObject *model_size_python(PyObject *self, PyObject *args) {
-  PyObject *elem = PyTuple_New(qcm_model->clusters.size());
-  PyObject *bath = PyTuple_New(qcm_model->clusters.size());
-  PyObject *ref = PyTuple_New(qcm_model->clusters.size());
-  PyObject *conj = PyTuple_New(qcm_model->clusters.size());
-  for (int i = 0; i < qcm_model->clusters.size(); i++) {
-    auto s = ED::model_size(qcm_model->clusters[i].name);
-    PyTuple_SetItem(elem, i, Py_BuildValue("i", get<0>(s)));
-    PyTuple_SetItem(bath, i, Py_BuildValue("i", get<1>(s)));
-    PyTuple_SetItem(ref, i, Py_BuildValue("i", qcm_model->clusters[i].ref));
-    PyTuple_SetItem(ref, i, Py_BuildValue("i", qcm_model->clusters[i].conj));
-  }
-  return Py_BuildValue("iiOOOO", qcm_model->sites.size(), qcm_model->n_band,
-                       elem, bath, ref, conj);
+static PyObject *model_size_python(PyObject *self, PyObject *args) { // A REVOIR SYSTEMS *****
+  return Py_BuildValue("ii", qcm_model->sites.size(), qcm_model->n_band);
 }
 
 //==============================================================================
@@ -1220,11 +1231,11 @@ static PyObject *set_target_sectors_python(PyObject *self, PyObject *args) {
     PyObject *pkey = nullptr;
     // processing py_sectors
     size_t n = PySequence_Size(py_sectors);
-    if (n != qcm_model->clusters.size())
+    if (n != qcm_model->nsys)
       qcm_throw("The number of strings in argument of 'set_target_sectors' (" +
                 to_string(n) +
-                ") should be the number of clusters in the repeated unit (" +
-                to_string(qcm_model->clusters.size()) + ")");
+                ") should be the number of systems in the repeated unit (" +
+                to_string(qcm_model->nsys) + ")");
     qcm_model->sector_strings.resize(n);
     for (size_t i = 0; i < n; i++) {
       qcm_model->sector_strings[i] =
@@ -2416,29 +2427,6 @@ static PyObject *monopole_python(PyObject *self, PyObject *args) {
   return Py_BuildValue("d", QCM::monopole(k, a, nk, orb, rec, label));
 }
 
-//==============================================================================
-const char *switch_cluster_model_help =
-    R"{(
-switches the cluster model
-arguments:
-1. name of new cluster model (string)
-returns: None
-){";
-//------------------------------------------------------------------------------
-static PyObject *switch_cluster_model_python(PyObject *self, PyObject *args) {
-  char *s1 = nullptr;
-
-  try {
-    if (!PyArg_ParseTuple(args, "s", &s1))
-      qcm_throw(
-          "failed to read parameters in call to switch_cluster_model (python)");
-
-    QCM::switch_cluster_model(string(s1));
-  } catch (const string &s) {
-    qcm_catch(s);
-  }
-  return Py_BuildValue("");
-}
 
 //==============================================================================
 const char *complex_HS_help =

@@ -725,12 +725,10 @@ class VCA:
         #..........................................................................................................
 
         except pyqcm.OutOfBoundsError as E:
-            print(E)
-            raise pyqcm.SolverError('Failure of the VCA method')
+            raise pyqcm.SolverError('Failure of the VCA method') from E
 
         except pyqcm.TooManyIterationsError as E:
-            print(E)
-            raise pyqcm.SolverError('Failure of the VCA method')
+            raise pyqcm.SolverError('Failure of the VCA method') from E
 
         omega = var2x(sol)  # final, converged value
         if root:
@@ -873,7 +871,7 @@ class VCA:
             if converged and hartree_converged:
                 return sol
         
-        raise(pyqcm.TooManyIterationsError(max_iteration))
+        raise pyqcm.TooManyIterationsError(max_iteration)
         return sol
 
 ################################################################################

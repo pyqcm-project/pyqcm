@@ -45,7 +45,7 @@ mixing(-1)
  */
 void model::print(ostream& fout)
 {
-  banner('-', "cluster " + name, fout);
+  banner('-', "system " + name, fout);
   fout << *group << endl;
   for(auto& x: term) x.second->print(fout);
 }

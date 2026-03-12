@@ -1,6 +1,6 @@
 import numpy as np
 import pyqcm
-from pyqcm.cdmft_dev import CDMFT
+from pyqcm.cdmft import CDMFT
 
 from model_G4_6b_2C import model
 

@@ -25,20 +25,12 @@ model.set_parameters("""
 """)
 
 I = pyqcm.model_instance(model)  
-print('\nfull hopping matrix of cluster 1 :')              
-A = I.cluster_hopping_matrix(clus=0, full=True)
-print(np.real(A))
-
-print('\nfull hopping matrix of cluster 2 :')              
-A = I.cluster_hopping_matrix(clus=1, full=True)
-print(np.real(A))
-
 print('\nstrict hopping matrix of cluster 1 :')              
-A = I.cluster_hopping_matrix(clus=0, full=False)
+A = I.cluster_hopping_matrix(clus=0)
 print(np.real(A))
 
 print('\nstrict hopping matrix of cluster 2 :')              
-A = I.cluster_hopping_matrix(clus=1, full=False)
+A = I.cluster_hopping_matrix(clus=1)
 print(np.real(A))
 
 print('\ninteractions of cluster 1 :')              
@@ -47,8 +39,8 @@ print('\ninteractions of cluster 2 :')
 print(I.interactions(clus=1))
 
 
-I.write_impurity_problem(clus=0, bath_diag=False, file='impurity1.tsv')
-I.write_impurity_problem(clus=1, bath_diag=False, file='impurity2.tsv')
+I.write_impurity_problem(0, bath_diag=False, file='impurity1.tsv')
+I.write_impurity_problem(1, bath_diag=False, file='impurity2.tsv')
 
 print('\ncluster Green function of cluster 1 at z=0.1j:')
 print(I.cluster_Green_function(0.1j, clus=0, spin_down=False, blocks=False))

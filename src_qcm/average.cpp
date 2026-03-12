@@ -300,6 +300,7 @@ double lattice_model_instance::spectral_average(const string& name, const comple
 {
   double accur_OP = global_double("accur_OP");
   if(model->term.find(name) == model->term.end()) qcm_throw("the operator "+name+" does not exist");
+  size_t n_clus = model->clusters.size();
   
   lattice_operator op = *model->term.at(name);
   
