@@ -23,7 +23,8 @@ void lattice_model::asy_print(const lattice_operator &op, bool asy_labels, bool 
   // if(op.type == latt_op_type::Hubbard) return;
   
   ofstream fout(op.name+".asy");
-  
+  if (!fout.good()) qcm_throw("failed to open file " + op.name + ".asy");
+
   double asy_scale = global_double("asy_scale");
   double asy_spin_scale = global_double("asy_spin_scale");
   

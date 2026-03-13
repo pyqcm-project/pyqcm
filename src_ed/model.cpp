@@ -58,6 +58,7 @@ void model::print(ostream& fout)
 */
 shared_ptr<ED_mixed_basis> model::provide_basis(const sector& sec)
 {
+  std::lock_guard<std::mutex> lock(model_mutex);
   if(basis.find(sec) == basis.end()) basis[sec] = make_shared<ED_mixed_basis>(sec, group);
   return basis[sec];
 }
@@ -71,7 +72,8 @@ shared_ptr<ED_mixed_basis> model::provide_basis(const sector& sec)
 */
 shared_ptr<ED_factorized_basis> model::provide_factorized_basis(const sector& sec)
 {
-  if(factorized_basis.find(sec) == factorized_basis.end()) 
+  std::lock_guard<std::mutex> lock(model_mutex);
+  if(factorized_basis.find(sec) == factorized_basis.end())
     factorized_basis[sec] = make_shared<ED_factorized_basis>(sec, n_orb);
   return factorized_basis[sec];
 }
@@ -107,6 +109,7 @@ The fixed positions of the cluster sites per se (not the bath) are provided in '
 */
 void model::print_graph(const vector<vector<double>> &pos){
   ofstream fout(name+".dot");
+  if (!fout.good()) qcm_ED_throw("failed to open file " + name + ".dot");
 
   fout << "graph {\nK=1.3;\n";
   for(int i=0; i<pos.size(); i++){
@@ -187,10 +190,15 @@ bool model::create_or_destroy(int pm, const symmetric_orbital &a, state<double> 
       }
       else{
         destruction_identifier D(target_sec,a);
-        if(destruction.find(D)==destruction.end()){
-          destruction[D] = make_shared<destruction_operator<double>>(T, B, D.sorb);
+        shared_ptr<destruction_operator<double>> dest_op;
+        {
+          std::lock_guard<std::mutex> lock(model_mutex);
+          if(destruction.find(D)==destruction.end()){
+            destruction[D] = make_shared<destruction_operator<double>>(T, B, D.sorb);
+          }
+          dest_op = destruction.at(D);
         }
-        destruction.at(D)->multiply_add_conjugate(x.psi,y,z);
+        dest_op->multiply_add_conjugate(x.psi,y,z);
       }
       // cout << "creation at " << a.label << '\n' << x.psi << '\n' << y << "\n\n"; // tempo
     }
@@ -205,10 +213,15 @@ bool model::create_or_destroy(int pm, const symmetric_orbital &a, state<double> 
       }
       else{
         destruction_identifier D(x.sec,a);
-        if(destruction.find(D)==destruction.end()){
-          destruction[D] = make_shared<destruction_operator<double>>(B, T, D.sorb);
+        shared_ptr<destruction_operator<double>> dest_op;
+        {
+          std::lock_guard<std::mutex> lock(model_mutex);
+          if(destruction.find(D)==destruction.end()){
+            destruction[D] = make_shared<destruction_operator<double>>(B, T, D.sorb);
+          }
+          dest_op = destruction.at(D);
         }
-        destruction.at(D)->multiply_add(x.psi,y,z);
+        dest_op->multiply_add(x.psi,y,z);
       }
     }
   }
@@ -273,10 +286,15 @@ bool model::create_or_destroy(int pm, const symmetric_orbital &a, state<Complex>
       }
       else{
         destruction_identifier D(target_sec,a);
-        if(destruction_complex.find(D)==destruction_complex.end()){
-          destruction_complex[D] = make_shared<destruction_operator<Complex>>(T, B, D.sorb);
+        shared_ptr<destruction_operator<Complex>> dest_op;
+        {
+          std::lock_guard<std::mutex> lock(model_mutex);
+          if(destruction_complex.find(D)==destruction_complex.end()){
+            destruction_complex[D] = make_shared<destruction_operator<Complex>>(T, B, D.sorb);
+          }
+          dest_op = destruction_complex.at(D);
         }
-        destruction_complex.at(D)->multiply_add_conjugate(x.psi,y,z);
+        dest_op->multiply_add_conjugate(x.psi,y,z);
       }
       // cout << "creation at " << a.label << '\n' << x.psi << '\n' << y << "\n\n"; // tempo
     }
@@ -291,10 +309,15 @@ bool model::create_or_destroy(int pm, const symmetric_orbital &a, state<Complex>
       }
       else{
         destruction_identifier D(x.sec,a);
-        if(destruction_complex.find(D)==destruction_complex.end()){
-          destruction_complex[D] = make_shared<destruction_operator<Complex>>(B, T, D.sorb);
+        shared_ptr<destruction_operator<Complex>> dest_op;
+        {
+          std::lock_guard<std::mutex> lock(model_mutex);
+          if(destruction_complex.find(D)==destruction_complex.end()){
+            destruction_complex[D] = make_shared<destruction_operator<Complex>>(B, T, D.sorb);
+          }
+          dest_op = destruction_complex.at(D);
         }
-        destruction_complex.at(D)->multiply_add(x.psi,y,z);
+        dest_op->multiply_add(x.psi,y,z);
       }
       // cout << "destruction at " << a.label << '\n' << x.psi << '\n' << y << "\n\n"; // tempo
     }

@@ -2,6 +2,7 @@
 #define model_h
 
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 
@@ -27,6 +28,7 @@ struct model
   map<string, shared_ptr<Hermitian_operator>> term; //!< list of operators in the Hamiltonian, by name
   map<sector, vector<double> > last_eigenvectors; //storing the last eigenvectors in each sectors for further solve
   map<sector, double > last_eigenvalues; //storing the last eigenvalues in each sectors for further solve
+  mutable std::mutex model_mutex; //!< protects lazy-init maps (basis, destruction) from concurrent threads
   shared_ptr<symmetry_group> group; //!< contains data on symmetry operations
   size_t n_bath; //!< number of sites considered as 'bath' (no Green function computation for these)
   size_t n_orb; //!< total number of sites (=L+nb)

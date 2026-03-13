@@ -1,6 +1,7 @@
 #ifndef Hermitian_operator_h
 #define Hermitian_operator_h
 
+#include <mutex>
 #include <vector>
 #include <map>
 #include <string>
@@ -28,6 +29,7 @@ struct Hermitian_operator
   double nambu_correction; //!< Nambu correction to the averages in the restricted Nambu mixing case
   double norm; //!< multiplicative factor on the average (e.g. to divide by the number of sites)
   int mixing; //!< mixing caused by this operator (default = normal)
+  mutable std::mutex hs_op_mutex; //!< protects HS_operator map from concurrent insertions
   map<sector, shared_ptr<HS_Hermitian_operator>> HS_operator; //!< Hilbert space realizations, organized by sector
   shared_ptr<model> the_model; //!< backtrace to the model
   size_t target; //!< target of the operator: 1:cluster, 2:bath, or 3:hybrid (binary coding).

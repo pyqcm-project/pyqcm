@@ -8,6 +8,9 @@
 
 #include <array>
 #include <memory>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
@@ -24,6 +27,7 @@
 // python utilities
 
 void check_signals() {
+  if (!PyGILState_Check()) return;
   if (PyErr_CheckSignals() == -1)
     throw;
 }

@@ -86,6 +86,7 @@ void erase_lattice_model_instance(size_t label){
   void print_model(const string& filename, bool asy_operators, bool asy_labels, bool asy_orb, bool asy_neighbors, bool asy_working_basis)
   {
     ofstream fout(filename);
+    if (!fout.good()) qcm_throw("failed to open file " + filename);
     qcm_model->print(fout, asy_operators, asy_labels, asy_orb, asy_neighbors, asy_working_basis);
     fout.close();
   }

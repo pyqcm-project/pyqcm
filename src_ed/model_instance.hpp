@@ -741,9 +741,10 @@ void model_instance<HilbertField>::build_qmatrix(state<HilbertField> &Omega, boo
       Qtmp.streamline();
       if(pm==-1) 
         Qm.q[r] = Qtmp;
-      else 
+      else{ 
         Qp.q[r] = Qtmp;
         Qp.q[r].v.cconjugate(); // IMPORTANT. Source of bug found 2021-08-14
+      }
     }
   }
   else{
@@ -778,11 +779,12 @@ void model_instance<HilbertField>::build_qmatrix(state<HilbertField> &Omega, boo
         Qtmp.e *= -1.0;
       }
       Qtmp.streamline();
-      if(pm==-1) 
+      if(pm==-1)
         Qm.q[r] = Qtmp;
-      else 
+      else{
         Qp.q[r] = Qtmp;
         Qp.q[r].v.cconjugate(); // IMPORTANT. Source of bug found 2021-08-14
+      }
     }
   }
 

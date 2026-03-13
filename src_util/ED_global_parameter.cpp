@@ -115,7 +115,8 @@ void Print_global_parameters(ostream &out)
 void Print_global_parameters_latex()
 {
   ofstream fout("QCM_options_def.tex");
-  
+  if (!fout.good()) qcm_ED_throw("failed to open file QCM_options_def.tex");
+
   if(GP_bool.size()){
     fout << "\\subsection{Boolean options}\n\\begin{longtable}{|l|l|p{10cm}|}\n\\hline\n";
     fout << "Option & default & description \\\\ \\hline\n";
@@ -161,7 +162,8 @@ void Print_global_parameters_latex()
 void Print_global_parameters_RST()
 {
   ofstream fout("options.rst");
-  
+  if (!fout.good()) qcm_ED_throw("failed to open file options.rst");
+
   fout << ".. include:: options_intro.txt\n\n";
   
   if(GP_bool.size()){
