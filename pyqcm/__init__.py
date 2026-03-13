@@ -1664,7 +1664,7 @@ class model_instance:
 
         """
 
-        self.props["githash"] = git_hash
+        self.props["commit_id"] = __commit_id__
         self.props["version"] = __version__
         self.props["time"] = time.strftime(
             "%Y-%m-%d@%H:%M", time.localtime()
