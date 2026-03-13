@@ -48,6 +48,7 @@ external
 tests/test_outputs/
 doc/build
 .DS_Store
+pyqcm/_version.py
 
 #------------
 # PYTHON PART
