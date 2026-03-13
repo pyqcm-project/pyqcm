@@ -1,9 +1,7 @@
-import copyimport copy
+import copy
 import os
 import re
-import re
 import sys
-import time
 import time
 import traceback
 
@@ -11,11 +9,9 @@ import numpy as np
 
 try:
     from . import qcm
-except ImportError ImportError:
+except ImportError:
     print(
-        
         "pyqcm was unable to load the QCM library. You will not be able to run simulations..."
-    
     )
     print("Please reinstall pyqcm!")
     traceback.print_exc()
@@ -32,13 +28,7 @@ try:
 except ImportError:
     __version__ = "unknown"
     __commit_id__ = "unknown"
-    from ._version import commit_id as __commit_id__
-    from ._version import version as __version__
-except ImportError:
-    __version__ = "unknown"
-    __commit_id__ = "unknown"
 
-np.set_printoptions(precision=6, linewidth=500, suppress=True, sign=" ")
 np.set_printoptions(precision=6, linewidth=500, suppress=True, sign=" ")
 
 ####################################################################################################
@@ -49,8 +39,6 @@ solver = None
 # special wavevectors
 graphene_M = (2 / 3) * np.array((1, 0, 0))
 graphene_K = (2 / 3) * np.array([1, 1 / np.sqrt(3), 0])
-graphene_M = (2 / 3) * np.array((1, 0, 0))
-graphene_K = (2 / 3) * np.array([1, 1 / np.sqrt(3), 0])
 
 # names of clusters
 cluster_model_names = set()
@@ -59,21 +47,15 @@ cluster_model_names = set()
 # EXCEPTIONS
 
 
-
 class OutOfBoundsError(Exception):
     pass
-
-
 
 
 class TooManyIterationsError(Exception):
     def __init__(self, max_iteration):
         self.max_iteration = max_iteration
 
-
     def __str__(self):
-        return "the number of iterations has exceeded {:d}".format(self.max_iteration)
-
         return "the number of iterations has exceeded {:d}".format(self.max_iteration)
 
 
@@ -81,30 +63,24 @@ class SolverError(Exception):
     pass
 
 
-
 class MissingArgError(TypeError):
     pass
-
 
 
 class MinimizationError(Exception):
     pass
 
 
-
 class ParseError(Exception):
     pass
-
 
 
 def script_file():
     return os.path.basename(sys.argv[0])
 
 
-
 ####################################################################################################
 # CLASSES
-
 
 
 ####################################################################################################
@@ -129,10 +105,6 @@ class cluster_model:
     def __init__(
         self, n_sites, n_bath=0, name="clus", generators=None, bath_irrep=False
     ):
-
-    def __init__(
-        self, n_sites, n_bath=0, name="clus", generators=None, bath_irrep=False
-    ):
         self.name = name
         if name in cluster_model_names:
             raise ValueError(
@@ -140,36 +112,22 @@ class cluster_model:
                     name
                 )
             )
-            raise (
-                ValueError(
-                    "the name '{:s}' has already been used for another cluster model".format(
-                        name
-                    )
-                )
-            )
         cluster_model_names.add(name)
-        self.n_sites = n_sites
-        self.n_bath = n_bath
-        self.generators = generators
         self.n_sites = n_sites
         self.n_bath = n_bath
         self.generators = generators
         self.gbath = None
         self.is_closed = False
-        self.is_closed = False
         qcm.new_model(name, n_sites, n_bath, generators, bath_irrep)
 
     # -----------------------------------------------------------------------------------------------
-    # -----------------------------------------------------------------------------------------------
     def new_operator(self, op_name, op_type, elem):
         """creates a new operator from its matrix elements
-
 
         :param str op_name: name of the operator
         :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
         :param [(int,int,float)] elem: array of matrix elements (list of tuples)
         :return: None
-
 
         """
 
@@ -177,25 +135,12 @@ class cluster_model:
             raise ValueError(
                 "cluster_model.new_operator() cannot be called any more : the model is closed"
             )
-            raise ValueError(
-                "cluster_model.new_operator() cannot be called any more : the model is closed"
-            )
 
         if "_" in op_name:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        if "_" in op_name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
 
-        if op_type == "anomalous":
-            for x in elem:
-                if x[0] >= x[1]:
-                    raise ValueError(
-                        f"anomalous matrix elements of {op_name} must be such that row index < column index"
-                    )
         if op_type == "anomalous":
             for x in elem:
                 if x[0] >= x[1]:
@@ -205,7 +150,6 @@ class cluster_model:
 
         qcm.new_operator(self.name, op_name, op_type, elem)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def new_operator_complex(self, op_name, op_type, elem):
         """creates a new operator from its complex-valued matrix elements
@@ -221,25 +165,12 @@ class cluster_model:
             raise ValueError(
                 "cluster_model.new_operator() cannot be called any more : the model is closed"
             )
-            raise ValueError(
-                "cluster_model.new_operator() cannot be called any more : the model is closed"
-            )
 
         if "_" in op_name:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        if "_" in op_name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
 
-        if op_type == "anomalous":
-            for x in elem:
-                if x[0] >= x[1]:
-                    raise ValueError(
-                        f"anomalous matrix elements of {op_name} must be such that row index < column index"
-                    )
         if op_type == "anomalous":
             for x in elem:
                 if x[0] >= x[1]:
@@ -249,7 +180,6 @@ class cluster_model:
 
         qcm.new_operator_complex(self.name, op_name, op_type, elem)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def matrix_elements(self, op):
         """
@@ -261,7 +191,6 @@ class cluster_model:
         """
         return qcm.matrix_elements(self.name, op)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def new_model_instance(self, values, sec, label=0):
         """Initiates a new instance of the cluster model
@@ -275,7 +204,6 @@ class cluster_model:
         """
 
         qcm.new_model_instanceC(self.name, values, sec, label)
-
 
 
 ####################################################################################################
@@ -292,9 +220,6 @@ class cluster:
 
     def __init__(self, X, sites, pos=(0, 0, 0)):
 
-
-    def __init__(self, X, sites, pos=(0, 0, 0)):
-
         if isinstance(X, cluster_model):
             self.sys = (X,)
             self.ref = None
@@ -306,12 +231,11 @@ class cluster:
             self.sys = None
         else:
             raise ValueError(
-                "first argument of cluster() must be a cluster model or another cluster"
+                "first argument of cluster() must be a cluster model, or a sequence of cluster models, or another cluster"
             )
         self.pos = pos
         self.sites = sites
         self.index = 0
-        self.conj = False  # if True, then the Green function must be complex conjugated from its reference
         self.conj = False  # if True, then the Green function must be complex conjugated from its reference
         self.nsites = len(sites)
 
@@ -326,24 +250,17 @@ class lattice_model:
     :param [[int]] superlattice: the integer-component vectors defining the superlattice. Their number is the spatial dimension of the model.
     :param [[int]] lattice: the the integer-component vectors defining the lattice. Used to define bands.
 
-
     """
-
 
     defined = False
     is_closed = False
 
-    def __init__(self, name, clus, superlattice, lattice=None, hybrid_file=""):
     def __init__(self, name, clus, superlattice, lattice=None, hybrid_file=""):
         if lattice_model.defined:
             raise ValueError("Only one lattice model can be defined at a time!")
         lattice_model.defined = True
         self.name = name
         if not is_sequence(clus):
-            self.clus = (clus,)
-        else:
-            self.clus = clus
-        if is_sequence(clus) == False:
             self.clus = (clus,)
         else:
             self.clus = clus
@@ -356,9 +273,6 @@ class lattice_model:
         self.current_dir = None  # flag to define or not current operators. To be set manually. value: 'x', 'y', or 'z'
         self.hoppings = set()  # set of hopping terms
         self.currents = set()  # set of currents
-        self.current_dir = None  # flag to define or not current operators. To be set manually. value: 'x', 'y', or 'z'
-        self.hoppings = set()  # set of hopping terms
-        self.currents = set()  # set of currents
         self.has_bath = False
         for c, x in enumerate(self.clus):
             if not isinstance(x, cluster):
@@ -366,12 +280,6 @@ class lattice_model:
                     "The argument 'clus' of 'model' should be of type 'cluster' or a sequence thereof"
                 )
             x.index = c + 1
-        for i, x in enumerate(self.clus):
-            if isinstance(x, cluster) == False:
-                raise ValueError(
-                    "The argument 'clus' of 'model' should be of type 'cluster' or a sequence thereof"
-                )
-            x.index = i + 1
             self.nsites += x.nsites
             if x.ref != None:
                 ref = x.ref.index
@@ -386,17 +294,9 @@ class lattice_model:
                 self.systems.append(s)
                 self.sys_clus.append(c)
         self.nsys = len(self.systems)
-            if x.ref != None:
-                ref = x.ref.index
-            else:
-                ref = 0
-            if x.cluster_model.n_bath > 0:
-                self.has_bath = True
-            qcm.add_cluster(x.cluster_model.name, x.pos, x.sites, ref, x.conj)
 
         qcm.lattice_model(name, superlattice, lattice, hybrid_file)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def hopping_operator(self, name, link, amplitude, orbitals=None, **kwargs):
         """Defines a hopping term or, more generally, a one-body operator
@@ -406,12 +306,10 @@ class lattice_model:
         :param float amplitude: hopping amplitude multiplier
         :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
 
-
         :Keyword Arguments:
 
             * tau (*int*) -- specifies the tau Pauli matrix  (0,1,2,3)
             * sigma (*int*) -- specifies the sigma Pauli matrix  (0,1,2,3)
-
 
         :return: None
 
@@ -421,22 +319,14 @@ class lattice_model:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        if "_" in name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
 
         if link == (0, 0, 0):
-        if link == (0, 0, 0):
             if "tau" in kwargs:
-                if kwargs["tau"] != 0:
-                    kwargs["tau"] = 0
                 if kwargs["tau"] != 0:
                     kwargs["tau"] = 0
             else:
                 kwargs["tau"] = 0
 
-        orb1, orb2 = orbital_pair_manager(orbitals)
         orb1, orb2 = orbital_pair_manager(orbitals)
 
         for orb_no1 in orb1:
@@ -451,19 +341,7 @@ class lattice_model:
         ) or "tau" not in kwargs:
             if "sigma" in kwargs and kwargs["sigma"] != 0:
                 return
-                qcm.hopping_operator(
-                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
-                )
-
-        dir = {"x": 0, "y": 1, "z": 2}
-        if (
-            "tau" in kwargs and (kwargs["tau"] == 1 or kwargs["tau"] == 2)
-        ) or "tau" not in kwargs:
-            if "sigma" in kwargs and kwargs["sigma"] != 0:
-                return
             pau = True
-            if "tau" in kwargs and kwargs["tau"] == 2:
-                pau = False
             if "tau" in kwargs and kwargs["tau"] == 2:
                 pau = False
             self.hoppings.add(name)
@@ -480,18 +358,7 @@ class lattice_model:
                             real=pau,
                         )
                 self.currents.add("I" + name)
-                        qcm.current_operator(
-                            "I" + name,
-                            link,
-                            amplitude,
-                            orb1=orb_no1,
-                            orb2=orb_no2,
-                            dir=dir[self.current_dir],
-                            real=pau,
-                        )
-                self.currents.add("I" + name)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def anomalous_operator(self, name, link, amplitude, orbitals=None, **kwargs):
         """Defines an anomalous operator
@@ -503,9 +370,7 @@ class lattice_model:
 
         :Keyword Arguments:
 
-
             * type (*str*) -- one of 'singlet' (default), 'dz', 'dy', 'dx'
-
 
         :return: None
 
@@ -516,12 +381,6 @@ class lattice_model:
                 'names of operators must not include the character "_" (underline)'
             )
 
-        if "_" in name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
-
-        orb1, orb2 = orbital_pair_manager(orbitals)
         orb1, orb2 = orbital_pair_manager(orbitals)
 
         for orb_no1 in orb1:
@@ -529,11 +388,7 @@ class lattice_model:
                 qcm.anomalous_operator(
                     name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
                 )
-                qcm.anomalous_operator(
-                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
-                )
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def explicit_operator(self, name, elem, **kwargs):
         """
@@ -555,14 +410,9 @@ class lattice_model:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        if "_" in name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
 
         qcm.explicit_operator(name, elem, **kwargs)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def density_wave(self, name, t, Q, **kwargs):
         """
@@ -586,13 +436,8 @@ class lattice_model:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        if "_" in name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
         qcm.density_wave(name, t, Q, **kwargs)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def set_basis(self, B):
         """
@@ -606,7 +451,6 @@ class lattice_model:
 
         qcm.set_basis(B)
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def interaction_operator(self, name, link=None, orbitals=None, **kwargs):
         """
@@ -630,25 +474,15 @@ class lattice_model:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        orb1, orb2 = orbital_pair_manager(orbitals)
-        if "_" in name:
-            raise ValueError(
-                'names of operators must not include the character "_" (underline)'
-            )
         for orb_no1 in orb1:
             for orb_no2 in orb2:
                 qcm.interaction_operator(
                     name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs
                 )
-                qcm.interaction_operator(
-                    name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs
-                )
 
-    # -----------------------------------------------------------------------------------------------
     # -----------------------------------------------------------------------------------------------
     def set_target_sectors(self, sec):
         """
-        Sets the Hilbert space sectors in which to look for the ground state. Each sector is specified by
         Sets the Hilbert space sectors in which to look for the ground state. Each sector is specified by
         a string of the form 'Rx:Ny:Sz' where x is the irreducible representation label (starts at 0), y
         is the number of electrons and z is twice the total spin projection. For instance, 'R0:N7:S1' means
@@ -660,7 +494,7 @@ class lattice_model:
         :return: None
 
         """
-        if is_sequence(sec) == False:
+        if not is_sequence(sec):
             sec = (sec,)
 
         # sanity check on the sector strings before sending it to qcm

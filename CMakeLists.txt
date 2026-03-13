@@ -78,7 +78,7 @@ endif()
 message(STATUS "Git hash: ${QCM_GIT_HASH}")
 
 if(NOT DEFINED SKBUILD_PROJECT_VERSION)
-    set(SKBUILD_PROJECT_VERSION "0.0.0.dev")
+    set(SKBUILD_PROJECT_VERSION "0.0.0")
 endif()
 
 message(STATUS "QCM_WED version: ${SKBUILD_PROJECT_VERSION}")
