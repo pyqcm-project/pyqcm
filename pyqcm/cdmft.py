@@ -2,11 +2,12 @@
 Cluster dynamical mean-field theory (CDMFT).
 """
 
-import nlopt
 import timeit
+
+import matplotlib.pyplot as plt
+import nlopt
 import numpy as np
 import scipy.optimize
-import matplotlib.pyplot as plt
 
 import pyqcm
 from pyqcm import qcm
@@ -48,7 +49,7 @@ class convergence_manager:
         self.op = None
         self.converged = False
         self.stdev = stdev
-        if stdev :
+        if stdev:
             self.val = np.zeros(32)
             self.std = None
             self.ave = None
@@ -74,8 +75,8 @@ class convergence_manager:
                 if self.diff[i] > self.tol:
                     converged = False
                     break
-            for i in range(self.depth-1):
-                self.X[i] = self.X[i+1]
+            for i in range(self.depth - 1):
+                self.X[i] = self.X[i + 1]
             self.X[-1] = x
             if converged:
                 self.converged = True
@@ -94,12 +95,12 @@ class convergence_manager:
         :returns: True if the standard deviation of the mean is below the tolerance, False otherwise
         :rtype: bool
         """
-        print(self.name + ' = {:1.5g} (added to sequence)'.format(x))
+        print(self.name + " = {:1.5g} (added to sequence)".format(x))
         if self.iter > len(self.val):
             self.val.resize(len(self.val) + 32)
-        self.val[self.iter-1] = x
-        self.std = np.std(self.val[0:self.iter])/np.sqrt(self.iter)
-        self.ave = np.mean(self.val[0:self.iter])
+        self.val[self.iter - 1] = x
+        self.std = np.std(self.val[0 : self.iter]) / np.sqrt(self.iter)
+        self.ave = np.mean(self.val[0 : self.iter])
         if self.std < self.tol:
             return True
         else:
@@ -109,15 +110,19 @@ class convergence_manager:
         """
         Prints the status of the convergence (differences are printed, with a number "depth" of previous iterations)
         """
-        if self.iter <= self.depth: return
+        if self.iter <= self.depth:
+            return
         if self.stdev:
-            S = '---> ave({:s}) = {:1.7g} +/- {:1.4g}'.format(self.name, self.ave, self.std)
+            S = "---> ave({:s}) = {:1.7g} +/- {:1.4g}".format(
+                self.name, self.ave, self.std
+            )
         else:
-            S = 'differences in ' + self.name + ' : '
-            for i in range(self.depth): S += '{:g}\t'.format(self.diff[i])
-        if self.converged: S += ' * converged * '
+            S = "differences in " + self.name + " : "
+            for i in range(self.depth):
+                S += "{:g}\t".format(self.diff[i])
+        if self.converged:
+            S += " * converged * "
         print(S, flush=True)
-
 
 
 class CDMFT:
@@ -136,8 +141,8 @@ class CDMFT:
     :param [float] accur_dist: relative tolerance of the distance function when minimizing it
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
     :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
-    :param str iteration: method of iteration of parameters ('fixed_point' or 'Broyden')
-    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='Broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
+    :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
+    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
     :param str method: method to use, as used in scipy.optimize.minimize(). Choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', or a choice of NLopt methods : 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'
     :param str file: name of the file where the solution is written
     :param str iter_file: name of the file where the CDMFT iterations are recorded
@@ -157,35 +162,36 @@ class CDMFT:
 
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         model,
         varia,
         beta=50,
         wc=2.0,
-        grid_type = 'sharp',
+        grid_type="sharp",
         maxiter=32,
         miniter=0,
-        convergence='parameters',
+        convergence="parameters",
         depth=2,
         accur_bath=1e-6,
         accur=1e-4,
         accur_dist=1e-8,
-        hartree = None,
-        converge_with_stdev = False,
-        iteration = 'Broyden', # or 'fixed_point'
-        alpha = 0.0,
-        method='Nelder-Mead',
-        file='cdmft.tsv',
-        iter_file='cdmft_iter.tsv',
+        hartree=None,
+        converge_with_stdev=False,
+        iteration="broyden",  # or 'fixed_point'
+        alpha=0.0,
+        method="Nelder-Mead",
+        file="cdmft.tsv",
+        iter_file="cdmft_iter.tsv",
         eps_algo=0,
-        initial_step = 0.1,
+        initial_step=0.1,
         SEF=False,
-        check_ground_state = False,
-        max_function_eval = 500000,
-        compute_potential_energy = False,
-        host_function = None,
-        pre_host = None,
-        max_value = 100,
+        check_ground_state=False,
+        max_function_eval=1_000_000,
+        compute_potential_energy=False,
+        host_function=None,
+        pre_host=None,
+        max_value=100,
     ):
 
         self.accur_bath = accur_bath
@@ -197,17 +203,19 @@ class CDMFT:
         self.hartree = hartree
         self.grid_type = grid_type
         self.host_function = host_function
-        self.Hyb = None # internal : hybridization function
-        self.Hyb_down = None # internal : hybridization function (spin downs, when mixing=4)
+        self.Hyb = None  # internal : hybridization function
+        self.Hyb_down = (
+            None  # internal : hybridization function (spin downs, when mixing=4)
+        )
         self.initial_step = initial_step
         self.iter_file = iter_file
         self.max_function_eval = max_function_eval
         self.max_value = max_value
         self.method = method
-        self.model =model
+        self.model = model
         self.pre_host = pre_host
-        self.sigma = None # internal : self-energy
-        self.sigma_down = None # internal : self-energy (spin downs, when mixing=4)
+        self.sigma = None  # internal : self-energy
+        self.sigma_down = None  # internal : self-energy (spin downs, when mixing=4)
         self.varia = varia
         self.wc = wc
 
@@ -215,91 +223,135 @@ class CDMFT:
             accur = (accur,)
 
         if pyqcm.is_sequence(varia) == False:
-            raise ValueError("The argument 'varia' of CDMFT should be a list of variational parameters")
+            raise ValueError(
+                "The argument 'varia' of CDMFT should be a list of variational parameters"
+            )
 
-        if iteration not in ['Broyden', 'fixed_point']:
-            raise ValueError("the argument 'iteration' of CDMFT() should be one of 'Broyden', 'fixed_point'")
+        if iteration not in ["broyden", "fixed_point"]:
+            raise ValueError(
+                "the argument 'iteration' of CDMFT() should be one of 'broyden', 'fixed_point'"
+            )
 
-        #----------- Managing the variational parameters ---------
+        # ----------- Managing the variational parameters ---------
 
-        if pyqcm.is_sequence(hartree) == False and hartree is not None: self.hartree = (hartree,)
-        else: self.hartree = hartree
-        if self.hartree is None: self.hartree = []
+        if pyqcm.is_sequence(hartree) == False and hartree is not None:
+            self.hartree = (hartree,)
+        else:
+            self.hartree = hartree
+        if self.hartree is None:
+            self.hartree = []
 
-
-        var = [[] for i in range(model.nclus+1)]
+        var = [[] for i in range(model.nclus + 1)]
         for v in varia:
-            p = v.partition('_')
+            p = v.partition("_")
             if len(p) == 1:
-                raise ValueError("{:s} cannot be a CDMFT variational parameter".format(v))
-            else: 
-                var[model.sys_clus[int(p[2])-1]+1].append(v)
+                raise ValueError(
+                    "{:s} cannot be a CDMFT variational parameter".format(v)
+                )
+            else:
+                var[model.sys_clus[int(p[2]) - 1] + 1].append(v)
         var[0] = [h.Vm for h in self.hartree]
-        self.nvar = np.zeros(model.nclus+1, int)
-        for c in range(model.nclus+1): self.nvar[c] = len(var[c])
+        self.nvar = np.zeros(model.nclus + 1, int)
+        for c in range(model.nclus + 1):
+            self.nvar[c] = len(var[c])
 
         qcm.CDMFT_variational_set(var[1:])
 
         self.varia = []
-        for v in var: self.varia += v
+        for v in var:
+            self.varia += v
         self.nvaria = len(self.varia)
         self.x = np.empty(self.nvaria)
-        self.var_data = np.empty((self.nvaria, maxiter+1))
+        self.var_data = np.empty((self.nvaria, maxiter + 1))
 
         P = model.parameters()
-        for i,v in enumerate(self.varia): self.x[i] = P[v]
+        for i, v in enumerate(self.varia):
+            self.x[i] = P[v]
 
-
-        #------------------------- convergence test initialization ------------------------
+        # ------------------------- convergence test initialization ------------------------
         if pyqcm.is_sequence(convergence) == False:
             convergence = (convergence,)
         if len(convergence) != len(accur):
-            raise ValueError('The number of convergence tests must be the same as the length of "accur"')
+            raise ValueError(
+                'The number of convergence tests must be the same as the length of "accur"'
+            )
         self.convergence_test = []
-        convergence_test_string = ''
+        convergence_test_string = ""
         for i, C in enumerate(convergence):
-            convergence_test_string += C + '/'
+            convergence_test_string += C + "/"
             if C in model.parameters():
-                conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
+                conv_manager = convergence_manager(
+                    C,
+                    lambda x, y: np.abs(x - y),
+                    accur[i],
+                    depth,
+                    stdev=converge_with_stdev,
+                )
                 conv_manager.op = C
             else:
-                if converge_with_stdev and C != 'GS energy':
-                    raise ValueError('In CDMFT, converge_with_stdev=True is only possible when "convergence" is the name of an operator or GS energy')
+                if converge_with_stdev and C != "GS energy":
+                    raise ValueError(
+                        'In CDMFT, converge_with_stdev=True is only possible when "convergence" is the name of an operator or GS energy'
+                    )
                 op = None
-                if C == 'parameters':
-                    conv_manager = convergence_manager(C, lambda x,y : np.linalg.norm(x-y)/x.shape[0], accur[i], depth)
-                elif C == 'hybridization':
-                    conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
-                elif C == 'self-energy':
-                    if grid_type == 'adapt':
-                        raise ValueError('cannot use convergence on self-energy with adaptive frequency grid')
-                    conv_manager = convergence_manager(C, lambda x,y : self.diff_matrix(x,y), accur[i], depth)
-                elif C == 'GS energy':
-                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y), accur[i], depth, stdev=converge_with_stdev)
-                elif C == 'distance':
-                    conv_manager = convergence_manager(C, lambda x,y : np.abs(x-y)/y, accur[i], depth)
+                if C == "parameters":
+                    conv_manager = convergence_manager(
+                        C,
+                        lambda x, y: np.linalg.norm(x - y) / x.shape[0],
+                        accur[i],
+                        depth,
+                    )
+                elif C == "hybridization":
+                    conv_manager = convergence_manager(
+                        C, lambda x, y: self.diff_matrix(x, y), accur[i], depth
+                    )
+                elif C == "self-energy":
+                    if grid_type == "adapt":
+                        raise ValueError(
+                            "cannot use convergence on self-energy with adaptive frequency grid"
+                        )
+                    conv_manager = convergence_manager(
+                        C, lambda x, y: self.diff_matrix(x, y), accur[i], depth
+                    )
+                elif C == "GS energy":
+                    conv_manager = convergence_manager(
+                        C,
+                        lambda x, y: np.abs(x - y),
+                        accur[i],
+                        depth,
+                        stdev=converge_with_stdev,
+                    )
+                elif C == "distance":
+                    conv_manager = convergence_manager(
+                        C, lambda x, y: np.abs(x - y) / y, accur[i], depth
+                    )
                 else:
-                    raise ValueError('type of convergence test "' + C + '" in CDMFT does not exist')
+                    raise ValueError(
+                        'type of convergence test "' + C + '" in CDMFT does not exist'
+                    )
             self.convergence_test.append(conv_manager)
         convergence_test_string = convergence_test_string[:-1]
-        
 
-        #----------- Banner (depending on the presence of hartree parameters) -------------
+        # ----------- Banner (depending on the presence of hartree parameters) -------------
         if hartree:
-            pyqcm.banner('CDMFT procedure (combined with Hartree procedure)', '*', skip=1)
+            pyqcm.banner(
+                "CDMFT procedure (combined with Hartree procedure)", "*", skip=1
+            )
         else:
-            pyqcm.banner('CDMFT procedure', '*', skip=1)
+            pyqcm.banner("CDMFT procedure", "*", skip=1)
 
-        #-------------- first define the frequency grid for the distance function ---------
-        print('frequency grid type = ', grid_type)
-        print('fictitious inverse temperature = ', beta)
-        print('frequency cutoff = ', wc)
-        if alpha is float : print('damping factor = ', self.alpha)
-        print('-'*100)
+        # -------------- first define the frequency grid for the distance function ---------
+        print("frequency grid type = ", grid_type)
+        print("fictitious inverse temperature = ", beta)
+        print("frequency cutoff = ", wc)
+        if alpha is float:
+            print("damping factor = ", self.alpha)
+        print("-" * 100)
 
-        #------------------------------- CDMFT main iteration loop ------------------------
+        # ------------------------------- CDMFT main iteration loop ------------------------
         self.niter = 0
         self.iter = 0
+
         def F(x):
             self.x = np.copy(x)
             self.CDMFT_step()
@@ -308,50 +360,75 @@ class CDMFT:
         def G():
             return self.check_convergence()
 
-        if iteration == 'Broyden':
+        if iteration == "broyden":
             try:
-                actual_method = 'Broyden'
-                self.x, self.niter, self.alpha = pyqcm.broyden(F, self.x, self.alpha, maxiter=maxiter, miniter=miniter, xtol=1e-6, convergence_test=G)
+                actual_method = "broyden"
+                self.x, self.niter, self.alpha = pyqcm.broyden(
+                    F,
+                    self.x,
+                    self.alpha,
+                    maxiter=maxiter,
+                    miniter=miniter,
+                    xtol=1e-6,
+                    convergence_test=G,
+                )
             except Exception as E:
-                raise pyqcm.SolverError('Failure of the CDMFT method (Broyden)') from E
+                raise pyqcm.SolverError("Failure of the CDMFT method (broyden)") from E
 
-        elif iteration == 'fixed_point':
+        elif iteration == "fixed_point":
             try:
-                actual_method = 'fixed_point'
-                self.x, self.niter = pyqcm.fixed_point_iteration(F, self.x, xtol=1e-6, convergence_test=G, maxiter=maxiter, miniter=miniter, alpha=self.alpha, eps_algo=eps_algo)
+                actual_method = "fixed_point"
+                self.x, self.niter = pyqcm.fixed_point_iteration(
+                    F,
+                    self.x,
+                    xtol=1e-6,
+                    convergence_test=G,
+                    maxiter=maxiter,
+                    miniter=miniter,
+                    alpha=self.alpha,
+                    eps_algo=eps_algo,
+                )
             except Exception as E:
-                raise pyqcm.SolverError('Failure of the CDMFT method (fixed-point)') from E
+                raise pyqcm.SolverError(
+                    "Failure of the CDMFT method (fixed-point)"
+                ) from E
 
-        else: raise ValueError('unknown iteration method in CDMFT. must be either "Broyden" or "fixed_point". Check spelling.')
+        else:
+            raise ValueError(
+                'unknown iteration method in CDMFT. must be either "broyden" or "fixed_point". Check spelling.'
+            )
 
         # Here we have converged
-        self.I = pyqcm.model_instance(self.model)  # a last instance with the converged parameters
+        self.I = pyqcm.model_instance(
+            self.model
+        )  # a last instance with the converged parameters
 
         # check consistency
         self.I.GS_consistency(self.check_ground_state)
-        var_val = pyqcm.varia_table(self.varia ,self.x)
-        pyqcm.banner('converged variational parameters ({:d} iterations)'.format(self.niter), '-')
+        var_val = pyqcm.varia_table(self.varia, self.x)
+        pyqcm.banner(
+            "converged variational parameters ({:d} iterations)".format(self.niter), "-"
+        )
         print(var_val)
 
         ave = self.I.averages(pr=True)
-        if compute_potential_energy :
+        if compute_potential_energy:
             self.I.potential_energy()
         if SEF:
-            omega=self.I.Potthoff_functional(self.hartree)
+            omega = self.I.Potthoff_functional(self.hartree)
 
         if file != None:
-            self.I.props['opt_method'] = method
-            self.I.props['CDMFT_method'] = actual_method
-            self.I.props['CDMFT_iterations'] = self.niter
-            self.I.props['dist_function'] = self.grid.dist_function
-            self.I.props['convergence'] = convergence_test_string
-            self.I.props['min_dist'] = self.dist
+            self.I.props["opt_method"] = method
+            self.I.props["CDMFT_method"] = actual_method
+            self.I.props["CDMFT_iterations"] = self.niter
+            self.I.props["dist_function"] = self.grid.dist_function
+            self.I.props["convergence"] = convergence_test_string
+            self.I.props["min_dist"] = self.dist
             self.I.write_summary(file)
 
-        pyqcm.banner('CDMFT completed successfully', '*')
+        pyqcm.banner("CDMFT completed successfully", "*")
 
-
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def CDMFT_step(self):
         """
         Performs a CDMFT step that brings the system from the current values (self.x) of the bath and Hartree
@@ -363,11 +440,12 @@ class CDMFT:
         self.model.set_parameter(self.varia, self.x)
         self.I = pyqcm.model_instance(self.model)
 
-        if self.grid_type == 'adapt':  # find the maximum value of variational (bath) parameters
-            self.wc = max([2.0, max(self.x[self.nvar[0]:])])
+        if (
+            self.grid_type == "adapt"
+        ):  # find the maximum value of variational (bath) parameters
+            self.wc = max([2.0, max(self.x[self.nvar[0] :])])
 
         self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc)
-
 
         # solve the impurity problem
 
@@ -382,7 +460,7 @@ class CDMFT:
             qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
         else:
             self.host_function(self.I)
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
 
         self.I.GS_consistency(self.check_ground_state)
 
@@ -395,68 +473,90 @@ class CDMFT:
             for C in self.hartree:
                 C.update(self.I, pr=True)
             P = self.model.parameters()
-            for i,h in enumerate(self.hartree):
+            for i, h in enumerate(self.hartree):
                 self.x[i] = P[h.Vm]
 
         gs = self.I.ground_state()
 
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         # optimization of the bath parameters, one cluster at a time
 
         self.dist = 0.0
         ic = self.nvar[0]
-        for c in range(1, self.model.nclus+1):
-            if self.nvar[c] == 0: continue
+        for c in range(1, self.model.nclus + 1):
+            if self.nvar[c] == 0:
+                continue
             x0 = self.x[ic : ic + self.nvar[c]]
-            DISTANCE = lambda x, grad=None : qcm.CDMFT_distance(x, c-1, self.I.label) 
-            sol = optimize(DISTANCE, x0, self.method, self.initial_step, self.accur_bath, self.accur_dist, self.max_function_eval)
+            DISTANCE = lambda x, grad=None: qcm.CDMFT_distance(x, c - 1, self.I.label)
+            sol = optimize(
+                DISTANCE,
+                x0,
+                self.method,
+                self.initial_step,
+                self.accur_bath,
+                self.accur_dist,
+                self.max_function_eval,
+            )
             opt_x, opt_iter_done, opt_success, opt_fun = sol
 
             self.dist += opt_fun
 
-            if self.method != 'ANNEAL' and not opt_success:
+            if self.method != "ANNEAL" and not opt_success:
                 print(sol)
-                pyqcm.banner('Error in the scipy minimization procedure within CDMFT ', '!')
+                pyqcm.banner(
+                    "Error in the scipy minimization procedure within CDMFT ", "!"
+                )
                 raise pyqcm.MinimizationError()
 
             if opt_iter_done > self.max_function_eval:
                 print(sol)
-                pyqcm.banner('number of function evaluations exceeds preset maximum of {:d}'.format(self.max_function_eval), '!')
+                pyqcm.banner(
+                    "number of function evaluations exceeds preset maximum of {:d}".format(
+                        self.max_function_eval
+                    ),
+                    "!",
+                )
                 raise pyqcm.MinimizationError()
 
             if np.any(np.isnan(opt_x)):
                 print(sol)
-                pyqcm.banner('NaN found in optimization of bath parameters', '!')
-                raise pyqcm.MinimizationError('NaN found in optimization of bath parameters')
+                pyqcm.banner("NaN found in optimization of bath parameters", "!")
+                raise pyqcm.MinimizationError(
+                    "NaN found in optimization of bath parameters"
+                )
 
             # push back into array
             self.x[ic : ic + self.nvar[c]] = np.copy(opt_x)
             self.var_data[ic : ic + self.nvar[c], self.iter] = np.copy(opt_x)
 
-            check_bounds(opt_x, self.max_value, v=self.varia[ic:ic+self.nvar[c]])
+            check_bounds(opt_x, self.max_value, v=self.varia[ic : ic + self.nvar[c]])
 
             ic += self.nvar[c]
 
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
-
         # writing the parameters in a progress file
-        self.I.props['opt_method'] = self.method
-        self.I.props['dist_function'] = self.grid.dist_function
-        self.I.props['min_dist'] = self.dist
+        self.I.props["opt_method"] = self.method
+        self.I.props["dist_function"] = self.grid.dist_function
+        self.I.props["min_dist"] = self.dist
         self.I.write_summary(self.iter_file)
 
-        print('GS sector : ', [X[1] for X in gs])
-        print('{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}'.format(opt_iter_done, time_MIN/time_ED, opt_fun), flush=True)
+        print("GS sector : ", [X[1] for X in gs])
+        print(
+            "{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}".format(
+                opt_iter_done, time_MIN / time_ED, opt_fun
+            ),
+            flush=True,
+        )
 
         var_val = pyqcm.varia_table(self.varia, self.x)
-        print('updated variational parameters:\n{:s}'.format(var_val))
+        print("updated variational parameters:\n{:s}".format(var_val))
         self.iter += 1
 
         return
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def check_convergence(self):
         """
         Performs the CDMFT convergence tests
@@ -465,14 +565,14 @@ class CDMFT:
 
         converged = True
         for C in self.convergence_test:
-            if C.name == 'GS energy':
+            if C.name == "GS energy":
                 gs = self.I.ground_state()
                 E0 = 0.0
                 for x in gs:
                     E0 += x[0]
                 converged = converged and C.test(E0)
 
-            elif C.name == 'self-energy':
+            elif C.name == "self-energy":
                 self.set_sigma()
                 if self.model.mixing == 4:
                     T = C.test((self.sigma, self.sigma_down))
@@ -481,19 +581,19 @@ class CDMFT:
                     T = C.test(self.sigma)
                     converged = converged and T
 
-            elif C.name == 'hybridization':
+            elif C.name == "hybridization":
                 if self.model.mixing == 4:
-                    T = C.test((self.Hyb,self.Hyb_down))
+                    T = C.test((self.Hyb, self.Hyb_down))
                     converged = converged and T
                 else:
                     T = C.test(self.Hyb)
                     converged = converged and T
 
-            elif C.name == 'parameters':
+            elif C.name == "parameters":
                 T = C.test(np.copy(self.x))
                 converged = converged and T
 
-            elif C.name == 'distance':
+            elif C.name == "distance":
                 T = C.test(self.dist)
                 converged = converged and T
 
@@ -503,14 +603,15 @@ class CDMFT:
 
         for C in self.convergence_test:
             C.print()
-            
-        if converged: 
-            pyqcm.banner('CDMFT has converged', '=')
-            for C in self.convergence_test: C.print()
+
+        if converged:
+            pyqcm.banner("CDMFT has converged", "=")
+            for C in self.convergence_test:
+                C.print()
 
         return converged
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def set_Hyb(self):
         """Computes the hybridization function, i.e.
         an array of arrays of matrices.
@@ -528,21 +629,26 @@ class CDMFT:
 
         for i in range(self.grid.nw):
             for c in range(self.model.nclus):
-                self.Hyb[c][i, :, :] = self.I.hybridization_function(self.grid.w[i], c, spin_down=False)
+                self.Hyb[c][i, :, :] = self.I.hybridization_function(
+                    self.grid.w[i], c, spin_down=False
+                )
 
         if self.model.mixing == 4:
             self.Hyb0_down = self.Hyb_down
             self.Hyb_down = []
             for c in range(self.model.nclus):
                 d = self.model.dimGFC[c]
-                self.Hyb_down.append(np.zeros((self.grid.nw, d, d), dtype=np.complex128))
+                self.Hyb_down.append(
+                    np.zeros((self.grid.nw, d, d), dtype=np.complex128)
+                )
 
             for i in range(self.grid.nw):
                 for c in range(self.model.nclus):
-                    self.Hyb_down[c][i, :, :] = self.I.hybridization_function(self.grid.w[i], c, spin_down=True)
+                    self.Hyb_down[c][i, :, :] = self.I.hybridization_function(
+                        self.grid.w[i], c, spin_down=True
+                    )
 
-
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def diff_matrix(self, X, Y):
         """
         Computes a difference in hybridization functions between the current iteration (Hyb) and the previous one (Hyb0)
@@ -554,24 +660,24 @@ class CDMFT:
 
         diff = 0.0
         g = self.grid
-        if self.model.mixing!=4:
+        if self.model.mixing != 4:
             for i in range(g.nw):
                 for c in range(self.model.nclus):
-                    delta = X[c][i,:,:] - Y[c][i,:,:]
+                    delta = X[c][i, :, :] - Y[c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i]*norm*norm
+                    diff += g.weight[i] * norm * norm
 
-        if self.model.mixing==4:
+        if self.model.mixing == 4:
             for i in range(g.nw):
                 for c in range(self.model.nclus):
-                    delta = X[0][c][i,:,:] - Y[0][c][i,:,:]
+                    delta = X[0][c][i, :, :] - Y[0][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i]*norm*norm
+                    diff += g.weight[i] * norm * norm
             for i in range(g.nw):
                 for c in range(self.model.nclus):
-                    delta = X[1][c][i,:,:] - Y[1][c][i,:,:]
+                    delta = X[1][c][i, :, :] - Y[1][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i]*norm*norm
+                    diff += g.weight[i] * norm * norm
 
         if self.model.mixing == 0:
             diff *= 2
@@ -580,7 +686,7 @@ class CDMFT:
         diff /= g.nw
         return np.sqrt(diff)
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def set_sigma(self):
         """Computes the self-energy on the frequency grid
         an array of arrays of matrices. sigma[i], for cluster #i, is a (nw,d,d) Numpy array. with nw frequencies, and d sites
@@ -596,36 +702,45 @@ class CDMFT:
 
         for i in range(self.grid.nw):
             for c in range(self.model.nclus):
-                self.sigma[c][i, :, :] = self.I.cluster_self_energy(self.grid.w[i], c, spin_down=False)
+                self.sigma[c][i, :, :] = self.I.cluster_self_energy(
+                    self.grid.w[i], c, spin_down=False
+                )
 
         if self.model.mixing == 4:
             self.sigma0_down = self.sigma_down
             self.sigma_down = []
             for c in range(self.model.nclus):
                 d = self.model.dimGFC[j]
-                self.sigma_down.append(np.zeros((self.grid.nw, d, d), dtype=np.complex128))
+                self.sigma_down.append(
+                    np.zeros((self.grid.nw, d, d), dtype=np.complex128)
+                )
 
             for i in range(self.grid.nw):
                 for c in range(self.model.nclus):
-                    self.sigma_down[c][i, :, :] = self.I.cluster_self_energy(self.grid.w[i], c, spin_down=True)
+                    self.sigma_down[c][i, :, :] = self.I.cluster_self_energy(
+                        self.grid.w[i], c, spin_down=True
+                    )
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def plot_iterations(self):
         """
         Plots the variational parameters as a function of iteration, for diagnostics purposes
         """
 
         ncols = 3
-        nrows = 1+(self.varia.nvar_tot-1)//ncols
+        nrows = 1 + (self.varia.nvar_tot - 1) // ncols
         fig, ax = plt.subplots(nrows, ncols, sharex=True)
-        fig.set_size_inches(24/2.54, nrows*6/2.54)
+        fig.set_size_inches(24 / 2.54, nrows * 6 / 2.54)
         niter = self.var_data.shape[1]
-        for i,x in enumerate(self.var):
-            if nrows==1: plt.sca(ax[i])
-            else: plt.sca(ax[i//ncols,i%ncols])
-            plt.plot(range(self.niter), self.var_data[i,0:niter], 'o-', ms=3, lw=0.5)
+        for i, x in enumerate(self.var):
+            if nrows == 1:
+                plt.sca(ax[i])
+            else:
+                plt.sca(ax[i // ncols, i % ncols])
+            plt.plot(range(self.niter), self.var_data[i, 0:niter], "o-", ms=3, lw=0.5)
             plt.title(self.varia[i])
-        plt.savefig('iterations.pdf')
+        plt.savefig("iterations.pdf")
+
 
 ####################################################################################################
 class frequency_grid:
@@ -646,39 +761,49 @@ class frequency_grid:
     :ivar int nw: number of frequencies in the grid
     """
 
-    def __init__(self, I=None, grid_type='sharp', beta=50, wc=2):
+    def __init__(self, I=None, grid_type="sharp", beta=50, wc=2):
         self.beta = beta
         self.wc = wc
         self.grid_type = grid_type
 
-        if grid_type == 'legendre':
-            assert (type(wc) == list)
+        if grid_type == "legendre":
+            assert type(wc) == list
             self.wr, self.weight = pyqcm.legendre_frequency_grid(wc[0], wc[1], wc[2])
-            self.w = self.wr*1j
-            self.dist_function = 'legendre/{:.1f}/{:.1f}/{:d}'.format(wc[0], wc[1], wc[2])
+            self.w = self.wr * 1j
+            self.dist_function = "legendre/{:.1f}/{:.1f}/{:d}".format(
+                wc[0], wc[1], wc[2]
+            )
             self.nw = len(self.wr)
         else:
-            self.wr = np.arange((np.pi / self.beta), self.wc + 1e-6, 2 * np.pi / self.beta)
+            self.wr = np.arange(
+                (np.pi / self.beta), self.wc + 1e-6, 2 * np.pi / self.beta
+            )
             self.nw = len(self.wr)
             self.w = np.ones(len(self.wr), dtype=np.complex128)
             self.w = self.w * 1j
             self.w *= self.wr
-            if self.grid_type == 'sharp' or self.grid_type == 'adapt':
+            if self.grid_type == "sharp" or self.grid_type == "adapt":
                 self.weight = np.ones(self.nw)
-                self.weight *= 1.0 /self.nw
-                self.dist_function = '{:s}_wc_{:.3g}_b_{:d}'.format(self.grid_type, self.wc, int(self.beta))
-            elif self.grid_type == 'ifreq':
-                self.weight = 1.0/self.wr
+                self.weight *= 1.0 / self.nw
+                self.dist_function = "{:s}_wc_{:.3g}_b_{:d}".format(
+                    self.grid_type, self.wc, int(self.beta)
+                )
+            elif self.grid_type == "ifreq":
+                self.weight = 1.0 / self.wr
                 self.weight *= 1.0 / self.weight.sum()
-                self.dist_function = 'ifreq_wc_{0:.1f}_b_{1:d}'.format(self.wc, int(self.beta))
-            elif self.grid_type == 'self':
+                self.dist_function = "ifreq_wc_{0:.1f}_b_{1:d}".format(
+                    self.wc, int(self.beta)
+                )
+            elif self.grid_type == "self":
                 self.weight = np.zeros(self.nw)
                 Sig_inf = I.cluster_self_energy(1.0e6j)
                 for i, x in enumerate(self.w):
                     Sig = I.cluster_self_energy(x) - Sig_inf
                     self.weight[i] = np.linalg.norm(Sig)
                 self.weight *= 1.0 / self.weight.sum()
-                self.dist_function = 'self_wc_{0:.1f}_b_{1:d}'.format(self.wc, int(self.beta))
+                self.dist_function = "self_wc_{0:.1f}_b_{1:d}".format(
+                    self.wc, int(self.beta)
+                )
             else:
                 raise ValueError(f"unknown frequency grid type `{grid_type}`")
 
@@ -711,7 +836,18 @@ class general_bath:
 
     """
 
-    def  __init__(self, ns, nb, name = 'clus', spin_dependent=False, spin_flip=False, singlet=False, triplet=False, complex=False, sites=None):
+    def __init__(
+        self,
+        ns,
+        nb,
+        name="clus",
+        spin_dependent=False,
+        spin_flip=False,
+        singlet=False,
+        triplet=False,
+        complex=False,
+        sites=None,
+    ):
         self.CM = pyqcm.cluster_model(ns, n_bath=nb, name=name)
         self.CM.var_E = []
         self.CM.var_H = []
@@ -720,13 +856,19 @@ class general_bath:
         self.singlet = singlet
         self.triplet = triplet
         self.complex = complex
-        no = ns+nb
+        no = ns + nb
         if sites is None:
-            self.sites = [range(1,ns+1) for i in range(nb)]
+            self.sites = [range(1, ns + 1) for i in range(nb)]
         else:
-            if len(sites) != nb :
-                print('the format of the argument "sites" is incorrect : it should be a sequence of ', ns, ' sequences')
-                raise ValueError(f'the format of the argument "sites" is incorrect : it should be a sequence of {ns} sequences')
+            if len(sites) != nb:
+                print(
+                    'the format of the argument "sites" is incorrect : it should be a sequence of ',
+                    ns,
+                    " sequences",
+                )
+                raise ValueError(
+                    f'the format of the argument "sites" is incorrect : it should be a sequence of {ns} sequences'
+                )
             self.sites = sites
 
         self.nmixed = 1
@@ -737,120 +879,162 @@ class general_bath:
 
         # bath energies
         if spin_dependent or spin_flip:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}u'.format(x)
-                self.CM.new_operator(param_name, 'one-body', [(x+ns, x+ns, 1)])
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}u".format(x)
+                self.CM.new_operator(param_name, "one-body", [(x + ns, x + ns, 1)])
                 self.CM.var_E.append(param_name)
-                param_name = 'eb{:d}d'.format(x)
-                self.CM.new_operator(param_name, 'one-body', [(x+ns+no, x+ns+no, 1)])
+                param_name = "eb{:d}d".format(x)
+                self.CM.new_operator(
+                    param_name, "one-body", [(x + ns + no, x + ns + no, 1)]
+                )
                 self.CM.var_E.append(param_name)
         else:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}'.format(x)
-                self.CM.new_operator(param_name, 'one-body', [(x+ns, x+ns, 1), (x+ns+no, x+ns+no, 1)])
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}".format(x)
+                self.CM.new_operator(
+                    param_name,
+                    "one-body",
+                    [(x + ns, x + ns, 1), (x + ns + no, x + ns + no, 1)],
+                )
                 self.CM.var_E.append(param_name)
 
         # hybridizations
         if spin_dependent or spin_flip:
-            for x in range(1,nb+1):
-
-                for y in self.sites[x-1]:
-                    param_name = 'tb{:d}u{:d}u'.format(x,y)
-                    self.CM.new_operator(param_name, 'one-body', [(y, x+ns, 1)])
+            for x in range(1, nb + 1):
+                for y in self.sites[x - 1]:
+                    param_name = "tb{:d}u{:d}u".format(x, y)
+                    self.CM.new_operator(param_name, "one-body", [(y, x + ns, 1)])
                     self.CM.var_H.append(param_name)
-                    param_name = 'tb{:d}d{:d}d'.format(x,y)
-                    self.CM.new_operator(param_name, 'one-body', [(y+no, x+ns+no, 1)])
+                    param_name = "tb{:d}d{:d}d".format(x, y)
+                    self.CM.new_operator(
+                        param_name, "one-body", [(y + no, x + ns + no, 1)]
+                    )
                     self.CM.var_H.append(param_name)
                     if spin_flip:
-                        param_name = 'tb{:d}u{:d}d'.format(x,y)
-                        self.CM.new_operator(param_name, 'one-body', [(x+ns, y+no, 1)])
+                        param_name = "tb{:d}u{:d}d".format(x, y)
+                        self.CM.new_operator(
+                            param_name, "one-body", [(x + ns, y + no, 1)]
+                        )
                         self.CM.var_H.append(param_name)
-                        param_name = 'tb{:d}d{:d}u'.format(x,y)
-                        self.CM.new_operator(param_name, 'one-body', [(y+no, x+ns+no, 1)])
+                        param_name = "tb{:d}d{:d}u".format(x, y)
+                        self.CM.new_operator(
+                            param_name, "one-body", [(y + no, x + ns + no, 1)]
+                        )
                         self.CM.var_H.append(param_name)
-
 
                 if complex:
-                    for y in self.sites[x-1][1:]:
-                        param_name = 'tb{:d}u{:d}ui'.format(x,y)
-                        self.CM.new_operator_complex(param_name, 'one-body', [(y, x+ns, 1j)])
+                    for y in self.sites[x - 1][1:]:
+                        param_name = "tb{:d}u{:d}ui".format(x, y)
+                        self.CM.new_operator_complex(
+                            param_name, "one-body", [(y, x + ns, 1j)]
+                        )
                         self.CM.var_H.append(param_name)
-                        param_name = 'tb{:d}d{:d}di'.format(x,y)
-                        self.CM.new_operator_complex(param_name, 'one-body', [(y+no, x+ns+no, 1j)])
+                        param_name = "tb{:d}d{:d}di".format(x, y)
+                        self.CM.new_operator_complex(
+                            param_name, "one-body", [(y + no, x + ns + no, 1j)]
+                        )
                         self.CM.var_H.append(param_name)
                     if spin_flip:
-                        for y in self.sites[x-1]:
-                            param_name = 'tb{:d}u{:d}di'.format(x,y)
-                            self.CM.new_operator_complex(param_name, 'one-body', [(x+ns, y+no, 1j)])
+                        for y in self.sites[x - 1]:
+                            param_name = "tb{:d}u{:d}di".format(x, y)
+                            self.CM.new_operator_complex(
+                                param_name, "one-body", [(x + ns, y + no, 1j)]
+                            )
                             self.CM.var_H.append(param_name)
-                            param_name = 'tb{:d}d{:d}ui'.format(x,y)
-                            self.CM.new_operator_complex(param_name, 'one-body', [(y+no, x+ns+no, 1j)])
+                            param_name = "tb{:d}d{:d}ui".format(x, y)
+                            self.CM.new_operator_complex(
+                                param_name, "one-body", [(y + no, x + ns + no, 1j)]
+                            )
                             self.CM.var_H.append(param_name)
 
         else:
-            for x in range(1,nb+1):
-                for y in self.sites[x-1]:
-                    param_name = 'tb{:d}{:d}'.format(x,y)
-                    self.CM.new_operator(param_name, 'one-body', [(y, x+ns, 1), (y+no, x+ns+no, 1)])
+            for x in range(1, nb + 1):
+                for y in self.sites[x - 1]:
+                    param_name = "tb{:d}{:d}".format(x, y)
+                    self.CM.new_operator(
+                        param_name,
+                        "one-body",
+                        [(y, x + ns, 1), (y + no, x + ns + no, 1)],
+                    )
                     self.CM.var_H.append(param_name)
 
                 if complex:
-                    for y in self.sites[x-1][1:]:
-                        param_name = 'tb{:d}{:d}i'.format(x,y)
-                        self.CM.new_operator_complex(param_name, 'one-body', [(y, x+ns, 1j), (y+no, x+ns+no, 1j)])
+                    for y in self.sites[x - 1][1:]:
+                        param_name = "tb{:d}{:d}i".format(x, y)
+                        self.CM.new_operator_complex(
+                            param_name,
+                            "one-body",
+                            [(y, x + ns, 1j), (y + no, x + ns + no, 1j)],
+                        )
                         self.CM.var_H.append(param_name)
 
         if singlet:
-            for x in range(1,nb+1):
-                for y in self.sites[x-1]:
-                    param_name = 'sb{:d}{:d}'.format(x,y)
-                    self.CM.new_operator(param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, 1)])
+            for x in range(1, nb + 1):
+                for y in self.sites[x - 1]:
+                    param_name = "sb{:d}{:d}".format(x, y)
+                    self.CM.new_operator(
+                        param_name,
+                        "anomalous",
+                        [(y, x + ns + no, 1), (x + ns, y + no, 1)],
+                    )
                     self.CM.var_H.append(param_name)
                 if complex:
-                    for y in self.sites[x-1]:
-                        if x==1 and y==1:
+                    for y in self.sites[x - 1]:
+                        if x == 1 and y == 1:
                             continue
-                        param_name = 'sb{:d}{:d}i'.format(x,y)
-                        self.CM.new_operator_complex(param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, 1j)])
+                        param_name = "sb{:d}{:d}i".format(x, y)
+                        self.CM.new_operator_complex(
+                            param_name,
+                            "anomalous",
+                            [(y, x + ns + no, 1j), (x + ns, y + no, 1j)],
+                        )
                         self.CM.var_H.append(param_name)
 
         if triplet:
-            for x in range(1,nb+1):
-                for y in self.sites[x-1]:
-                    param_name = 'pb{:d}{:d}'.format(x,y)
-                    self.CM.new_operator(param_name, 'anomalous', [(y, x+ns+no, 1), (x+ns, y+no, -1)])
+            for x in range(1, nb + 1):
+                for y in self.sites[x - 1]:
+                    param_name = "pb{:d}{:d}".format(x, y)
+                    self.CM.new_operator(
+                        param_name,
+                        "anomalous",
+                        [(y, x + ns + no, 1), (x + ns, y + no, -1)],
+                    )
                     self.CM.var_H.append(param_name)
                 if complex:
-                    for y in self.sites[x-1]:
-                        if x==1 and y==1:
+                    for y in self.sites[x - 1]:
+                        if x == 1 and y == 1:
                             continue
-                        param_name = 'pb{:d}{:d}i'.format(x,y)
-                        self.CM.new_operator_complex(param_name, 'anomalous', [(y, x+ns+no, 1j), (x+ns, y+no, -1j)])
+                        param_name = "pb{:d}{:d}i".format(x, y)
+                        self.CM.new_operator_complex(
+                            param_name,
+                            "anomalous",
+                            [(y, x + ns + no, 1j), (x + ns, y + no, -1j)],
+                        )
                         self.CM.var_H.append(param_name)
 
-    #-----------------------------------------------------------------------------------------------
-    def  __str__(self):
+    # -----------------------------------------------------------------------------------------------
+    def __str__(self):
         S = 'cluster model "' + self.name + '"'
-        if self.spin_flip :
-            S += ', spin flip'
-        if self.spin_dependent :
-            S += ', spin dependent'
-        if self.complex :
-            S += ', complex-valued'
-        if self.singlet :
-            S += ', singlet SC'
-        if self.singlet :
-            S += ', triplet SC'
-        S += '\nbath energies : '
+        if self.spin_flip:
+            S += ", spin flip"
+        if self.spin_dependent:
+            S += ", spin dependent"
+        if self.complex:
+            S += ", complex-valued"
+        if self.singlet:
+            S += ", singlet SC"
+        if self.singlet:
+            S += ", triplet SC"
+        S += "\nbath energies : "
         for x in self.CM.var_E:
-            S += x + ', '
-        S = S[0:-2] + '\nhybridizations : '
+            S += x + ", "
+        S = S[0:-2] + "\nhybridizations : "
         for x in self.CM.var_H:
-            S += x + ', '
+            S += x + ", "
         return S[0:-2]
 
-    #-----------------------------------------------------------------------------------------------
-    def  varia_E(self, c=1):
+    # -----------------------------------------------------------------------------------------------
+    def varia_E(self, c=1):
         """returns a list of parameter names from the bath energies with the suffix appropriate for cluster c
 
         :param int c: label of the cluster (starts at 1)
@@ -859,11 +1043,11 @@ class general_bath:
         """
         v = []
         for x in self.CM.var_E:
-            v.append(x+'_'+str(c))
+            v.append(x + "_" + str(c))
         return v
 
-    #-----------------------------------------------------------------------------------------------
-    def  varia_H(self, c=1):
+    # -----------------------------------------------------------------------------------------------
+    def varia_H(self, c=1):
         """returns a list of parameter names from the bath hybridization with the suffix appropriate for cluster c
 
         :param int c: label of the cluster (starts at 1)
@@ -872,12 +1056,11 @@ class general_bath:
         """
         v = []
         for x in self.CM.var_H:
-            v.append(x+'_'+str(c))
+            v.append(x + "_" + str(c))
         return v
 
-
-    #-----------------------------------------------------------------------------------------------
-    def  varia(self, H=None, E=None, c=1, spin_down=False):
+    # -----------------------------------------------------------------------------------------------
+    def varia(self, H=None, E=None, c=1, spin_down=False):
         """creates a dict of variational parameters to values taken from the hybridization matrix H and the energies E, for cluster c
 
         :param ndarray H: matrix of hybridization values, shape (nmixed*nb, nmixed*ns)
@@ -889,114 +1072,115 @@ class general_bath:
         """
         nb = self.nb
         ns = self.ns
-        no = ns+nb
-        nn = no*self.nmixed//2
+        no = ns + nb
+        nn = no * self.nmixed // 2
 
-        if H.shape != (self.nmixed*self.nb, self.nmixed*self.ns):
-            raise ValueError('shape of hybridization matrix does not match model in general bath back propagation')
+        if H.shape != (self.nmixed * self.nb, self.nmixed * self.ns):
+            raise ValueError(
+                "shape of hybridization matrix does not match model in general bath back propagation"
+            )
 
         D = {}
         # bath energies
         if self.spin_flip:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}u_{:d}'.format(x, c)
-                D[param_name] =  E[x-1]
-                param_name = 'eb{:d}d_{:d}'.format(x, c)
-                D[param_name] = E[x-1+nb]
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}u_{:d}".format(x, c)
+                D[param_name] = E[x - 1]
+                param_name = "eb{:d}d_{:d}".format(x, c)
+                D[param_name] = E[x - 1 + nb]
 
         elif self.spin_flip and not spin_down:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}u_{:d}'.format(x, c)
-                D[param_name] = E[x-1]
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}u_{:d}".format(x, c)
+                D[param_name] = E[x - 1]
         elif self.spin_flip and spin_down == True:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}d_{:d}'.format(x, c)
-                D[param_name] = E[x-1]
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}d_{:d}".format(x, c)
+                D[param_name] = E[x - 1]
         else:
-            for x in range(1,nb+1):
-                param_name = 'eb{:d}_{:d}'.format(x, c)
-                D[param_name] = E[x-1]
+            for x in range(1, nb + 1):
+                param_name = "eb{:d}_{:d}".format(x, c)
+                D[param_name] = E[x - 1]
 
         # hybridizations
         if self.spin_flip:
-            for x in range(1,nb+1):
-
+            for x in range(1, nb + 1):
                 for y in self.sites:
-                    param_name = 'tb{:d}u{:d}u_{:d}'.format(x,y,c)
-                    D[param_name] = H[x-1, y-1].real
-                    param_name = 'tb{:d}d{:d}d_{:d}'.format(x,y,c)
-                    D[param_name] = H[x+nb-1, y-1].real
-                    param_name = 'tb{:d}u{:d}d_{:d}'.format(x,y,c)
-                    D[param_name] = H[x-1, y+ns-1].real
-                    param_name = 'tb{:d}d{:d}u_{:d}'.format(x,y,c)
-                    D[param_name] = H[x+nb-1, y+ns-1].real
-
+                    param_name = "tb{:d}u{:d}u_{:d}".format(x, y, c)
+                    D[param_name] = H[x - 1, y - 1].real
+                    param_name = "tb{:d}d{:d}d_{:d}".format(x, y, c)
+                    D[param_name] = H[x + nb - 1, y - 1].real
+                    param_name = "tb{:d}u{:d}d_{:d}".format(x, y, c)
+                    D[param_name] = H[x - 1, y + ns - 1].real
+                    param_name = "tb{:d}d{:d}u_{:d}".format(x, y, c)
+                    D[param_name] = H[x + nb - 1, y + ns - 1].real
 
                 if self.complex:
                     for y in self.sites[1:]:
-                        param_name = 'tb{:d}u{:d}ui_{:d}'.format(x,y,c)
-                        D[param_name] = H[x-1, y-1].imag
-                        param_name = 'tb{:d}d{:d}di_{:d}'.format(x,y,c)
-                        D[param_name] = H[x+nb-1, y-1].imag
-                        param_name = 'tb{:d}u{:d}di_{:d}'.format(x,y,c)
-                        D[param_name] = H[x-1, y+ns-1].imag
-                        param_name = 'tb{:d}d{:d}ui_{:d}'.format(x,y,c)
-                        D[param_name] = H[x+nb-1, y+ns-1].imag
+                        param_name = "tb{:d}u{:d}ui_{:d}".format(x, y, c)
+                        D[param_name] = H[x - 1, y - 1].imag
+                        param_name = "tb{:d}d{:d}di_{:d}".format(x, y, c)
+                        D[param_name] = H[x + nb - 1, y - 1].imag
+                        param_name = "tb{:d}u{:d}di_{:d}".format(x, y, c)
+                        D[param_name] = H[x - 1, y + ns - 1].imag
+                        param_name = "tb{:d}d{:d}ui_{:d}".format(x, y, c)
+                        D[param_name] = H[x + nb - 1, y + ns - 1].imag
 
         elif self.spin_dependent:
-            for x in range(1,nb+1):
-
+            for x in range(1, nb + 1):
                 for y in self.sites:
                     if spin_down:
-                        param_name = 'tb{:d}d{:d}d_{:d}'.format(x,y,c)
+                        param_name = "tb{:d}d{:d}d_{:d}".format(x, y, c)
                     else:
-                        param_name = 'tb{:d}u{:d}u_{:d}'.format(x,y,c)
-                    D[param_name] = H[x-1, y-1].real
+                        param_name = "tb{:d}u{:d}u_{:d}".format(x, y, c)
+                    D[param_name] = H[x - 1, y - 1].real
 
                 if self.complex:
                     for y in self.sites[1:]:
                         if spin_down:
-                            param_name = 'tb{:d}d{:d}di_{:d}'.format(x,y,c)
+                            param_name = "tb{:d}d{:d}di_{:d}".format(x, y, c)
                         else:
-                            param_name = 'tb{:d}u{:d}ui_{:d}'.format(x,y,c)
-                        D[param_name] = H[x-1, y-1].imag
+                            param_name = "tb{:d}u{:d}ui_{:d}".format(x, y, c)
+                        D[param_name] = H[x - 1, y - 1].imag
 
         else:
-            for x in range(1,nb+1):
+            for x in range(1, nb + 1):
                 for y in self.sites:
-                    param_name = 'tb{:d}{:d}_{:d}'.format(x,y,c)
-                    D[param_name] = H[x-1, y-1].real
+                    param_name = "tb{:d}{:d}_{:d}".format(x, y, c)
+                    D[param_name] = H[x - 1, y - 1].real
 
                 if self.complex:
                     for y in self.sites[1:]:
-                        param_name = 'tb{:d}{:d}i_{:d}'.format(x,y,c)
-                        D[param_name] = H[x-1, y-1].imag
+                        param_name = "tb{:d}{:d}i_{:d}".format(x, y, c)
+                        D[param_name] = H[x - 1, y - 1].imag
 
         if self.singlet:
             for y in self.sites:
-                param_name = 'sb{:d}{:d}_{:d}'.format(x,y,c)
-                D[param_name] = H[x+nn-1, y-1].real # à modifier
+                param_name = "sb{:d}{:d}_{:d}".format(x, y, c)
+                D[param_name] = H[x + nn - 1, y - 1].real  # à modifier
             if self.complex:
                 for y in self.sites:
-                    if x==1 and y==1:
+                    if x == 1 and y == 1:
                         continue
-                    param_name = 'sb{:d}{:d}i_{:d}'.format(x,y,c)
-                    D[param_name] = H[x+nn-1, y-1].imag # à modifier
+                    param_name = "sb{:d}{:d}i_{:d}".format(x, y, c)
+                    D[param_name] = H[x + nn - 1, y - 1].imag  # à modifier
 
         if self.triplet:
             for y in self.sites:
-                param_name = 'pb{:d}{:d}_{:d}'.format(x,y,c)
-                D[param_name] = H[x+nn-1, y-1].real # à modifier
+                param_name = "pb{:d}{:d}_{:d}".format(x, y, c)
+                D[param_name] = H[x + nn - 1, y - 1].real  # à modifier
             if self.complex:
                 for y in self.sites:
-                    if x==1 and y==1:
+                    if x == 1 and y == 1:
                         continue
-                    param_name = 'pb{:d}{:d}i_{:d}'.format(x,y,c)
-                    D[param_name] = H[x+nn-1, y-1].imag # à modifier
+                    param_name = "pb{:d}{:d}i_{:d}".format(x, y, c)
+                    D[param_name] = H[x + nn - 1, y - 1].imag  # à modifier
         return D
 
-    #-----------------------------------------------------------------------------------------------
-    def  starting_values(self, c=1, e = (0.5, 1.5), hyb = (0.5, 0.2), shyb = (0.1, 0.05), pr=False):
+    # -----------------------------------------------------------------------------------------------
+    def starting_values(
+        self, c=1, e=(0.5, 1.5), hyb=(0.5, 0.2), shyb=(0.1, 0.05), pr=False
+    ):
         """returns an initialization string for the bath parameters
 
         :param int c: cluster label (starts at 1)
@@ -1007,24 +1191,38 @@ class general_bath:
         :return str: initialization string
 
         """
-        S = ''
+        S = ""
         fac = 1
         E = np.linspace(e[0], e[1], len(self.CM.var_E))
         for i, x in enumerate(self.CM.var_E):
             bn = int(x[2])
-            fac = 2*(bn%2)-1
-            S += x + '_' + str(c)+ ' = ' + str(fac*E[i])+'\n'
+            fac = 2 * (bn % 2) - 1
+            S += x + "_" + str(c) + " = " + str(fac * E[i]) + "\n"
         for x in self.CM.var_H:
-            if x[0:2] == 'sb' or x[0:2] == 'pb':
-                S += x + '_' + str(c)+ ' = ' + str(shyb[0] + shyb[1]*(2*np.random.random()-1))+'\n'
+            if x[0:2] == "sb" or x[0:2] == "pb":
+                S += (
+                    x
+                    + "_"
+                    + str(c)
+                    + " = "
+                    + str(shyb[0] + shyb[1] * (2 * np.random.random() - 1))
+                    + "\n"
+                )
             else:
-                S += x + '_' + str(c)+ ' = ' + str(hyb[0] + hyb[1]*(2*np.random.random()-1))+'\n'
+                S += (
+                    x
+                    + "_"
+                    + str(c)
+                    + " = "
+                    + str(hyb[0] + hyb[1] * (2 * np.random.random() - 1))
+                    + "\n"
+                )
         if pr:
-            print('starting values:\n', S)
+            print("starting values:\n", S)
         return S
 
-    #-----------------------------------------------------------------------------------------------
-    def  starting_values_PH(self, c=1, e = (1, 0.5), hyb = (0.5, 0.2), phi=None, pr=False):
+    # -----------------------------------------------------------------------------------------------
+    def starting_values_PH(self, c=1, e=(1, 0.5), hyb=(0.5, 0.2), phi=None, pr=False):
         """returns an initialization string for the bath parameters, in the particle-hole symmetric case.
 
         :param int c: cluster label
@@ -1035,62 +1233,104 @@ class general_bath:
         :return str: initialization string
 
         """
-        S = ''
+        S = ""
         fac = 1
-        if self.nb%2:
-            raise ValueError('the number of bath orbitals must be even for starting_values_PH() to apply')
+        if self.nb % 2:
+            raise ValueError(
+                "the number of bath orbitals must be even for starting_values_PH() to apply"
+            )
         if phi is None:
-            raise ValueError('The PH phases of the sites must be specified')
-        NE = self.nb//2
+            raise ValueError("The PH phases of the sites must be specified")
+        NE = self.nb // 2
 
         if self.spin_dependent or self.spin_flip:
             for i in range(NE):
-                S += 'eb{:d}u_{:d} = -1.0*eb{:d}d_{:d}\n'.format(2*i+2, c, 2*i+1, c)
-                S += 'eb{:d}d_{:d} = -1.0*eb{:d}u_{:d}\n'.format(2*i+2, c, 2*i+1, c)
-                for s in self.sites[2*i]:
-                    S += 'tb{:d}u{:d}u_{:d} = {:2.1f}*tb{:d}d{:d}d_{:d}\n'.format(2*i+2, s, c,  phi[s-1], 2*i+1, s, c)
-                    S += 'tb{:d}d{:d}d_{:d} = {:2.1f}*tb{:d}u{:d}u_{:d}\n'.format(2*i+2, s, c,  phi[s-1], 2*i+1, s, c)
+                S += "eb{:d}u_{:d} = -1.0*eb{:d}d_{:d}\n".format(
+                    2 * i + 2, c, 2 * i + 1, c
+                )
+                S += "eb{:d}d_{:d} = -1.0*eb{:d}u_{:d}\n".format(
+                    2 * i + 2, c, 2 * i + 1, c
+                )
+                for s in self.sites[2 * i]:
+                    S += "tb{:d}u{:d}u_{:d} = {:2.1f}*tb{:d}d{:d}d_{:d}\n".format(
+                        2 * i + 2, s, c, phi[s - 1], 2 * i + 1, s, c
+                    )
+                    S += "tb{:d}d{:d}d_{:d} = {:2.1f}*tb{:d}u{:d}u_{:d}\n".format(
+                        2 * i + 2, s, c, phi[s - 1], 2 * i + 1, s, c
+                    )
                 if self.complex:
-                    for s in self.sites[2*i]:
-                        S += 'tb{:d}u{:d}ui_{:d} = {:2.1f}*tb{:d}d{:d}di_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
-                        S += 'tb{:d}d{:d}di_{:d} = {:2.1f}*tb{:d}u{:d}ui_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
+                    for s in self.sites[2 * i]:
+                        S += "tb{:d}u{:d}ui_{:d} = {:2.1f}*tb{:d}d{:d}di_{:d}\n".format(
+                            2 * i + 2, s, c, -phi[s - 1], 2 * i + 1, s, c
+                        )
+                        S += "tb{:d}d{:d}di_{:d} = {:2.1f}*tb{:d}u{:d}ui_{:d}\n".format(
+                            2 * i + 2, s, c, -phi[s - 1], 2 * i + 1, s, c
+                        )
                 if self.spin_flip:
-                    for s in self.sites[2*i]:
-                        S += 'tb{:d}u{:d}d_{:d} = {:2.1f}*tb{:d}u{:d}d_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
-                        S += 'tb{:d}d{:d}u_{:d} = {:2.1f}*tb{:d}d{:d}u_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
+                    for s in self.sites[2 * i]:
+                        S += "tb{:d}u{:d}d_{:d} = {:2.1f}*tb{:d}u{:d}d_{:d}\n".format(
+                            2 * i + 2, s, c, -phi[s - 1], 2 * i + 1, s, c
+                        )
+                        S += "tb{:d}d{:d}u_{:d} = {:2.1f}*tb{:d}d{:d}u_{:d}\n".format(
+                            2 * i + 2, s, c, -phi[s - 1], 2 * i + 1, s, c
+                        )
                     if self.complex:
-                        for s in self.sites[2*i]:
-                            S += 'tb{:d}u{:d}di_{:d} = {:2.1f}*tb{:d}u{:d}di_{:d}\n'.format(2*i+2, s, c,  phi[s-1], 2*i+1, s, c)
-                            S += 'tb{:d}d{:d}ui_{:d} = {:2.1f}*tb{:d}d{:d}ui_{:d}\n'.format(2*i+2, s, c,  phi[s-1], 2*i+1, s, c)
+                        for s in self.sites[2 * i]:
+                            S += "tb{:d}u{:d}di_{:d} = {:2.1f}*tb{:d}u{:d}di_{:d}\n".format(
+                                2 * i + 2, s, c, phi[s - 1], 2 * i + 1, s, c
+                            )
+                            S += "tb{:d}d{:d}ui_{:d} = {:2.1f}*tb{:d}d{:d}ui_{:d}\n".format(
+                                2 * i + 2, s, c, phi[s - 1], 2 * i + 1, s, c
+                            )
 
         else:
             for i in range(NE):
-                S += 'eb{:d}_{:d} = -1.0*eb{:d}_{:d}\n'.format(2*i+2, c, 2*i+1, c)
-                for s in self.sites[2*i]:
-                    S += 'tb{:d}{:d}_{:d} = {:2.1f}*tb{:d}{:d}_{:d}\n'.format(2*i+2, s, c,  phi[s-1], 2*i+1, s, c)
+                S += "eb{:d}_{:d} = -1.0*eb{:d}_{:d}\n".format(
+                    2 * i + 2, c, 2 * i + 1, c
+                )
+                for s in self.sites[2 * i]:
+                    S += "tb{:d}{:d}_{:d} = {:2.1f}*tb{:d}{:d}_{:d}\n".format(
+                        2 * i + 2, s, c, phi[s - 1], 2 * i + 1, s, c
+                    )
                 if self.complex:
-                    for s in self.sites[2*i]:
-                        S += 'tb{:d}{:d}i_{:d} = {:2.1f}*tb{:d}{:d}i_{:d}\n'.format(2*i+2, s, c, -phi[s-1], 2*i+1, s, c)
+                    for s in self.sites[2 * i]:
+                        S += "tb{:d}{:d}i_{:d} = {:2.1f}*tb{:d}{:d}i_{:d}\n".format(
+                            2 * i + 2, s, c, -phi[s - 1], 2 * i + 1, s, c
+                        )
 
         var_E = self.CM.var_E
         self.CM.var_E = []
         for x in var_E:
             for i in range(NE):
-                if 'eb{:d}'.format(2*i+1) in x:
+                if "eb{:d}".format(2 * i + 1) in x:
                     self.CM.var_E.append(x)
         var_H = self.CM.var_H
         self.CM.var_H = []
         for x in var_H:
             for i in range(NE):
-                if 'tb{:d}'.format(2*i+1) in x:
+                if "tb{:d}".format(2 * i + 1) in x:
                     self.CM.var_H.append(x)
 
         for i, x in enumerate(self.CM.var_E):
-            S += x + '_' + str(c)+ ' = ' + str(e[0] + e[1]*(2*np.random.random()-1))+'\n'
+            S += (
+                x
+                + "_"
+                + str(c)
+                + " = "
+                + str(e[0] + e[1] * (2 * np.random.random() - 1))
+                + "\n"
+            )
         for x in self.CM.var_H:
-            S += x + '_' + str(c)+ ' = ' + str(hyb[0] + hyb[1]*(2*np.random.random()-1))+'\n'
+            S += (
+                x
+                + "_"
+                + str(c)
+                + " = "
+                + str(hyb[0] + hyb[1] * (2 * np.random.random() - 1))
+                + "\n"
+            )
         if pr:
-            print('starting values:\n', S)
+            print("starting values:\n", S)
         return S
 
 
@@ -1104,26 +1344,27 @@ class hybridization:
 
     """
 
-
-    def  __init__(self, file):
-        NN = [1,4,9,16,25,36,49,64,81,100,121,144]
+    def __init__(self, file):
+        NN = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144]
         # data = np.genfromtxt(file, dtype=np.complex128)
         # data = np.genfromtxt(file, invalid_raise=True, loose=False, dtype=None)
         data = np.genfromtxt(file, invalid_raise=True, loose=False, dtype=np.complex128)
         # print(data)
         self.nw = data.shape[0]
-        LL = data.shape[1]-1
+        LL = data.shape[1] - 1
         try:
-            self.n = NN.index(LL)+1
+            self.n = NN.index(LL) + 1
         except ValueError:
-            raise ValueError('The number of columns in the hybridization table should be 1 + n^2') from None
+            raise ValueError(
+                "The number of columns in the hybridization table should be 1 + n^2"
+            ) from None
 
-        self.w = np.copy(np.real(data[:,0]))
-        self.Delta = np.zeros((self.nw,self.n,self.n), dtype=np.complex128)
+        self.w = np.copy(np.real(data[:, 0]))
+        self.Delta = np.zeros((self.nw, self.n, self.n), dtype=np.complex128)
         for i in range(self.nw):
-            self.Delta[i,:,:] = np.reshape(data[i, 1:], (self.n,self.n))
+            self.Delta[i, :, :] = np.reshape(data[i, 1:], (self.n, self.n))
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def distance(self, I):
         """
         Evaluates the distance function bewteen the data and the hybridization function of an impurity model instance of label I
@@ -1134,23 +1375,25 @@ class hybridization:
         """
         M = np.zeros((self.nw, self.n, self.n), dtype=np.complex128)
         for i in range(self.nw):
-            M[i,:,:] = I.hybridization_function(self.w[i]*1j, spin_down=False)
+            M[i, :, :] = I.hybridization_function(self.w[i] * 1j, spin_down=False)
 
         # print('M : '); print(M)
         # print('Delta : '); print(self.Delta)
 
-        dist = np.linalg.norm(M-self.Delta)
-        return dist*dist/self.nw
+        dist = np.linalg.norm(M - self.Delta)
+        return dist * dist / self.nw
 
-    #-----------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------
     def __str__(self):
         S = ""
         for i in range(self.nw):
-            S += 'w = ' + self.w[i].__str__() + '\n' + self.Delta[i].__str__() + '\n\n'
+            S += "w = " + self.w[i].__str__() + "\n" + self.Delta[i].__str__() + "\n\n"
         return S
 
-    #-----------------------------------------------------------------------------------------------
-    def optimize_bath(self, model, varia, x, method='Nelder-Mead', accur = 1e-4, accur_dist = 1e-8):
+    # -----------------------------------------------------------------------------------------------
+    def optimize_bath(
+        self, model, varia, x, method="Nelder-Mead", accur=1e-4, accur_dist=1e-8
+    ):
         """
         Optimizes the bath parameters to fit the hybridization function delta
         :param lattice_model model: the lattice model whose bath parameters are to be optimized
@@ -1162,20 +1405,23 @@ class hybridization:
         """
 
         nvar = len(varia)
+
         def tmp_distance(x):
             for i in range(nvar):
                 model.set_parameter(varia[i], x[i])
             I = pyqcm.model_instance(model)
             return self.distance(I)
 
-        return optimize(tmp_distance, x, method=method, accur = accur, accur_dist = accur_dist)
-
+        return optimize(
+            tmp_distance, x, method=method, accur=accur, accur_dist=accur_dist
+        )
 
 
 ####################################################################################################
 # PRIVATE FUNCTIONS
 
-#---------------------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------------------
 def check_bounds(x, B=100, v=None):
     """Checks whether one of the variables in the array x is out of bounds
 
@@ -1187,16 +1433,28 @@ def check_bounds(x, B=100, v=None):
     for i in range(len(x)):
         if np.abs(x[i]) > B:
             if v != None:
-                S = 'parameter {:s} = {:g} is out of bounds!'.format(v[i], x[i])
+                S = "parameter {:s} = {:g} is out of bounds!".format(v[i], x[i])
             else:
-                S = 'parameter no {:d}  = {:g} is out of bounds!'.format(i+1, x[i])
-            print('Try setting `max_value` to a bigger value within the CDMFT procedure!')
+                S = "parameter no {:d}  = {:g} is out of bounds!".format(i + 1, x[i])
+            print(
+                "Try setting `max_value` to a bigger value within the CDMFT procedure!"
+            )
             raise pyqcm.OutOfBoundsError(S)
 
-#---------------------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------------------
 # optimization of the bath parameters
 
-def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_dist = 1e-8, maxfev=5000000):
+
+def optimize(
+    F,
+    x,
+    method="Nelder-Mead",
+    initial_step=0.1,
+    accur=1e-4,
+    accur_dist=1e-8,
+    maxfev=5000000,
+):
     """
 
     :param F: function to be optimized
@@ -1213,35 +1471,64 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
 
     displaymin, nvar = False, len(x)
     nlopt_methods = {
-        'COBYLA': nlopt.LN_COBYLA,
-        'BOBYQA': nlopt.LN_BOBYQA,
-        'PRAXIS': nlopt.LN_PRAXIS,
-        'NELDERMEAD': nlopt.LN_NELDERMEAD,
-        'SUBPLEX': nlopt.LN_SBPLX
+        "COBYLA": nlopt.LN_COBYLA,
+        "BOBYQA": nlopt.LN_BOBYQA,
+        "PRAXIS": nlopt.LN_PRAXIS,
+        "NELDERMEAD": nlopt.LN_NELDERMEAD,
+        "SUBPLEX": nlopt.LN_SBPLX,
     }
-    if method == 'Nelder-Mead':
+    if method == "Nelder-Mead":
         initial_simplex = np.zeros((nvar + 1, nvar))
         for i in range(nvar + 1):
             initial_simplex[i, :] = x
         for i in range(nvar):
             initial_simplex[i + 1, i] += initial_step
-        sol = scipy.optimize.minimize(F, x, method='Nelder-Mead', options={'disp':displaymin, 'maxfev':maxfev, 'xatol': accur, 'fatol': accur_dist, 'initial_simplex': initial_simplex, 'adaptive':True, 'disp': False})
+        sol = scipy.optimize.minimize(
+            F,
+            x,
+            method="Nelder-Mead",
+            options={
+                "disp": displaymin,
+                "maxfev": maxfev,
+                "xatol": accur,
+                "fatol": accur_dist,
+                "initial_simplex": initial_simplex,
+                "adaptive": True,
+                "disp": False,
+            },
+        )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method == 'Powell':
-        sol = scipy.optimize.minimize(F, x, method='Powell', tol=accur)
+    elif method == "Powell":
+        sol = scipy.optimize.minimize(F, x, method="Powell", tol=accur)
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method == 'CG':
-        sol = scipy.optimize.minimize(F, x, method='CG', jac=False, tol=accur, options={'gtol': 1e-6, 'eps': 1e-6})
+    elif method == "CG":
+        sol = scipy.optimize.minimize(
+            F, x, method="CG", jac=False, tol=accur, options={"gtol": 1e-6, "eps": 1e-6}
+        )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method == 'BFGS':
-        sol = scipy.optimize.minimize(F, x, method='BFGS', jac=False, tol=accur, options={'eps': accur})
+    elif method == "BFGS":
+        sol = scipy.optimize.minimize(
+            F, x, method="BFGS", jac=False, tol=accur, options={"eps": accur}
+        )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method == 'ANNEAL':
-        sol = scipy.optimize.basinhopping(F, x, minimizer_kwargs={'method': 'COBYLA', 'options': {'disp': displaymin, 'rhobeg': initial_step, 'maxiter': maxfev, 'rtol': accur_dist}})
+    elif method == "ANNEAL":
+        sol = scipy.optimize.basinhopping(
+            F,
+            x,
+            minimizer_kwargs={
+                "method": "COBYLA",
+                "options": {
+                    "disp": displaymin,
+                    "rhobeg": initial_step,
+                    "maxiter": maxfev,
+                    "rtol": accur_dist,
+                },
+            },
+        )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method in nlopt_methods.keys():
@@ -1261,13 +1548,20 @@ def optimize(F, x, method='Nelder-Mead', initial_step=0.1, accur = 1e-4, accur_d
 
         # Minimizing...
         sol = optimizer.optimize(x)
-        opt_x, iter_done, success, fun = sol, optimizer.get_numevals(), optimizer.last_optimize_result(), optimizer.last_optimum_value()
+        opt_x, iter_done, success, fun = (
+            sol,
+            optimizer.get_numevals(),
+            optimizer.last_optimize_result(),
+            optimizer.last_optimum_value(),
+        )
 
     else:
-        raise ValueError(f'unknown method specified for minimization: {method}')
+        raise ValueError(f"unknown method specified for minimization: {method}")
 
     if not success:
-        raise pyqcm.MinimizationError('Failure of the optimization of the bath parameters')
+        raise pyqcm.MinimizationError(
+            "Failure of the optimization of the bath parameters"
+        )
 
     return opt_x, iter_done, success, fun
 
