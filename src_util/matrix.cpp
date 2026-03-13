@@ -3,6 +3,7 @@
  */
 
 #include <cstdio>
+#include <Eigen/Dense>
 
 #include "matrix.hpp"
 #include "parser.hpp"
@@ -12,90 +13,58 @@ using namespace std;
 /*
  NOTE : The general convention of this code is to use "Column Major Matrices",
  stored in linear arrays, such that if A is a r x c matrix, then
- 
+
  A[i][j] --->  A[i+r*j]
- 
+
+ Eigen also uses column-major storage by default, so Eigen::Map wraps
+ the v.data() buffer directly with zero copy.
  */
 
 /**
+ inverts the current matrix (replaces its content)
  */
 template<> void matrix<double>::inverse()
 {
-	assert(r==c);
+	QCM_ASSERT(r==c);
+	if(r==0) return;
 	if(r==1){v[0] = 1/v[0]; return;}
-	else if(r==0) return;
-	
-	integer INFO=0, M , N , LDA;
-	
-	vector<integer> IPIV(r);
-	vector<doublereal> WORK(r);
-	
-	N = c;
-	M = r;
-	LDA = r;
-	
-	dgetrf_(&M, &N,(doublereal *)&v[0], &LDA,IPIV.data(),&INFO);
-	assert((int)INFO==0);
-	dgetri_(&N,(doublereal *)&v[0],&LDA,IPIV.data(),WORK.data(),&N,&INFO);
-	assert((int)INFO==0);
+	Eigen::Map<Eigen::MatrixXd> M(v.data(), r, c);
+	M = M.inverse().eval();
 }
-
-
-
-
 
 
 /**
  checks whether the Complex matrix A is real
  */
-template<> bool matrix<Complex >::is_real(double accuracy)
+template<> bool matrix<Complex>::is_real(double accuracy)
 {
 	for(size_t i=0; i<v.size(); ++i) if(abs(v[i].imag()) > accuracy) return false;
 	return true;
 }
 
 
-
-
-
-
 /**
- Finds eigenvalues and eigenvectors of a  real symmetric matrix
+ Finds eigenvalues and eigenvectors of a real symmetric matrix
  @param d [out] pre-allocated vector of eigenvalues
  @param U [out] pre-allocated orthogonal matrix whose columns are the eigenvectors of the matrix
  */
-template<> void matrix<double>::eigensystem(vector<double> &d, matrix<double> &U)const
+template<> void matrix<double>::eigensystem(vector<double> &d, matrix<double> &U) const
 {
-	assert(r == c);
-	assert(U.r == r and U.c == c);
-	assert(d.size() == r);
-	
-	char JOBZ, UPLO;
-	integer INFO=0, N , LDA, LWORK;
-	
-	JOBZ = 'V'; // calculates eigenvectors too
-	UPLO = 'L'; // lower triangle is stored
-	N = (integer)r;
-	erase(U.v);
-	U.v = this->v;
-	LDA = r;
-	LWORK = 3*N; // N*(N+2);
-	vector<doublereal> WORK(LWORK);
-	
-	dsyev_(&JOBZ, &UPLO, &N, (doublereal *)&U.v[0], &LDA, (doublereal *)&d[0], WORK.data(), &LWORK, &INFO);
-	
-	if (!((int)INFO==0))
+	QCM_ASSERT(r == c);
+	QCM_ASSERT(U.r == r and U.c == c);
+	QCM_ASSERT(d.size() == r);
+
+	Eigen::Map<const Eigen::MatrixXd> A(v.data(), r, c);
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(A);
+	if(solver.info() != Eigen::Success)
 	{
 		cout << "dimension : " << r << " x " << c << endl;
 		cout << *this << endl;
-		throw std::runtime_error(std::string
-			("bad INFO value from dsyev (eigensystem)")+std::to_string((int)INFO) );
+		throw std::runtime_error("SelfAdjointEigenSolver failed (eigensystem<double>)");
 	}
+	Eigen::Map<Eigen::VectorXd>(d.data(), r) = solver.eigenvalues();
+	Eigen::Map<Eigen::MatrixXd>(U.v.data(), r, c) = solver.eigenvectors();
 }
-
-
-
-
 
 
 /**
@@ -104,80 +73,38 @@ template<> void matrix<double>::eigensystem(vector<double> &d, matrix<double> &U
  */
 template<> void matrix<double>::eigenvalues(vector<double> &d)
 {
-	assert(r == c);
-	
-	char JOBZ, UPLO;
-	integer INFO, N , LDA, LWORK;
-	
-	vector<double> w(v);
-	JOBZ = 'N'; // do not calculates eigenvectors
-	UPLO = 'L'; // lower triangle is stored
-	N = (integer)r;
-	LDA = r;
-	LWORK = N*(N+2);
-	vector<doublereal> WORK(LWORK);
-	
-	dsyev_(&JOBZ, &UPLO, &N, (doublereal *)&w[0], &LDA, (doublereal *)&d[0], WORK.data(), &LWORK, &INFO);
-	assert((int)INFO==0);
+	QCM_ASSERT(r == c);
+	Eigen::Map<const Eigen::MatrixXd> A(v.data(), r, c);
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(A, Eigen::EigenvaluesOnly);
+	QCM_ASSERT(solver.info() == Eigen::Success);
+	Eigen::Map<Eigen::VectorXd>(d.data(), r) = solver.eigenvalues();
 }
-
-
-
-
 
 
 /**
  inverts the current matrix (replaces its content)
  */
-template<> void matrix<Complex >::inverse()
+template<> void matrix<Complex>::inverse()
 {
-	assert(r==c);
+	QCM_ASSERT(r==c);
 	if(r==0) return;
-	integer INFO=0, M , N , LDA;
-	
-	vector<integer> IPIV(r);
-	vector<doublecomplex> WORK(r);
-	
-	N = r;
-	M = r;
-	LDA = r;
-	try{
-		zgetrf_(&M, &N,(doublecomplex*)&v[0], &LDA, IPIV.data(),&INFO);
-		if((int)INFO) qcm_throw("Error in matrix inversion:  zgetrf_() produces INFO = "+to_string<int>(INFO));
-		zgetri_(&N,(doublecomplex*)&v[0],&LDA,IPIV.data(),WORK.data(),&N,&INFO);
-		if((int)INFO) qcm_throw("Error in matrix inversion:  zgetri_() produces INFO = "+to_string<int>(INFO));
-	} catch(const string& s) {qcm_catch(s);}
+	Eigen::Map<Eigen::MatrixXcd> M(v.data(), r, c);
+	M = M.inverse().eval();
 }
-
-
-
-
 
 
 /**
- Absolute value (module) of the determinant of a complex matrix
- Destroys the matrix !
+ Returns the determinant of a complex matrix.
+ Note: unlike the previous LAPACK-based version (which returned only the
+ product of the U diagonal in the LU factorisation), this returns the
+ correct determinant including the permutation sign.
  */
-template<> Complex  matrix<Complex >::determinant()
+template<> Complex matrix<Complex>::determinant()
 {
-	Complex z;
-	size_t i;
 	if(r==0) return Complex(0);
-	
-	integer INFO=0, LDA;
-	
-	vector<integer> IPIV(r);
-	LDA = r;
-	zgetrf_((integer *)&r, (integer *)&c,(doublecomplex*)&v[0], &LDA, IPIV.data(), &INFO);
-	assert((int)INFO==0);
-	z = Complex(1.0);
-	for(i=0; i<r; ++i) z *= v[i+i*r];
-	return(z);
+	Eigen::Map<Eigen::MatrixXcd> M(v.data(), r, c);
+	return M.determinant();
 }
-
-
-
-
 
 
 /**
@@ -185,63 +112,35 @@ template<> Complex  matrix<Complex >::determinant()
  @param d [out] pre-allocated vector of eigenvalues
  @param U [out] pre-allocated unitary matrix whose columns are the eigenvectors of the matrix
  */
-template<> void matrix<Complex >::eigensystem(vector<double> &d, matrix<Complex > &U)const
+template<> void matrix<Complex>::eigensystem(vector<double> &d, matrix<Complex> &U) const
 {
-	assert(r == c);
-	
-	char JOBZ, UPLO;
-	integer INFO=0, N , LDA, LWORK;
-	
-	JOBZ = 'V'; // calculates eigenvectors too
-	UPLO = 'L'; // lower triangle is stored
-	N = (integer)r;
-	erase(U.v);
-	U.v = this->v;
-	LDA = r;
-	LWORK = 2*N; // N*(N+2);
-	vector<doublecomplex> WORK(LWORK);
-	vector<doublereal> RWORK(3*N-2);
-	zheev_(&JOBZ, &UPLO, &N, (doublecomplex *)&U.v[0], &LDA, (doublereal *)&d[0], WORK.data(), &LWORK, RWORK.data(), &INFO );
-	if (!((int)INFO==0))
+	QCM_ASSERT(r == c);
+
+	Eigen::Map<const Eigen::MatrixXcd> A(v.data(), r, c);
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(A);
+	if(solver.info() != Eigen::Success)
 	{
 		cout << "dimension : " << r << " x " << c << endl;
 		cout << *this << endl;
-		throw std::runtime_error(std::string
-			("bad INFO value from zheev (eigensystem<complex>)")+std::to_string((int)INFO) );
+		throw std::runtime_error("SelfAdjointEigenSolver failed (eigensystem<complex>)");
 	}
-	assert((int)INFO==0);
+	Eigen::Map<Eigen::VectorXd>(d.data(), r) = solver.eigenvalues();
+	Eigen::Map<Eigen::MatrixXcd>(U.v.data(), r, c) = solver.eigenvectors();
 }
-
-
-
-
 
 
 /**
  computes the eigenvalues of a complex hermitian matrix
  @param d vector of eigenvalues
  */
-template<> void matrix<Complex >::eigenvalues(vector<double> &d)
+template<> void matrix<Complex>::eigenvalues(vector<double> &d)
 {
-	assert(r == c);
-	
-	char JOBZ, UPLO;
-	integer INFO=0, N , LDA, LWORK;
-	
-	vector<Complex> w(v);
-	JOBZ = 'N'; // does not calculates eigenvectors
-	UPLO = 'L'; // lower triangle is stored
-	N = (integer)r;
-	LDA = r;
-	LWORK = 2*N-1;
-	vector<doublecomplex> WORK(LWORK);
-	vector<doublereal> RWORK(3*N-2);
-	zheev_(&JOBZ, &UPLO, &N, (doublecomplex *)w.data(), &LDA, (doublereal *)d.data(), WORK.data(), &LWORK, RWORK.data(), &INFO );
-	assert((int)INFO==0);
+	QCM_ASSERT(r == c);
+	Eigen::Map<const Eigen::MatrixXcd> A(v.data(), r, c);
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXcd> solver(A, Eigen::EigenvaluesOnly);
+	QCM_ASSERT(solver.info() == Eigen::Success);
+	Eigen::Map<Eigen::VectorXd>(d.data(), r) = solver.eigenvalues();
 }
-
-
-
 
 
 /**
@@ -249,22 +148,19 @@ template<> void matrix<Complex >::eigenvalues(vector<double> &d)
  */
 template<> double matrix<double>::norm()
 {
-	return cblas_dnrm2((int)v.size(),&v[0],1);
+	Eigen::Map<const Eigen::MatrixXd> M(v.data(), r, c);
+	return M.norm();
 }
-
-
-
-
 
 
 /**
  returns the norm of the matrix
  */
-template<> double matrix<Complex >::norm()
+template<> double matrix<Complex>::norm()
 {
-	return cblas_dznrm2((int)v.size(),v.data(),1);;
+	Eigen::Map<const Eigen::MatrixXcd> M(v.data(), r, c);
+	return M.norm();
 }
-
 
 
 /**
@@ -272,19 +168,18 @@ template<> double matrix<Complex >::norm()
  */
 template<> double matrix<double>::norm2()
 {
-	double z = cblas_dnrm2((int)v.size(),v.data(),1);
-	return z*z;
+	Eigen::Map<const Eigen::MatrixXd> M(v.data(), r, c);
+	return M.squaredNorm();
 }
-
 
 
 /**
  returns the square of the norm of the matrix
  */
-template<> double matrix<Complex >::norm2()
+template<> double matrix<Complex>::norm2()
 {
-	double z = cblas_dznrm2((int)v.size(),v.data(),1);
-	return z*z;
+	Eigen::Map<const Eigen::MatrixXcd> M(v.data(), r, c);
+	return M.squaredNorm();
 }
 
 
@@ -294,59 +189,37 @@ template<> double matrix<Complex >::norm2()
 template<> bool matrix<double>::is_orthogonal(double accuracy)
 {
 	if(r!=c) return false;
-	for(size_t i=0; i<r; ++i){
-		for(size_t j=0; j<=i; ++j){
-			double z = 0.0;
-			for(size_t k=0; k<r; ++k){
-				z += v[k+i*r]*v[k+j*r];
-			}
-			if(i==j and abs(z-1.0) > accuracy) return false;
-			if(i!=j and abs(z) > accuracy) return false;
-		}
-	}
+	Eigen::Map<const Eigen::MatrixXd> M(v.data(), r, c);
+	Eigen::MatrixXd diff = M.transpose() * M - Eigen::MatrixXd::Identity(r, r);
+	return diff.cwiseAbs().maxCoeff() <= accuracy;
+}
+
+
+/**
+ puts in the current matrix the matrix L of the Cholesky decomposition of A = L * transpose(L)
+ */
+template<> bool matrix<double>::cholesky(matrix<double> &A)
+{
+	Eigen::Map<const Eigen::MatrixXd> Ma(A.v.data(), A.r, A.c);
+	Eigen::LLT<Eigen::MatrixXd> llt(Ma);
+	if(llt.info() != Eigen::Success) return false;
+	set_size(A.r);
+	Eigen::Map<Eigen::MatrixXd>(v.data(), r, c) = llt.matrixL();
 	return true;
 }
 
 
 /**
- puts in the current matrix the matrix $L$ of the Cholesky decomposition of A = L.transpose(L)
+ replaces the current matrix by its lower-triangular inverse
  */
-template<> bool matrix<double>::cholesky(matrix<double> &A){
-	char UPLO;
-	integer INFO=0, N , LDA;
-	
-	UPLO = 'L'; // lower triangle is stored
-	N = (integer)r;
-	LDA = A.r;
-	set_size(A.r);
-	for(size_t i=0; i<r; i++){
-		for(size_t j=0; j<=i; j++) v[i+r*j] = A(i,j);
-	}
-	
-	dpotrf_(&UPLO, &N, (doublereal *) &v[0], &LDA, &INFO);
-	
-	if((int)INFO==0) return true;
-	else return false;
+template<> bool matrix<double>::triangular_inverse()
+{
+	Eigen::Map<Eigen::MatrixXd> M(v.data(), r, c);
+	Eigen::MatrixXd Linv = M.triangularView<Eigen::Lower>().solve(
+		Eigen::MatrixXd::Identity(r, r));
+	M = Linv;
+	return true;
 }
-
-
-
-/**
- puts in the current matrix the matrix $L$ of the Cholesky decomposition of A = L.transpose(L)
- */
-template<> bool matrix<double>::triangular_inverse(){
-	char UPLO, DIAG;
-	integer INFO=0, N , LDA;
-	
-	UPLO = 'L'; // lower triangle is stored
-	DIAG = 'N'; // not a unit diagonal
-	N = (integer)r;
-	LDA = (integer)r;
-	dtrtri_(&UPLO, &DIAG, &N, (doublereal *) &v[0], &LDA, &INFO);
-	if((int)INFO==0) return true;
-	else return false;
-}
-
 
 
 
@@ -417,4 +290,3 @@ void matrix_to_real_vector(const matrix<Complex> &M, double *x){
 	  }
     }
 }
-

@@ -40,19 +40,19 @@ struct sparse_matrix
 	
 	inline void insert(size_t _r, size_t _c, T v)
 	{
-		if(_r > r or _c > c) assert(_r < r and _c < c);
+		if(_r > r or _c > c) QCM_ASSERT(_r < r and _c < c);
 		el[index_pair(_r,_c)] += v;
 	}
 	
 	inline void insert(size_t _r, T v)
 	{
-		assert(_r < r);
+		QCM_ASSERT(_r < r);
 		el[index_pair(_r,_r)] += v;
 	}
 	
 	inline void insert(const index_pair &m, T v)
 	{
-		assert(m.r < r and m.c < c);
+		QCM_ASSERT(m.r < r and m.c < c);
 		if(abs(v)>SMALL_VALUE) el[m] += v;
 	}
 	

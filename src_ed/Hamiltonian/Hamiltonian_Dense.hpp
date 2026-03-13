@@ -165,7 +165,7 @@ Q_matrix<HilbertField> Hamiltonian_Dense<HilbertField>::build_Q_matrix(
     vector<HilbertField> y(this->dim);
     matrix<HilbertField> U(H_dense);
     H_dense.eigensystem(Q.e, U);
-    assert(U.is_unitary(1e-6));
+    QCM_ASSERT(U.is_unitary(1e-6));
     for(size_t i=0; i<phi.size(); ++i){
         to_zero(y);
         U.left_apply_add(phi[i],y); // does y = phi[i] . U

@@ -34,8 +34,7 @@ string strip_at(const string& s)
 lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model, int _label)
 : label(_label), model(_model), complex_HS(false)
 {
-  n_clus = model->clusters.size();
-  vector<map<string,double>> cluster_values(n_clus);
+  vector<map<string,double>> sys_values(model->nsys);
   gs_solved = false;
   gf_solved = false;
   average_solved = false;
@@ -53,16 +52,16 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
     auto P = model->name_and_label(name, true);
     if(P.second){
       if(x.second != 0.0 or P.first == "mu"){
-        cluster_values[P.second-1][P.first] = x.second;
+        sys_values[P.second-1][P.first] = x.second;
       }
     }
     else model->term.at(name)->is_active = true;
   }
 
-  for(size_t i=0; i<n_clus; i++){
-    if(cluster_values[i].size() == 0) qcm_throw("cluster "+to_string(i)+" has no nonzero operators");
-    ED::new_model_instance(model->clusters[i].name, cluster_values[i], model->sector_strings[i], label*n_clus+i);
-    model->clusters[i].mixing = ED::mixing(label*n_clus+i);
+  for(size_t s=0; s<model->nsys; s++){
+    if(sys_values[s].size() == 0) qcm_throw("system "+to_string(s)+" has no nonzero operators");
+    ED::new_model_instance(model->systems[s].name, sys_values[s], model->sector_strings[s], label*model->nsys + s);
+    model->clusters[model->systems[s].clus].mixing = ED::mixing(label*model->nsys + s);
   }
 	if(model->GF_offset.size() == 0) model->post_parameter_consolidate(label);
   #ifdef QCM_DEBUG
@@ -87,43 +86,24 @@ vector<pair<double,string>> lattice_model_instance::ground_state()
   if(gs_solved) return gs;
   static bool first_time = true;
 
-  clus_ave.resize(n_clus);
-  gs.resize(n_clus);
-	GS_energy.resize(n_clus+1);
+  clus_ave.resize(model->nsys);
+  gs.resize(model->nsys);
+	GS_energy.resize(model->clusters.size()+1);
 	GS_energy[0] = 0.0;
 
 
-  if(first_time){
-    first_time = false;
-    for(size_t i = 0; i<model->inequiv.size(); i++){
-      auto I = model->inequiv[i];
-      gs[I] = ED::ground_state_solve(n_clus*label+I);
-      clus_ave[I] = ED::cluster_averages(n_clus*label+I);
-    }
-  }
-  else{
-    #pragma omp parallel for 
-    for(size_t i = 0; i<model->inequiv.size(); i++){
-      auto I = model->inequiv[i];
-      gs[I] = ED::ground_state_solve(n_clus*label+I);
-      clus_ave[I] = ED::cluster_averages(n_clus*label+I);
-    }
-  }
-  for(size_t i = 0; i<n_clus; i++){
-    if(model->clusters[i].ref != i){
-      gs[i] = gs[model->clusters[i].ref];
-      clus_ave[i] = clus_ave[model->clusters[i].ref];
-    }
-  }
-  for(size_t i = 0; i<n_clus; i++){
-    GS_energy[i+1] = gs[i].first;
-    GS_energy[0] += gs[i].first;
-    for(auto& x : clus_ave[i]) get<0>(x) += '_' + to_string(i+1);
+  first_time = false;
+  int sc=0;
+  for(size_t s = 0; s < model->systems.size(); s++){
+    gs[s] = ED::ground_state_solve(model->nsys*label + s);
+    clus_ave[s] = ED::cluster_averages(model->nsys*label + s);
+    GS_energy[model->systems[s].clus+1] +=  gs[s].first;
   }
 
-  for(size_t i = 0; i<n_clus; i++){
-    if(i != model->clusters[i].ref) continue;
-    if(ED::complex_HS(n_clus*label+i)) complex_HS = true;
+  for(size_t c = 0; c<model->clusters.size(); c++) GS_energy[c+1] /= model->clusters[c].nsys;
+
+  for(size_t s = 0; s<model->nsys; s++){
+    if(ED::complex_HS(model->nsys*label + s)) complex_HS = true;
   }
 
   gs_solved = true;
@@ -155,27 +135,14 @@ void lattice_model_instance::build_H()
 
 //==============================================================================
 /** 
- finds the Green function representation of all clusters
+ finds the Green function representation of all systems
  */
 void lattice_model_instance::Green_function_solve()
 {
   static bool first_time = true;
   if(gf_solved) return;
   if(!gs_solved) ground_state();
-  if(first_time){
-    first_time = false;
-    for(size_t i = 0; i<model->inequiv.size(); i++){
-      auto I = model->inequiv[i];
-      ED::Green_function_solve(n_clus*label+I);
-    }
-  }
-  else{
-    #pragma omp parallel for
-    for(size_t i = 0; i<model->inequiv.size(); i++){
-      auto I = model->inequiv[i];
-      ED::Green_function_solve(n_clus*label+I);
-    }
-  } 
+  for(size_t s = 0; s<model->nsys; s++) ED::Green_function_solve(model->nsys*label+s);
   build_H();
 }
 
@@ -187,15 +154,16 @@ void lattice_model_instance::Green_function_solve()
  */
 void lattice_model_instance::build_cluster_H()
 {
+  size_t n_clus = model->clusters.size();
   Hc.block.assign(n_clus, matrix<Complex>());
-  for(size_t i = 0; i<n_clus; i++){
-    Hc.block[i].assign(cluster_hopping_matrix(i, false));
+  for(size_t c = 0; c<n_clus; c++){
+    Hc.block[c].assign(cluster_hopping_matrix(c, false));
   }
   Hc.set_size();
   if(model->mixing == HS_mixing::up_down){
     Hc_down.block.assign(n_clus, matrix<Complex>());
-    for(size_t i = 0; i<n_clus; i++){
-      Hc_down.block[i].assign(cluster_hopping_matrix(i, true));
+    for(size_t c = 0; c<n_clus; c++){
+      Hc_down.block[c].assign(cluster_hopping_matrix(c, true));
     }
     Hc_down.set_size();
   }
@@ -203,23 +171,56 @@ void lattice_model_instance::build_cluster_H()
 
 
 //==============================================================================
-/** 
- returns the cluster Green function for cluster # i at frequency w
- @param i [in] index of the cluster (1 to the number of clusters)
+/**
+ returns the remixed cluster Green function for cluster # i at frequency w
+ if the cluster only contains one system, then this is directly that system's Green function.
+ Otherwise they are averaged inverse-wise.
+ @param c [in] index of the cluster (starts at 0)
  @param w [in] complex frequency
  @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
  @returns a complex-valued matrix containing the cluster Green function
  */
-matrix<complex<double>> lattice_model_instance::cluster_Green_function(size_t i, complex<double> w, bool spin_down, bool blocks)
+matrix<complex<double>> lattice_model_instance::cluster_Green_function_remix(size_t c, complex<double> w, bool spin_down, bool blocks)
 {
-  if(i >= model->clusters.size()) qcm_throw("cluster label out of range");
+  if(model->clusters[c].nsys == 1) return ED::Green_function(w, spin_down, model->nsys*label + model->clusters[c].sys_start, blocks);
+  else{
+    matrix<Complex> g(model->GF_dims[c]);
+    for(int s=0; s<model->clusters[c].nsys; s++){
+      // ATTENTION : ICI ON DEVRAIT MOYENNER AVEC DES POIDS QUI DÉPENDENT de K
+      auto gs = ED::Green_function(w, spin_down, model->nsys*label + s + model->clusters[c].sys_start, blocks);
+      gs.inverse();
+      g.v += gs.v;
+    }
+    g.v *= 1.0/model->clusters[c].nsys;
+    g.inverse();
+    return g;
+  }
+}
+
+//==============================================================================
+/**
+ returns the cluster Green function for cluster # i at frequency w
+ @param i [in] index of the cluster (starts at 0)
+ @param w [in] complex frequency
+ @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
+ @returns a complex-valued matrix containing the cluster Green function
+ */
+matrix<complex<double>> lattice_model_instance::cluster_Green_function(size_t c, complex<double> w, bool spin_down, bool blocks)
+{
+  if(c >= model->clusters.size()) qcm_throw("cluster label out of range");
+
+  int cr = model->clusters[c].ref;
+  if(cr != c){
+    if(model->clusters[c].conj) w = conjugate(w);
+    matrix<Complex> G = cluster_Green_function(cr, w, spin_down, blocks);
+    if(model->clusters[c].conj) G.cconjugate();
+    return G;
+  }
+
   if(!gf_solved) Green_function_solve();
-  int I = n_clus*label+model->clusters[i].ref;
-  if(model->clusters[i].conj) w = conjugate(w);
-  matrix<Complex> g = ED::Green_function(w, spin_down, I, blocks);
-  if(model->clusters[i].conj) g.cconjugate();
+  matrix<Complex> g = cluster_Green_function_remix(c, w, spin_down, blocks);
   matrix<Complex> G;
-  int mix = model->clusters[i].mixing;
+  int mix = model->clusters[c].mixing;
   if(model->mixing == mix) return g;
 
   // combinaisons 0:2, 0:4, 1:3, 1:5
@@ -228,8 +229,8 @@ matrix<complex<double>> lattice_model_instance::cluster_Green_function(size_t i,
   }
   // combinaisons 0:1, 0:3, 0:5, 2:3
   else if((model->mixing&1) == 1 and (mix&1) == 0){
-    auto gm = ED::Green_function(-w, false, I, false);
-    if(model->clusters[i].conj) gm.cconjugate();
+    auto gm = cluster_Green_function_remix(c, -w, spin_down, blocks);
+    if(model->clusters[c].conj) gm.cconjugate();
     G = upgrade_cluster_matrix_anomalous(model->mixing, mix, g, gm);
   }
   else{
@@ -239,22 +240,52 @@ matrix<complex<double>> lattice_model_instance::cluster_Green_function(size_t i,
 }
 
 //==============================================================================
+/**
+ returns the remixed cluster Green function for cluster # i at frequency w
+ if the cluster only contains one system, then this is directly that system's Green function.
+ Otherwise they are averaged inverse-wise.
+ @param c [in] index of the cluster (starts at 0)
+ @param w [in] complex frequency
+ @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
+ @returns a complex-valued matrix containing the cluster Green function
+ */
+matrix<complex<double>> lattice_model_instance::cluster_self_energy_remix(size_t c, complex<double> w, bool spin_down)
+{
+  if(model->clusters[c].nsys == 1) return ED::self_energy(w, spin_down, model->nsys*label + model->clusters[c].sys_start);
+  else{
+    matrix<Complex> g(model->GF_dims[c]);
+    for(int s=0; s<model->clusters[c].nsys; s++){
+      // ATTENTION : ICI ON DEVRAIT MOYENNER AVEC DES POIDS QUI DÉPENDENT de K
+      g += ED::self_energy(w, spin_down, model->nsys*label + s + model->clusters[c].sys_start);
+    }
+    g.v *= 1.0/model->clusters[c].nsys;
+    return g;
+  }
+}
+
+//==============================================================================
 /** 
  returns the cluster Green function for cluster # i at frequency w
- @param i [in] index of the cluster (1 to the number of clusters)
+ @param c [in] index of the cluster (0 to the number of clusters)
  @param w [in] complex frequency
  @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
  @returns a complex-valued matrix containing the cluster self-energy
  */
-matrix<complex<double>> lattice_model_instance::cluster_self_energy(size_t i, complex<double> w, bool spin_down)
+matrix<complex<double>> lattice_model_instance::cluster_self_energy(size_t c, complex<double> w, bool spin_down)
 {
-  if(i >= model->clusters.size()) qcm_throw("cluster label out of range");
+
+  int cr = model->clusters[c].ref;
+  if(cr != c){
+    if(model->clusters[c].conj) w = conjugate(w);
+    matrix<Complex> G = cluster_self_energy(cr, w, spin_down);
+    if(model->clusters[c].conj) G.cconjugate();
+    return G;
+  }
+
+  if(c >= model->clusters.size()) qcm_throw("cluster label out of range");
   if(!gf_solved) Green_function_solve();
-  int I = n_clus*label+model->clusters[i].ref;
-  if(model->clusters[i].conj) w = conjugate(w);
-  matrix<Complex> g = ED::self_energy(w, spin_down, I);
-  if(model->clusters[i].conj) g.cconjugate();
-  int mix = model->clusters[i].mixing;
+  matrix<Complex> g = cluster_self_energy_remix(cr, w, spin_down);
+  int mix = model->clusters[c].mixing;
   if(model->mixing == mix) return g;
 
   // combinaisons 0:2, 0:4, 1:3, 1:5
@@ -263,8 +294,8 @@ matrix<complex<double>> lattice_model_instance::cluster_self_energy(size_t i, co
   }
   // combinaisons 0:1, 0:3, 0:5, 2:3
   else if((model->mixing&1) == 1 and (mix&1) == 0){
-    auto gm = ED::self_energy(-w, false, I);
-    if(model->clusters[i].conj) gm.cconjugate();
+    auto gm = cluster_self_energy_remix(c, -w, spin_down);
+    if(model->clusters[c].conj) gm.cconjugate();
     return upgrade_cluster_matrix_anomalous(model->mixing, mix, g, gm);
   }
   else{
@@ -275,21 +306,51 @@ matrix<complex<double>> lattice_model_instance::cluster_self_energy(size_t i, co
 }
 
 //==============================================================================
+/**
+ returns the remixed cluster Green function for cluster # i at frequency w
+ if the cluster only contains one system, then this is directly that system's Green function.
+ Otherwise they are averaged inverse-wise.
+ @param c [in] index of the cluster (starts at 0)
+ @param w [in] complex frequency
+ @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
+ @returns a complex-valued matrix containing the cluster Green function
+ */
+matrix<complex<double>> lattice_model_instance::hybridization_function_remix(size_t c, complex<double> w, bool spin_down)
+{
+  if(model->clusters[c].nsys==1) return ED::hybridization_function(w, spin_down, model->nsys*label + model->clusters[c].sys_start);
+  else{
+    matrix<Complex> g(model->GF_dims[c]);
+    for(int s=0; s<model->clusters[c].nsys; s++){
+      // ATTENTION : ICI ON DEVRAIT MOYENNER AVEC DES POIDS QUI DÉPENDENT de K
+      g += ED::hybridization_function(w, spin_down, model->nsys*label + s + model->clusters[c].sys_start);
+    }
+    g.v *= 1.0/model->clusters[c].nsys;
+    return g;
+  }
+}
+
+
+//==============================================================================
 /** 
  returns the hybridization function for cluster # i at frequency w
- @param i [in] index of the cluster (1 to the number of clusters)
+ @param c [in] index of the cluster (1 to the number of clusters)
  @param w [in] complex frequency
  @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
  @returns a complex-valued matrix containing the cluster hybridization function
  */
-matrix<complex<double>> lattice_model_instance::hybridization_function(size_t i, complex<double> w, bool spin_down)
+matrix<complex<double>> lattice_model_instance::hybridization_function(size_t c, complex<double> w, bool spin_down)
 {
-  if(i >= model->clusters.size()) qcm_throw("cluster label out of range");
-  int I = n_clus*label+model->clusters[i].ref;
-  if(model->clusters[i].conj) w = conjugate(w);
-  matrix<Complex> g = ED::hybridization_function(w, spin_down, I);
-  if(model->clusters[i].conj) g.cconjugate();
-  int mix = model->clusters[i].mixing;
+  int cr = model->clusters[c].ref;
+  if(cr != c){
+    if(model->clusters[c].conj) w = conjugate(w);
+    matrix<Complex> G = hybridization_function(cr, w, spin_down);
+    if(model->clusters[c].conj) G.cconjugate();
+    return G;
+  }
+
+  if(c >= model->clusters.size()) qcm_throw("cluster label out of range");
+  matrix<Complex> g = hybridization_function_remix(c, w, spin_down);
+  int mix = model->clusters[c].mixing;
   if(model->mixing == mix) return g;
 
   // combinaisons 0:2, 0:4, 1:3, 1:5
@@ -298,8 +359,8 @@ matrix<complex<double>> lattice_model_instance::hybridization_function(size_t i,
   }
   // combinaisons 0:1, 0:3, 0:5, 2:3
   else if((model->mixing&1) == 1 and (mix&1) == 0){
-    auto gm = ED::hybridization_function(-w, false, I);
-    if(model->clusters[i].conj) gm.cconjugate();
+    auto gm = hybridization_function_remix(c, -w, spin_down);
+    if(model->clusters[c].conj) gm.cconjugate();
     return upgrade_cluster_matrix_anomalous(model->mixing, mix, g, gm);
   }
   else{
@@ -313,18 +374,23 @@ matrix<complex<double>> lattice_model_instance::hybridization_function(size_t i,
 //==============================================================================
 /** 
  returns the cluster hopping matrix for cluster # i
- @param i [in] index of the cluster (1 to the number of clusters)
+ @param c [in] index of the cluster (starts at 0)
  @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
  @returns a complex-valued matrix containing the cluster non interacting matrix (hopping + pairing)
  */
-matrix<complex<double>> lattice_model_instance::cluster_hopping_matrix(size_t i, bool spin_down)
+matrix<complex<double>> lattice_model_instance::cluster_hopping_matrix(size_t c, bool spin_down)
 {
-  if(i >= model->clusters.size()) qcm_throw("cluster label out of range");
-  int I = n_clus*label+model->clusters[i].ref;
-  matrix<Complex> g = ED::hopping_matrix(spin_down, I);
-  if(model->clusters[i].conj) g.cconjugate();
-  int mix = model->clusters[i].mixing;
+  int cr = model->clusters[c].ref;
+  if(cr != c){
+    matrix<Complex> G = cluster_hopping_matrix(cr, spin_down);
+    if(model->clusters[c].conj) G.cconjugate();
+    return G;
+  }
 
+  if(c >= model->clusters.size()) qcm_throw("cluster label out of range");
+  matrix<Complex> g = ED::hopping_matrix(spin_down, model->nsys*label+model->clusters[c].sys_start);
+
+  int mix = model->clusters[c].mixing;
   if(model->mixing == mix) return g;
 
   // combinations 0:2, 0:4, 1:3, 1:5
@@ -350,11 +416,13 @@ matrix<complex<double>> lattice_model_instance::cluster_hopping_matrix(size_t i,
  */
 void lattice_model_instance::cluster_self_energy(Green_function& G)
 {
+  size_t n_clus = model->clusters.size();
+
   if(!gf_solved) Green_function_solve();
 	G.sigma.block.assign(n_clus, matrix<Complex>());
-  for(size_t i = 0; i<n_clus; i++){
-    auto S = cluster_self_energy(i, G.w, G.spin_down);
-    G.sigma.block[i].assign(S);
+  for(size_t c = 0; c<n_clus; c++){
+    auto S = cluster_self_energy(c, G.w, G.spin_down);
+    G.sigma.block[c].assign(S);
   }
   G.sigma.set_size();
 }
@@ -370,28 +438,29 @@ void lattice_model_instance::cluster_self_energy(Green_function& G)
  */
 Green_function lattice_model_instance::cluster_Green_function(Complex w, bool sig, bool spin_down)
 {
+  size_t n_clus = model->clusters.size();
   if(!gf_solved) Green_function_solve();
 	Green_function G;
 	G.w = w;
 	G.spin_down = spin_down;
 	G.G.block.resize(n_clus);
 
-  for(size_t i = 0; i<n_clus; i++){
-    G.G.block[i].assign(cluster_Green_function(i, w, spin_down, false));
+  for(size_t c = 0; c<n_clus; c++){
+    G.G.block[c].assign(cluster_Green_function(c, w, spin_down, false));
   }
   G.G.set_size();
   if(sig){
     G.sigma.block.resize(n_clus);
-    for(size_t i = 0; i<n_clus; i++){
-      G.sigma.block[i].assign(cluster_self_energy(i, w, spin_down));
+    for(size_t c = 0; c<n_clus; c++){
+      G.sigma.block[c].assign(cluster_self_energy(c, w, spin_down));
     }
     G.sigma.set_size();
   }
   
   if(model->bath_exists){
     G.gamma.block.resize(n_clus);
-    for(size_t i = 0; i<n_clus; i++){
-      G.gamma.block[i].assign(hybridization_function(i, w, spin_down));
+    for(size_t c = 0; c<n_clus; c++){
+      G.gamma.block[c].assign(hybridization_function(c, w, spin_down));
     }
     G.gamma.set_size();
   }
@@ -410,9 +479,12 @@ double lattice_model_instance::Potthoff_functional()
   if(!gf_solved) Green_function_solve();
 	
 	double omega_clus=0.0;
-	for(size_t i=0; i<n_clus; i++){
-    int I = model->clusters[i].ref;
-    omega_clus += ED::Potthoff_functional(label*n_clus+I);
+	for(size_t c=0; c<model->clusters.size(); c++){
+    int C = model->clusters[c].ref;
+    double omega_c = 0.0;
+    for(int s=0; s<model->clusters[c].nsys; s++)
+      omega_c += ED::Potthoff_functional(model->nsys*label + s + model->clusters[c].sys_start);
+    omega_clus += omega_c/model->clusters[c].nsys;
   }
 	
 	vector<double> Iv(1);
@@ -500,6 +572,8 @@ void lattice_model_instance::SEF_integrand(Complex w, vector3D<double> &k, const
  */
 void lattice_model_instance::print_parameters(ostream& out, print_format format)
 {
+  size_t n_clus = model->clusters.size();
+
   bool print_all = global_bool("print_all");
   bool print_variances = global_bool("print_variances");
 
@@ -547,6 +621,8 @@ void lattice_model_instance::print_parameters(ostream& out, print_format format)
  */
 vector<pair<vector<double>, vector<double>>> lattice_model_instance::Lehmann_Green_function(vector<vector3D<double>> &k, int orb, bool spin_down)
 {
+  if(model->nsys != model->clusters.size()) qcm_throw("For the time being, Lehmann_Green_function() only works without subsystems");
+
   if(orb >= model->n_mixed*model->n_band) qcm_throw("the lattice orbital label is out of range in Lehmann_Green_function");
   vector<pair<vector<double>, vector<double>>> res(k.size());
   auto G = cluster_Green_function(Complex(0., 1.0), false, spin_down);

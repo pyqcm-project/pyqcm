@@ -45,7 +45,7 @@ void EigensystemTridiagonal(bool evector_flag, vector<double> &alpha, vector<dou
   // call to a LAPACK routine
   dstev_(&jobz, &nn, (doublereal*)d.data(), (doublereal*)e.data(), (doublereal*)z.data(), &ldz, (doublereal*)work.data(), &info);
   
-  assert((int)info==0);
+  QCM_ASSERT((int)info==0);
   
   energy.assign(d.begin(),d.begin()+M);
   if(evector_flag) evector.assign(z.begin(), z.begin()+M);

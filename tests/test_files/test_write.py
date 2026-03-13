@@ -11,12 +11,9 @@ model.set_parameters("""
     t=1
 """)
 
-for i in range(10):
-    I = pyqcm.model_instance(model)
-    print(I.cluster_Green_function(0.1j, 0)[0,0])
-    # I.write_impurity_problem(clus=0, file='impurity.tsv')
-    # I.write_Green_function(clus=0, file='GF.tsv')
-    I.write('test.out')
-    I = pyqcm.model_instance(model)
-    I.read('test.out')
-    print(I.cluster_Green_function(0.1j, 0)[0,0])
+I = pyqcm.model_instance(model)
+print('GF written:\n', I.cluster_Green_function(0.1j, 0))
+I.write('test.out')
+I = pyqcm.model_instance(model)
+I.read('test.out')
+print('\nGF read:\n', I.cluster_Green_function(0.1j, 0))

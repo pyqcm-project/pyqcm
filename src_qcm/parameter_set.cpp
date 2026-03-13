@@ -15,7 +15,7 @@
 /**
 constructor
 @param _name [in] name of the parameter
-@param _label [in] label (i.e. cluser label, or lattice if = 0)
+@param _label [in] label (i.e. system label, or lattice if = 0)
 @param v [in] value of the parameter
 */
 parameter::parameter(const string& _name, int _label, double v)
@@ -77,9 +77,6 @@ parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<strin
     }
     param_list.insert(x.first);
     auto P = model->name_and_label(x.first);
-    if(P.second > 0 && model->clusters[P.second-1].ref != P.second-1){
-      qcm_throw(x.first+" : values of parameters on dependent clusters should not be set!");
-    }
     param[P.first] = make_shared<parameter>(x.first, P.second, x.second);
   }
   for(auto& x : equiv){
@@ -110,11 +107,12 @@ parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<strin
   for(auto& x : param){
     if(x.second->label == 0){
       auto& op = model->term.at(x.first);
-      for(int i=0; i<model->clusters.size(); i++){
-        if(!op->in_cluster[i]) continue;
-        string name = x.first+parameter::separator+to_string(i+1);
+      for(int s=0; s<model->systems.size(); s++){
+        int c = model->systems[s].clus;
+        if(!op->in_cluster[c]) continue;
+        string name = x.first+parameter::separator+to_string(s+1);
         if(param.find(name) != param.end()) continue;
-        auto tmp = make_shared<parameter>(name, i+1, x.second->value);
+        auto tmp = make_shared<parameter>(name, s+1, x.second->value);
         param_tmp.insert(tmp);
         tmp->ref = x.second;
       }
@@ -180,7 +178,7 @@ void parameter_set::check_existence(string& name)
 {
   auto P = model->name_and_label(name, true);
   if(P.second){
-    if(!ED::exists(model->clusters[P.second-1].name, P.first)) qcm_throw("operator "+name+" does not exist in model");
+    if(!ED::exists(model->systems[P.second-1].name, P.first)) qcm_throw("operator "+name+" does not exist in model");
   }
 }
 

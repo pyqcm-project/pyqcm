@@ -131,9 +131,7 @@ model_instance<HilbertField>::model_instance(size_t _label, shared_ptr<model> _t
     tb_down.set_size(n_mixed*the_model->n_bath);
     tcb_down.set_size(n_mixed*the_model->n_sites,n_mixed*the_model->n_bath);
   }
-  try{
-    set_hopping_matrix(false);
-  } catch(const string& s) {qcm_ED_catch(s);}
+  set_hopping_matrix(false);
   look_up_size = global_int("GF_lookup_depth");
 }
 

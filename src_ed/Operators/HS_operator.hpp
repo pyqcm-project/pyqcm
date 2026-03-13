@@ -60,7 +60,7 @@ struct HS_operator
 	}
 	
 	void dense_form(matrix<T> &h, double z=1.0){
-		assert(h.r == r && h.c == c);
+		QCM_ASSERT(h.r == r && h.c == c);
 		for(auto& w : v){
 			T z2=w.first*z;
 			for(auto& e : w.second) h(e.first, e.second) += z2;

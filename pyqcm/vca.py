@@ -169,6 +169,7 @@ def _quasi_newton_step(iteration = 0, func=None, x=None, step=None, gradient=Non
     :param func: a function of N variables
     :param [float] x: the starting values
     :param [float] step: the steps used to computed the numerical second derivatives
+    :param [float] gradient: the gradient array from the previous step (updated in place)
     :param [float] dx: the previous difference
     :param boolean bfgs: True if the BFGS method is used, otherwise the symmetric rank-1 formula is used (default)
     :param float max_diff: maximum step to make
@@ -725,12 +726,10 @@ class VCA:
         #..........................................................................................................
 
         except pyqcm.OutOfBoundsError as E:
-            print(E)
-            raise pyqcm.SolverError('Failure of the VCA method')
+            raise pyqcm.SolverError('Failure of the VCA method') from E
 
         except pyqcm.TooManyIterationsError as E:
-            print(E)
-            raise pyqcm.SolverError('Failure of the VCA method')
+            raise pyqcm.SolverError('Failure of the VCA method') from E
 
         omega = var2x(sol)  # final, converged value
         if root:
@@ -780,8 +779,9 @@ class VCA:
         :param [float] step: the steps used to computed the numerical second derivatives
         :param [float] accur: the required accuracy for each variable
         :param [float] max: maximum absolute value of each parameter
-        :param int max_iterations:  maximum number of iterations, beyond which an exception is raised
-        :returns [float]: the value of the variables
+        :param int max_iteration: maximum number of iterations, beyond which an exception is raised
+        :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
+        :returns [float]: the value of the variables at the minimax saddle point
 
         """
 
@@ -873,7 +873,7 @@ class VCA:
             if converged and hartree_converged:
                 return sol
         
-        raise(pyqcm.TooManyIterationsError(max_iteration))
+        raise pyqcm.TooManyIterationsError(max_iteration)
         return sol
 
 ################################################################################
@@ -883,9 +883,13 @@ def plot_sef(model, param, prm, file="sef.tsv", accur_SEF=1e-4, hartree=None, sh
     :param lattice_model model: the lattice model
     :param str param: name of the parameter (independent variable)
     :param [float] prm: list of values of the parameter
+    :param lattice_model model: the lattice model on which the computation is based
     :param float accur_SEF: precision of the computation of the self-energy functional
+    :param str file: name of the file to which intermediate results are written
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :param boolean show: if True, the plot is shown on the screen.
+    :param boolean show: if True, the plot is shown on the screen
+    :param str symmetrized_operator: name of an operator with respect to which the functional is symmetrized
+    :param boolean consistency_check: if True, checks the ground state consistency at each point
     :returns: None
 
     """
@@ -926,6 +930,7 @@ def plot_sef(model, param, prm, file="sef.tsv", accur_SEF=1e-4, hartree=None, sh
 def plot_GS_energy(model, param, prm, clus=0, file=None, plt_ax=None, **kwargs):
     """Draws a plot of the ground state energy as a function of a parameter param taken from the list `prm`. The results are going to be appended to 'GS.tsv'
     
+    :param lattice_model model: the lattice model on which the computation is based
     :param str param: name of the parameter (independent variable)
     :param [float] prm: list of values of the parameter
     :param int clus: label of the cluster (starts at 0)
@@ -1016,7 +1021,7 @@ def _transition(model, varia, P, bracket, step=0.001, verb=False, symmetrized_op
 def transition_line(model, varia, P1, P1_range, P2, P2_range, delta, verb=False):
     """Builds the second-order transition line as a function of a control parameter P1. The results are written in the file `transition.tsv`
 
-    :param lattice_model model: the lattice model
+    :param lattice_model model: the lattice model on which the computation is based
     :param str varia: variational parameter
     :param str P1: control parameter
     :param [float] P1_range: an array of values of P1

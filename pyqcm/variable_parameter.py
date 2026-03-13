@@ -94,6 +94,7 @@ def variable_parameter_self_consistency(F, var_params, maxiter=10, file='var_par
     :param F: task to perform within the loop
     :param [class variable_parameter] var_params: list of variable_parameters (or single variable_parameters)
     :param int maxiter: maximum number of iterations in the self-consistent procedure
+    :param str file: name of the file to which the converged result is written via write_summary()
 
     """
 
@@ -140,6 +141,7 @@ def variable_parameter_search(F, var_param, bracket, file='var_param.tsv'):
     :param F: task to perform within the loop
     :param class variable_parameter var_param: variable_parameter
     :param [float] bracket: list of two values of var_param that bracket the solution
+    :param str file: name of the file to which the converged result is written via write_summary()
 
     """
 

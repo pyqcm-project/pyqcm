@@ -30,7 +30,7 @@ struct flex_array
 	flex_array(size_t _segment_size): segment_size(_segment_size), pos(0L), x(nullptr), next(nullptr), current(nullptr)
 	{
 		if(segment_size < MIN_SIZE) segment_size = MIN_SIZE;
-		x = (T *)malloc(segment_size*sizeof(T)); assert(x);
+		x = (T *)malloc(segment_size*sizeof(T)); QCM_ASSERT(x);
 		current = this;
 	}
 	
@@ -48,7 +48,7 @@ struct flex_array
 	//! Adds an element elem to the current segment.
 	void Put(T elem){
 		if(current->pos == segment_size){
-			current->next = new flex_array<T>(segment_size); assert(current->next);
+			current->next = new flex_array<T>(segment_size); QCM_ASSERT(current->next);
 			current = current->next;
 		}
 		current->x[current->pos++] = elem;
@@ -65,7 +65,7 @@ struct flex_array
 		if(current->pos == segment_size) return;
 		T *array;
 		array = current->x;
-		current->x = (T *)malloc(current->pos*sizeof(T)); assert(current->x);
+		current->x = (T *)malloc(current->pos*sizeof(T)); QCM_ASSERT(current->x);
 		memcpy(current->x,array,current->pos*sizeof(T));
 		free(array);
 	}

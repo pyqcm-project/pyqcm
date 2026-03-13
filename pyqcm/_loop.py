@@ -102,8 +102,9 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 	:param N: number of intervals within the loop
 	:param task: function called at each step of the loop
 	:param [str] varia: names of the variational parameters
-	:param {str (float,float)} P: dict of parameters to vary with a tuple of initial and final values 
+	:param dict params: dict mapping parameter names to 2-tuples of (initial, final) values
 	:param boolean predict: if True, uses a linear or quadratic predictor
+	:returns: None
 
 	"""
 
@@ -150,10 +151,7 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 			print(x, ' ===> {:1.4f}'.format(current_value[x]))
 		if iter > 0:
 			print('predictor: ', start, fit_type)
-		try:
-			task()
-		except: raise
-			
+		task()
 		sol[0,:] = self.parameters(varia)
 
 	pyqcm.banner('linear loop ended normally', '%')
@@ -210,10 +208,9 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 		try:
 			I = task()
 
-		except (pyqcm.OutOfBoundsError, pyqcm.TooManyIterationsError, Exception) as E:
-			print(E)
+		except Exception as E:
 			if loop_counter == 0 or not retry:
-				raise ValueError('Out of bound on starting values in controlled_loop(), aborting')
+				raise ValueError('Out of bound on starting values in controlled_loop(), aborting') from E
 			else:
 				try_again = True
 			
@@ -307,6 +304,7 @@ def fade(self, task, P, n):
 	:param task: task to perform wihtin the loop
 	:param dict P: dict of parameters with a tuple of values (start and finish) for each
 	:param n: number of steps
+	:returns: None
 
 	"""
 
@@ -375,7 +373,7 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 			self.set_parameter(p, z*P[p][1] + (1-z)*P[p][0], pr=True)
 		try:
 			alpha = X[2]
-		except:
+		except (IndexError, TypeError):
 			alpha = 0.0
 		if method == 'Broyden' : 
 			X = pyqcm.broyden(F, x0, iJ0 = alpha, xtol=tol, maxiter=maxiter)
@@ -384,13 +382,13 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 		elif nconstr==1 and method in methods1D:
 			sol = root_scalar(F, method=method, bracket=bracket, fprime=None, fprime2=None, x0=x0, x1=None, xtol=tol, maxiter=None, options=None)
 			if sol.converged is False:
-				raise(ValueError('Failure of the scipy root_scalar method ' + method + ' in controlled_fade:\n' + sol.flag))
+				raise ValueError('Failure of the scipy root_scalar method ' + method + ' in controlled_fade:\n' + sol.flag)
 			X = (sol.root,)
 			bracket = (sol.root-delta, sol.root+delta)
 		elif method in methods:
 			sol_root = root(F, x0, method=method, jac=None, tol=tol, callback=None)
 			if sol_root.success is False:
-				raise(ValueError('Failure of the scipy root method ' + method + ' in controlled_fade:\n' + sol_root.message))
+				raise ValueError('Failure of the scipy root method ' + method + ' in controlled_fade:\n' + sol_root.message)
 			X = (sol_root.x,)
 		I = pyqcm.model_instance(self)
 		I.averages()
@@ -406,8 +404,11 @@ def Hartree_procedure(self, task, couplings, maxiter=32, iteration='fixed_point'
 	:param task: task to perform within the loop. Must return a model_instance
 	:param [hartree] couplings: sequence of couplings (or single coupling)
 	:param int maxiter: maximum number of iterations
-    :param str iteration: method of iteration of parameters ('fixed_point' or 'Broyden')
+    :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
 	:param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
+	:param str file: name of the file to which the converged result is written via write_summary()
+	:param boolean SEF: if True, computes the Potthoff functional at the end of the procedure
+	:param boolean pr: if True, prints progress of each coupling update
     :param float alpha: if iteration='fixed_point', damping parameter, otherwise trial inverse Jacobian (if a float, that is (1+alpha)*unit matrix)
 	:returns: model instance, converged inverse Jacobian
 
@@ -448,7 +449,7 @@ def Hartree_procedure(self, task, couplings, maxiter=32, iteration='fixed_point'
 		return hartree_converged
 	
 	niter = 0
-	if iteration == 'Broyden':
+	if iteration == 'broyden' or iteration == 'Broyden':
 		hartree_params, niter, alpha = pyqcm.broyden(F, X, iJ0 = alpha, maxiter=maxiter, convergence_test=G)
 	elif iteration == 'fixed_point':
 		hartree_params, niter = pyqcm.fixed_point_iteration(F, X, xtol=1e-6, convergence_test=G, maxiter=maxiter, alpha=alpha, eps_algo=eps_algo)
@@ -475,11 +476,12 @@ def flexible_loop(self, task, initial_mu, final_n, initial_step, delta_n=0.005, 
 	model instance must be done and returned by 'task'; it is not done by this looping function.
 
 	:param task: a function called at each step of the loop. Must return a model_instance.
-	:param (float) initial_mu: initial value of mu
-	:param (float) initial_step: initial step in mu
-	:param (float) final_n: final value of density
-	:param (float) delta_n: approximate step in density to keep constant
+	:param float initial_mu: initial value of the chemical potential mu
+	:param float final_n: target final density at which the loop should stop
+	:param float initial_step: initial step in mu for the first iteration
+	:param float delta_n: approximate step in density to keep approximately constant across iterations
 	:param [str] varia: names of the variational parameters
+	:returns: None
 
 	"""
 
@@ -502,8 +504,7 @@ def flexible_loop(self, task, initial_mu, final_n, initial_step, delta_n=0.005, 
 		try:
 			I = task()
 
-		except (pyqcm.OutOfBoundsError, pyqcm.TooManyIterationsError, Exception) as E:
-			print(E)
+		except Exception:
 			return
 					
 		n[0] = I.averages()['mu']

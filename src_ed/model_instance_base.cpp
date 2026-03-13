@@ -89,22 +89,20 @@ model_instance_base::model_instance_base(size_t _label, shared_ptr<model> _the_m
     qcm_ED_throw("no target sectors were specified for model "+the_model->name);
   }
   
-  try{
-    for(auto& s : target_sectors){
-      if(s.S >= sector::odd and (mixing&HS_mixing::spin_flip) == 0){
-        qcm_ED_throw("sector string " + s.name() + " defines a non conserved spin, but spin is conserved in the model (instance " + to_string<int>(label) + ")");
-      }
-      if(s.N >= sector::odd and (mixing&HS_mixing::anomalous) == 0){
-        qcm_ED_throw("sector string " + s.name() + " defines a non conserved particle number, but particle number is conserved in the model (instance " + to_string<int>(label) + ")");
-      }
-      if(s.S < sector::odd and (mixing&HS_mixing::spin_flip)){
-        qcm_ED_throw("sector string " + s.name() + " defines a conserved spin, but spin is not conserved in the model (instance " + to_string<int>(label) + ")");
-      }
-      if(s.N < sector::odd and (mixing&HS_mixing::anomalous)){
-        qcm_ED_throw("sector string " + s.name() + " defines a conserved particle number, but particle number is not conserved in the model (instance " + to_string<int>(label) + ")");
-      }
+  for(auto& s : target_sectors){
+    if(s.S >= sector::odd and (mixing&HS_mixing::spin_flip) == 0){
+      qcm_ED_throw("sector string " + s.name() + " defines a non conserved spin, but spin is conserved in the model (instance " + to_string<int>(label) + ")");
     }
-  }catch(const string& s) {qcm_ED_catch(s);}
+    if(s.N >= sector::odd and (mixing&HS_mixing::anomalous) == 0){
+      qcm_ED_throw("sector string " + s.name() + " defines a non conserved particle number, but particle number is conserved in the model (instance " + to_string<int>(label) + ")");
+    }
+    if(s.S < sector::odd and (mixing&HS_mixing::spin_flip)){
+      qcm_ED_throw("sector string " + s.name() + " defines a conserved spin, but spin is not conserved in the model (instance " + to_string<int>(label) + ")");
+    }
+    if(s.N < sector::odd and (mixing&HS_mixing::anomalous)){
+      qcm_ED_throw("sector string " + s.name() + " defines a conserved particle number, but particle number is not conserved in the model (instance " + to_string<int>(label) + ")");
+    }
+  }
   
   #ifdef QCM_DEBUG
   cout << "cluster model instance " << label << " created" << endl;

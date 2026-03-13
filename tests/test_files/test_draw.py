@@ -24,7 +24,7 @@ model.draw_operator('cdw', show_neighbors=True, values=True, show_labels=True, p
 plt.savefig('draw_cdw.pdf')
 plt.cla()
 
-model.draw_cluster_operator(model.clus[0], 'tb1', values=True, show_labels=True, plt_ax=plt.gca())
+model.draw_cluster_operator(0, 'tb1', values=True, show_labels=True, plt_ax=plt.gca())
 plt.savefig('draw_tb1.pdf')
 
 

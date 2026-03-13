@@ -7,7 +7,6 @@
 #include <ctype.h>
 
 #include "parser.hpp"
-#include "lapack-blas.h"
 #include "vector_num.hpp"
 
 using namespace std;
@@ -89,7 +88,7 @@ template <typename T> struct matrix {
 
   //! extracts a square submatrix A, starting at row i
   void sub_matrix(size_t i, matrix<T> &A) {
-    assert(r == c and A.r == A.c and i + A.r <= r);
+    QCM_ASSERT(r == c and A.r == A.c and i + A.r <= r);
     for (size_t k = 0; k < A.r; ++k) {
       for (size_t l = 0; l < A.r; ++l) { A(k, l) = v[i + k + r * (i + l)]; }
     }
@@ -100,7 +99,7 @@ template <typename T> struct matrix {
   //! extracts a rectangular submatrix of size (R,C), starting at (i,j) of this, and copies it to position (I, J) of A
   template <typename S>
   void move_sub_matrix(size_t R, size_t C, size_t i, size_t j, size_t I, size_t J, matrix<S> &A, double z = 1.0) {
-    assert(j + C <= c and i + R <= r and I + R <= A.r and J + C <= A.c);
+    QCM_ASSERT(j + C <= c and i + R <= r and I + R <= A.r and J + C <= A.c);
     for (size_t k = 0; k < R; ++k) {
       for (size_t l = 0; l < C; ++l) { A(I + k, J + l) += z * v[i + k + r * (j + l)]; }
     }
@@ -110,7 +109,7 @@ template <typename T> struct matrix {
   //! J) of A
   template <typename S>
   void move_sub_matrix_conjugate(size_t R, size_t C, size_t i, size_t j, size_t I, size_t J, matrix<S> &A, double z = 1.0) {
-    assert(j + C <= c and i + R <= r and I + R <= A.r and J + C <= A.c);
+    QCM_ASSERT(j + C <= c and i + R <= r and I + R <= A.r and J + C <= A.c);
     for (size_t k = 0; k < R; ++k) {
       for (size_t l = 0; l < C; ++l) { A(I + k, J + l) += z * conjugate(v[i + k + r * (j + l)]); }
     }
@@ -121,7 +120,7 @@ template <typename T> struct matrix {
   //! (I, J) of A
   template <typename S>
   void move_sub_matrix_HC(size_t R, size_t C, size_t i, size_t j, size_t I, size_t J, matrix<S> &A, double z = 1.0) {
-    assert(j + C <= c and i + R <= r and I + C <= A.r and J + R <= A.c);
+    QCM_ASSERT(j + C <= c and i + R <= r and I + C <= A.r and J + R <= A.c);
     for (size_t k = 0; k < R; ++k) {
       for (size_t l = 0; l < C; ++l) { A(I + l, J + k) += z * conjugate(v[i + k + r * (j + l)]); }
     }
@@ -131,7 +130,7 @@ template <typename T> struct matrix {
   //! extracts a rectangular submatrix of size (R,C), starting at (i,j) of this, and copies its transpose to position (I, J) of A
   template <typename S>
   void move_sub_matrix_transpose(size_t R, size_t C, size_t i, size_t j, size_t I, size_t J, matrix<S> &A, double z = 1.0) {
-    assert(j + C <= c and i + R <= r and I + C <= A.r and J + R <= A.c);
+    QCM_ASSERT(j + C <= c and i + R <= r and I + C <= A.r and J + R <= A.c);
     for (size_t k = 0; k < R; ++k) {
       for (size_t l = 0; l < C; ++l) { A(I + l, J + k) += z * v[i + k + r * (j + l)]; }
     }
@@ -270,12 +269,12 @@ template <typename T> struct matrix {
   template <typename S> T trace_product(matrix<S> A, bool transpose = false) {
     T z(0.0);
     if (transpose) {
-      assert(A.r == r and A.c == c);
+      QCM_ASSERT(A.r == r and A.c == c);
       for (size_t i = 0; i < r; i++) {
         for (size_t j = 0; j < c; j++) { z += v[i + r * j] * A.v[i + r * j]; }
       }
     } else {
-      assert(A.r == c and A.c == r);
+      QCM_ASSERT(A.r == c and A.c == r);
       for (size_t i = 0; i < r; i++) {
         for (size_t j = 0; j < c; j++) { z += v[i + r * j] * A.v[j + c * i]; }
       }
@@ -318,7 +317,7 @@ template <typename T> struct matrix {
   //! calculates the squared difference between a matrix and this: |this -A|^2
   double diff_sq(const matrix<T> &A, double a = 1.0) {
 #ifdef BOUND_CHECK
-    assert(r == A.r and c == A.c);
+    QCM_ASSERT(r == A.r and c == A.c);
 #endif
     double z = 0.0;
     for (size_t i = 0; i < v.size(); ++i) {
@@ -333,9 +332,9 @@ template <typename T> struct matrix {
   //! multiplies two matrices : this = A * B
   template <typename S, typename U> void product(const matrix<S> &A, const matrix<U> &B) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and B.c == c and A.c == B.r);
+    QCM_ASSERT(A.r == r and B.c == c and A.c == B.r);
 #endif
-    assert(&A != this and &B != this);
+    QCM_ASSERT(&A != this and &B != this);
     for (size_t j = 0; j < c; j++) {
       size_t jj = j * B.r;
       for (size_t i = 0; i < r; ++i) {
@@ -350,10 +349,10 @@ template <typename T> struct matrix {
   //! multiplies two matrices : this = A * B with a bound on a the intermediate index 
   template <typename S, typename U> void product(const matrix<S> &A, const matrix<U> &B, size_t M) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and B.c == c and A.c == B.r);
+    QCM_ASSERT(A.r == r and B.c == c and A.c == B.r);
 #endif
     if(M>A.c) M = A.c;
-    assert(&A != this and &B != this);
+    QCM_ASSERT(&A != this and &B != this);
     for (size_t j = 0; j < c; j++) {
       size_t jj = j * B.r;
       for (size_t i = 0; i < r; ++i) {
@@ -371,9 +370,9 @@ template <typename T> struct matrix {
   //! multiplies two matrices : this = A * transpose(B)
   template <typename S, typename U> void product_transpose(const matrix<S> &A, const matrix<U> &B) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and B.r == c and A.c == B.c);
+    QCM_ASSERT(A.r == r and B.r == c and A.c == B.c);
 #endif
-    assert(&A != this and &B != this);
+    QCM_ASSERT(&A != this and &B != this);
     for (size_t j = 0; j < c; j++) {
       for (size_t i = 0; i < r; ++i) {
         T z = 0.0;
@@ -388,9 +387,9 @@ template <typename T> struct matrix {
   //! multiplies two matrices : this = A * hermitian(B)
   template <typename S, typename U> void product_hermitian_conjugate(const matrix<S> &A, const matrix<U> &B) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and B.r == c and A.c == B.c);
+    QCM_ASSERT(A.r == r and B.r == c and A.c == B.c);
 #endif
-    assert(&A != this and &B != this);
+    QCM_ASSERT(&A != this and &B != this);
     for (size_t j = 0; j < c; j++) {
       for (size_t i = 0; i < r; ++i) {
         T z = 0.0;
@@ -415,7 +414,7 @@ template <typename T> struct matrix {
   //! performs a similarity transformation : this = hermitian(A)  * this * A
   template <typename S> void simil(const matrix<S> &A) {
 #ifdef BOUND_CHECK
-    assert(A.r == c and r == c);
+    QCM_ASSERT(A.r == c and r == c);
 #endif
     T *w;
     w = new T[r * c];
@@ -438,7 +437,7 @@ template <typename T> struct matrix {
   //! performs a similarity transformation : this = A * this * hermitian(A)
   template <typename S> void simil_inv(const matrix<S> &A) {
 #ifdef BOUND_CHECK
-    assert(A.c == r and r == c);
+    QCM_ASSERT(A.c == r and r == c);
 #endif
     T *w;
     w = new T[r * c];
@@ -461,7 +460,7 @@ template <typename T> struct matrix {
   //! performs a similarity transformation : this = transpose(A)  * this * A
   template <typename S> void simil_transpose(const matrix<S> &A) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and A.c == c);
+    QCM_ASSERT(A.r == r and A.c == c);
 #endif
     T *w;
     w = new T[r * c];
@@ -484,7 +483,7 @@ template <typename T> struct matrix {
   //! performs a similarity transformation : this = hermitian(A) * this * conjugate(A)
   template <typename S> void simil_conjugate(const matrix<S> &A) {
 #ifdef BOUND_CHECK
-    assert(A.r == r and A.c == c);
+    QCM_ASSERT(A.r == r and A.c == c);
 #endif
     T *w;
     w = new T[r * c];
@@ -507,7 +506,7 @@ template <typename T> struct matrix {
   //! performs a similarity transformation : this = hermitian(A) * B * A
   template <typename S1, typename S2> void simil(const matrix<S1> &A, const matrix<S2> &B) {
 #ifdef BOUND_CHECK
-    assert(A.r == B.r and B.c == B.r and A.c == r);
+    QCM_ASSERT(A.r == B.r and B.c == B.r and A.c == r);
 #endif
     for (size_t j = 0; j < c; j++) {
       for (size_t i = 0; i < r; ++i) {
@@ -559,7 +558,7 @@ template <typename T> struct matrix {
 
   //! checks whether the matrix is diagonal
   bool is_diagonal(double accuracy = 1.0e-8) {
-    assert(r == c);
+    QCM_ASSERT(r == c);
     for (size_t i = 0; i < r; ++i) {
       for (size_t j = 0; j < c; ++j) {
         if (abs(v[i + r * j]) > accuracy and i != j) return false;
@@ -620,7 +619,7 @@ template <typename T> struct matrix {
    in the column associated with its largest value
    */
   bool Gram_Schmidt(const vector<T> &x, size_t col) {
-    assert(r == c and x.size() == r);
+    QCM_ASSERT(r == c and x.size() == r);
 
     vector<vector<T>> A(r);
     A[0] = x;
@@ -651,7 +650,7 @@ template <typename T> struct matrix {
    */
   void Cayley(const matrix<T> &A) {
     zero();
-    assert(r == c and A.r == A.c and r == A.r);
+    QCM_ASSERT(r == c and A.r == A.c and r == A.r);
     matrix<T> X(A);
     X.add(-1.0);
     X.v *= -1.0;
@@ -668,7 +667,7 @@ template <typename T> struct matrix {
    */
   void Cayley_inverse(const matrix<T> &M) {
     zero();
-    assert(r == c and M.r == M.c and r == M.r);
+    QCM_ASSERT(r == c and M.r == M.c and r == M.r);
     matrix<T> X(M);
     X.add(1.0);
     X.inverse();

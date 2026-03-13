@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <limits>
+#include <stdexcept>
 #include "types.hpp"
 
 #define SHORT_DISPLAY 7
@@ -61,8 +62,16 @@ void banner(const char c, const char s[128], std::ostream &fout = std::cout);
 void banner(const char c, const string &s, ostream &fout = std::cout);
 void check_name(const string& S);
 void check_signals();
-void qcm_catch(const std::string& s);
-void qcm_ED_catch(const std::string& s);
+struct qcm_error : public std::runtime_error {
+    explicit qcm_error(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+#define QCM_ASSERT(cond) \
+    do { if (!(cond)) qcm_throw(std::string("Assertion failed: " #cond \
+        " in " __FILE__ ":") + std::to_string(__LINE__)); } while(0)
+
+void qcm_catch(const std::exception& e);
+void qcm_ED_catch(const std::exception& e);
 void qcm_ED_throw(const std::string& s);
 void qcm_throw(const std::string& s);
 void qcm_warning(const std::string& s);

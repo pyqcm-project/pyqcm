@@ -36,8 +36,8 @@ static PyObject *ED_complex_HS_python(PyObject *self, PyObject *args) {
       qcm_ED_throw(
           "failed to read parameters in call to hopping_matrix (python)");
     result = (int)ED::complex_HS((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("i", result);
 }
@@ -62,8 +62,8 @@ static PyObject *density_matrix_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O|i", &sites, &label))
       qcm_ED_throw(
           "failed to read parameters in call to density_matrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   try {
@@ -72,9 +72,9 @@ static PyObject *density_matrix_python(PyObject *self, PyObject *args) {
 
     dims[0] = dims[1] = g.first.r;
 
-  } catch (const string &s) {
-    cerr << s << "(in density_matrix)" << endl;
-    exit(1);
+  } catch (const std::exception &e) {
+    cerr << e.what() << "(in density_matrix)" << endl;
+    qcm_ED_catch(e); return nullptr;
   }
 
   PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
@@ -109,14 +109,14 @@ static PyObject *Green_function_average_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|ii", &label, &spin_down))
       qcm_ED_throw("failed to read parameters in call to "
                    "Green_function_average (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   matrix<complex<double>> g;
   try {
     g = ED::Green_function_average((bool)spin_down, (size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -144,13 +144,13 @@ static PyObject *Green_function_density_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw("failed to read parameters in call to "
                    "Green_function_average (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   try {
     dens = ED::Green_function_density((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   return Py_BuildValue("d", dens);
@@ -171,14 +171,14 @@ static PyObject *Green_function_dimensionC_python(PyObject *self,
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw("failed to read parameters in call to "
                    "Green_function_dimension (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   size_t d;
   try {
     d = ED::Green_function_dimension((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("i", d);
 }
@@ -197,14 +197,14 @@ static PyObject *Green_function_solveC_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to Green_function_solve (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   try {
     ED::Green_function_solve((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -231,8 +231,8 @@ static PyObject *Green_function_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "D|iii", &z, &spin_down, &label, &blocks))
       qcm_ED_throw(
           "failed to read parameters in call to Green_function (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   vector<complex<double>> g;
@@ -240,8 +240,8 @@ static PyObject *Green_function_python(PyObject *self, PyObject *args) {
   try {
     g = ED::Green_function(z, (bool)spin_down, (size_t)label, (bool)blocks).v;
     d = ED::Green_function_dimension((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -272,14 +272,14 @@ static PyObject *cluster_averages_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to cluster_averages (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   try {
     ave = ED::cluster_averages((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   PyObject *lst = PyDict_New();
@@ -305,15 +305,15 @@ static PyObject *ground_state_solve_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to ground_state_solve (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   pair<double, string> result;
   try {
     result = ED::ground_state_solve((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   return Py_BuildValue("ds#", result.first, result.second.c_str(),
@@ -340,8 +340,8 @@ static PyObject *hopping_matrix_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|iiii", &spin_down, &diag, &label, &full))
       qcm_ED_throw(
           "failed to read parameters in call to hopping_matrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   size_t d;
@@ -353,8 +353,8 @@ static PyObject *hopping_matrix_python(PyObject *self, PyObject *args) {
     g = ED::hopping_matrix((bool)spin_down, (size_t)label).v;
     try {
       d = ED::Green_function_dimension((size_t)label);
-    } catch (const string &s) {
-      qcm_ED_catch(s);
+    } catch (const std::exception &e) {
+      qcm_ED_catch(e);
     }
   }
 
@@ -384,8 +384,8 @@ static PyObject *interactions_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to interactions (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   auto E = ED::interactions((size_t)label);
@@ -422,8 +422,8 @@ static PyObject *hybridization_functionC_python(PyObject *self,
     if (!PyArg_ParseTuple(args, "D|ii", &z, &spin_down, &label))
       qcm_ED_throw(
           "failed to read parameters in call to hopping_matrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   vector<complex<double>> g =
@@ -431,8 +431,8 @@ static PyObject *hybridization_functionC_python(PyObject *self,
   size_t d;
   try {
     d = ED::Green_function_dimension((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -463,8 +463,8 @@ static PyObject *matrix_elements_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ss", &S1, &S2))
       qcm_ED_throw(
           "failed to read parameters in call to hopping_matrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   auto ET = ED::matrix_elements(string(S1), string(S2));
@@ -495,8 +495,8 @@ static PyObject *mixingC_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to hopping_matrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   int result = ED::mixing((size_t)label);
@@ -517,14 +517,14 @@ static PyObject *model_sizeC_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "s", &S1))
       qcm_ED_throw("failed to read parameters in call to model_size (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   tuple<int, int, int> d;
   try {
     d = ED::model_size(string(S1));
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("ii", get<0>(d), get<1>(d));
 }
@@ -567,8 +567,8 @@ static PyObject *new_model_python(PyObject *self, PyObject *args) {
     }
 
     ED::new_model(string(S1), n_sites, n_bath, gen, bath_irrep);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -594,22 +594,22 @@ static PyObject *new_model_instanceC_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "sOs|i", &name, &val, &sec, &label))
       qcm_ED_throw(
           "failed to read parameters in call to new_model_instance (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   map<string, double> param;
   try {
     param = py_dict_to_map(val);
-  } catch (const string &s) {
-    cerr << s << "(in new_model_instance)" << endl;
-    exit(1);
+  } catch (const std::exception &e) {
+    cerr << e.what() << "(in new_model_instance)" << endl;
+    qcm_ED_catch(e); return nullptr;
   }
 
   try {
     ED::new_model_instance(string(name), param, string(sec), (size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   return Py_BuildValue("");
@@ -678,8 +678,8 @@ static PyObject *new_operator_python(PyObject *self, PyObject *args) {
       qcm_ED_throw("argument 4 of new_operator() must be a list or an array");
 
     ED::new_operator(string(name), string(op), string(type), elem);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -745,8 +745,8 @@ static PyObject *new_operator_complex_python(PyObject *self, PyObject *args) {
       qcm_ED_throw("argument 4 of new_operator() must be a list or an array");
 
     ED::new_operator(string(name), string(op), string(type), elem);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -765,8 +765,8 @@ static PyObject *parametersC_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw("failed to read parameters in call to parameters (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   string model_name;
@@ -776,8 +776,8 @@ static PyObject *parametersC_python(PyObject *self, PyObject *args) {
       qcm_ED_throw("The label " + to_string(label) + " is out of range.");
     M = model_instances.at(label)->value;
     model_name = model_instances.at(label)->the_model->name;
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   PyObject *lst = PyDict_New();
   for (auto &x : M) {
@@ -799,8 +799,8 @@ static PyObject *print_models_python(PyObject *self, PyObject *args) {
 
   try {
     ED::print_models(cout);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -827,8 +827,8 @@ static PyObject *print_graph_python(PyObject *self, PyObject *args) {
     if (models.find(model_name) == models.end())
       qcm_ED_throw("model " + model_name + " does not exist!");
     models[model_name]->print_graph(pos);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -853,8 +853,8 @@ static PyObject *self_energyC_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "D|ii", &z, &spin_down, &label))
       qcm_ED_throw("failed to read parameters in call to self_energy (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   vector<complex<double>> g =
@@ -862,8 +862,8 @@ static PyObject *self_energyC_python(PyObject *self, PyObject *args) {
   size_t d;
   try {
     d = ED::Green_function_dimension((size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -894,8 +894,8 @@ static PyObject *set_global_parameterC_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s|O", &S1, &obj))
       qcm_ED_throw(
           "failed to read parameters in call to set_global_parameter (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   string name(S1);
@@ -915,8 +915,8 @@ static PyObject *set_global_parameterC_python(PyObject *self, PyObject *args) {
       } else
         qcm_ED_throw("unknown type of global_parameter");
     }
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -940,15 +940,15 @@ static PyObject *susceptibility_poles_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s|i", &op, &label))
       qcm_ED_throw(
           "failed to read parameters in call to susceptibility_poles (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   vector<pair<double, double>> g;
   try {
     g = ED::susceptibility_poles(string(op), (size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -983,8 +983,8 @@ static PyObject *susceptibility_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "sO|i", &op, &w_pyobj, &label))
       qcm_ED_throw(
           "failed to read parameters in call to susceptibility (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   size_t nw = PyArray_DIMS(w_pyobj)[0];
@@ -995,8 +995,8 @@ static PyObject *susceptibility_python(PyObject *self, PyObject *args) {
   vector<complex<double>> g;
   try {
     g = ED::susceptibility(string(op), w, (size_t)label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[1];
@@ -1024,8 +1024,8 @@ static PyObject *print_wavefunction_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &lab))
       qcm_ED_throw("failed to read parameters in call to print_model (python)");
     out = ED::print_wavefunction(lab);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("z#", out.c_str(), out.length());
 }
@@ -1045,8 +1045,8 @@ static PyObject *qmatrix_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw("failed to read parameters in call to qmatrix (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -1064,8 +1064,8 @@ static PyObject *qmatrix_python(PyObject *self, PyObject *args) {
     memcpy(PyArray_DATA((PyArrayObject *)out2), Q.second.data(),
            Q.second.size() * sizeof(complex<double>));
     PyArray_ENABLEFLAGS((PyArrayObject *)out2, NPY_ARRAY_OWNDATA);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("OO", out1, out2);
 }
@@ -1086,8 +1086,8 @@ static PyObject *hybridization_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|i", &label))
       qcm_ED_throw(
           "failed to read parameters in call to hybridization (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   npy_intp dims[2];
@@ -1105,8 +1105,8 @@ static PyObject *hybridization_python(PyObject *self, PyObject *args) {
     memcpy(PyArray_DATA((PyArrayObject *)out2), Q.second.data(),
            Q.second.size() * sizeof(complex<double>));
     PyArray_ENABLEFLAGS((PyArrayObject *)out2, NPY_ARRAY_OWNDATA);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("OO", out1, out2);
 }
@@ -1133,8 +1133,8 @@ static PyObject *write_instance_to_file_python(PyObject *self, PyObject *args) {
       qcm_ED_throw("failed to open file " + string(op));
     ED::write_instance(fout, label);
     fout.close();
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -1155,8 +1155,8 @@ static PyObject *write_instance_python(PyObject *self, PyObject *args) {
       qcm_ED_throw(
           "failed to read parameters in call to qcm_ED.write_instance()");
     ED::write_instance(fout, label);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("s#", fout.str().c_str(), fout.str().length());
 }
@@ -1187,8 +1187,8 @@ static PyObject *read_instance_python(PyObject *self, PyObject *args) {
       istringstream fin(S);
       ED::read_instance(fin, label);
     }
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("");
 }
@@ -1211,8 +1211,8 @@ static PyObject *fidelity_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "ii", &label1, &label2))
       qcm_ED_throw("failed to read parameters in call to fidelity (*python*)");
     fid = ED::fidelity(label1, label2);
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
   return Py_BuildValue("d", fid);
 }

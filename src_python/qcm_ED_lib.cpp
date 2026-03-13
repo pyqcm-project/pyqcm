@@ -102,8 +102,8 @@ PyMODINIT_FUNC PyInit_qcm_ED(void) {
   return module;
 }
 
-void qcm_ED_catch(const std::string &s) {
-  PyErr_SetString(qcm_ED_Error, s.c_str());
+void qcm_ED_catch(const std::exception &e) {
+  PyErr_SetString(qcm_ED_Error, e.what());
 }
 
 /**

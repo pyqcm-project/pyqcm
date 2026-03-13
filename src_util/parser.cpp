@@ -27,8 +27,8 @@ istream & parser::find_next(istream &flux, const char* search)
     }
     flux.ignore(numeric_limits<streamsize>::max(), '\n');
   }
-  cerr << "ATTENTION: " << search << " not found in input file.";
-  exit(1);
+  qcm_throw(to_string(search)+" not found in input file.");
+  
   return flux;
 }
 
@@ -115,8 +115,7 @@ istream & operator>>(istream &flux, const char* search)
     }
     flux.ignore(numeric_limits<streamsize>::max(), '\n');
   }
-  cerr << "ATTENTION: " << search << " not found in input file.";
-  exit(1);
+  qcm_throw(to_string(search)+" not found in input file.");
   return flux;
 }
 
@@ -145,8 +144,7 @@ istream & operator>>(istream &flux, const string &search)
     }
     flux.ignore(numeric_limits<streamsize>::max(), '\n');
   }
-  cerr << "ATTENTION: " << search << " not found in input file.";
-  exit(1);
+  qcm_throw(to_string(search)+" not found in input file.");
   return flux;
 }
 
@@ -305,7 +303,7 @@ void banner(const char c, const string &s, ostream &fout)
 void qcm_throw(const std::string& s)
 {
     banner('*', s, std::cerr);
-    throw(s);
+    throw qcm_error(s);
 }
 
 
@@ -313,7 +311,7 @@ void qcm_throw(const std::string& s)
 void qcm_ED_throw(const std::string& s)
 {
     banner('*', s, std::cerr);
-    throw(s);
+    throw qcm_error(s);
 }
 
 

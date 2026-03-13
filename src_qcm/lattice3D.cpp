@@ -48,7 +48,7 @@ void lattice3D::read(istream &fin)
 void lattice3D::init(){
   if(global_bool("zero_dim")) e.clear();
   D = (int)e.size();
-  assert(D<4);
+  QCM_ASSERT(D<4);
   
   if(D==0){ // define a large repeatable unit, even though not repeated
     e.push_back(vector3D<int64_t>(LARGE_UNIT,0,0));

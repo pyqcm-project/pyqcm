@@ -237,7 +237,7 @@ template<typename T>
 void find_lowest(vector<T> &x, const size_t Nm, vector<size_t> &index)
 {
 	size_t nm = Nm;
-	assert(nm <= x.size());
+	QCM_ASSERT(nm <= x.size());
 	vector<double> minvals(nm);
 	index.resize(nm);
 	

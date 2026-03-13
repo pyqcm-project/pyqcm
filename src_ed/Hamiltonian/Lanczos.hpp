@@ -321,7 +321,7 @@ bool bandLanczos(
 		}
 		
 		for(k=0; k<nd; ++k){ // step (9)
-			assert(I[k]<j);
+			QCM_ASSERT(I[k]<j);
 			HilbertField w = v[I[k]]*v[j+pc];
 			mult_add(-w, v[I[k]], v[j+pc]); // v[j+pc] = v[j+pc] - z*v[I[k]]
 			t(I[k],j) = w;

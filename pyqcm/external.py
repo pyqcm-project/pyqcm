@@ -5,6 +5,15 @@ import numpy as np
 import pyqcm.cdmft as cdmft
 
 def freq_grid(beta=50,wc=2,real=False):
+    """
+    Builds a Matsubara frequency grid up to a cutoff frequency.
+
+    :param float beta: inverse fictitious temperature used to define the Matsubara frequency spacing (2*pi/beta)
+    :param float wc: cutoff frequency; the grid runs from pi/beta to wc
+    :param boolean real: if False (default), returns purely imaginary frequencies (multiplied by 1j); if True, returns real-valued frequencies
+    :returns: array of frequencies (complex if real=False, real otherwise)
+    :rtype: numpy.ndarray
+    """
     wr = np.arange((np.pi / beta), wc + 1e-6, 2 * np.pi / beta)
     w = np.ones(len(wr), dtype=np.complex128)
     if real == False: 
@@ -16,6 +25,12 @@ def freq_grid(beta=50,wc=2,real=False):
     return w
 
 def test_ed_solver():
+    """
+    Tests an external ED (exact diagonalization) solver by writing the impurity problem data
+    (hopping matrix, interaction matrix, hybridization function, bath parameters) to a file
+    named 'test.tsv', invoking an external Python script 'test_ed_solver.py', and then
+    reading back the resulting cluster model instance from 'instance.out'.
+    """
 
     info = pyqcm.cluster_info()[0]
     n = info[1]

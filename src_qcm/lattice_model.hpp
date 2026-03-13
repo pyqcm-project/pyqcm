@@ -24,14 +24,23 @@ struct site{
 //! describes a cluster
 struct cluster{
 	size_t n_sites; //!< size of cluster
-	size_t n_bath; //!< size of cluster's bath
 	size_t offset; //!< number of sites before the index for that cluster starts
-	string name; //!< name of model associated with cluster
 	vector3D<int64_t> position; //!< base position of cluster
 	int ref; //!< label of reference (or equivalent) cluster, from 0 to N_clus - 1
 	int mixing; //!< mixing state of the cluster
-	size_t n_sym; //!< number of point group symmetry operations in the cluster model
 	bool conj; //!< true if one must take the complex conjugated Green function of the reference cluster, if any
+	int sys_start; //!< label of first system associated with the cluster
+	int nsys; //!< number of systems associated with the cluster
+};
+
+//! describes a system
+struct System{
+	size_t n_sites; //!< size of cluster
+	size_t n_bath; //!< size of cluster's bath
+	string name; //!< name of model associated with cluster
+	int clus; //!< label of cluster (from 0) to which the system belongs
+	int mixing; //!< mixing state of the cluster
+	size_t n_sym; //!< number of point group symmetry operations in the system
 };
 
 
@@ -46,6 +55,7 @@ struct lattice_model{
 	int mixing; //!< spin-Nambu mixing of the model (cannot be changed once set)
 	int n_mixed; //!< = 2 for mixing=1, 2 and 4 for mixing=3
 	int spatial_dimension; //!< dimension of the superlattice
+	int nsys; //!< total number of systems in the model
 	lattice3D superlattice; //!< superlattice (for the super unit cell)
 	lattice3D unit_cell; //!< lattice (useful in case of multiband models)
 	map<string, shared_ptr<lattice_operator>> term; //!< pointers to the terms of the Hamiltonian
@@ -57,11 +67,13 @@ struct lattice_model{
 	size_t n_band; //!< number of bands in the model
 	string name; //!< name of the model
 	vector<cluster> clusters; //!< list of clusters
+	vector<System> systems; //!< list of systems
 	vector<int> inequiv; //!< labels of the non-equivalent clusters
 	vector<int> is_nambu_index; // 1 if the index is of Nambu type, 0 otherwise
 	vector<pair<int, int>> bonds; // list of NN bonds
 	vector<shared_ptr<lattice_operator>> one_body_ops; //!< pointers to the one-body or anomalous operators (for computing averages)
 	vector<site> sites; //!< list of sites
+	vector<size_t> s_; // dimensions of the Green functions for each cluster
 	vector<size_t> GF_dims; // dimensions of the Green functions for each cluster
 	vector<size_t> GF_offset; // position of the cluster #i in GF index space (depends on mixing)
 	vector<size_t> opposite_neighbor; //!< indices of opposite neighbors
@@ -70,7 +82,7 @@ struct lattice_model{
 	vector<vector3D<double>> Green_to_position; // position associated (in superlattice basis) with each Green function index
 	vector<vector3D<int64_t>> neighbor; //!< list of neighboring superclusters
 	shared_ptr<parameter_set> param_set; //!< parameter set structure
-	vector<string> sector_strings; //!< Hilbert space sectors to explore in the different clusters
+	vector<string> sector_strings; //!< Hilbert space sectors to explore in the different systems
 	string hybrid_file; //!< name of HDF5 file containing the external hybridization
 	shared_ptr<lattice_hybrid> hybrid; //!< external hybridization
 
@@ -115,12 +127,12 @@ void lattice_model::build_cluster_operators(lattice_operator& op)
 	// loop over clusters
 	set<string> is_built;
 
-	for(int c=0; c<clusters.size(); c++){
-
-		if(is_built.count(clusters[c].name) and op.is_density_wave == false) continue;
+	for(int s=0; s<nsys; s++){
+		int c = systems[s].clus;
+		if(is_built.count(systems[s].name) and op.is_density_wave == false) continue;
 
 		// selecting the matrix elements
-		auto data = ED::model_size(clusters[c].name);
+		auto data = ED::model_size(systems[s].name);
 		size_t n_orb = get<0>(data) + get<1>(data);
 		vector<matrix_element<T>> elem;
 		for(auto& e : op.elements){
@@ -143,8 +155,8 @@ void lattice_model::build_cluster_operators(lattice_operator& op)
 			continue;
 		}
 		else{
-			is_built.insert(clusters[c].name);
-			if(global_bool("verb_Hilbert")) cout << "building operator " << op.name << " on cluster no " << c+1 << " (model " << clusters[c].name << ")" << endl;
+			is_built.insert(systems[s].name);
+			if(global_bool("verb_Hilbert")) cout << "building operator " << op.name << " on cluster no " << c+1 << " (model " << systems[s].name << ")" << endl;
 		}
 		string opname = op.name;
 		if(op.is_density_wave){
@@ -153,65 +165,34 @@ void lattice_model::build_cluster_operators(lattice_operator& op)
 		}
 		switch(op.type){
 			case latt_op_type::one_body:
-				ED::new_operator(clusters[c].name, opname, string("one-body"), elem);
+				ED::new_operator(systems[s].name, opname, string("one-body"), elem);
 				break;
 			case latt_op_type::singlet :
 			case latt_op_type::dz :
 			case latt_op_type::dy :
 			case latt_op_type::dx :
-				ED::new_operator(clusters[c].name, opname, string("anomalous"), elem);
+				ED::new_operator(systems[s].name, opname, string("anomalous"), elem);
 				break;
 			case latt_op_type::Hubbard:
-				ED::new_operator(clusters[c].name, opname, string("interaction"), elem);
+				ED::new_operator(systems[s].name, opname, string("interaction"), elem);
 				break;
 			case latt_op_type::Hund:
-				ED::new_operator(clusters[c].name, opname, string("Hund"), elem);
+				ED::new_operator(systems[s].name, opname, string("Hund"), elem);
 				break;
 			case latt_op_type::Heisenberg:
-				ED::new_operator(clusters[c].name, opname, string("Heisenberg"), elem);
+				ED::new_operator(systems[s].name, opname, string("Heisenberg"), elem);
 				break;
 			case latt_op_type::X:
-				ED::new_operator(clusters[c].name, opname, string("X"), elem);
+				ED::new_operator(systems[s].name, opname, string("X"), elem);
 				break;
 			case latt_op_type::Y:
-				ED::new_operator(clusters[c].name, opname, string("Y"), elem);
+				ED::new_operator(systems[s].name, opname, string("Y"), elem);
 				break;
 			case latt_op_type::Z:
-				ED::new_operator(clusters[c].name, opname, string("Z"), elem);
+				ED::new_operator(systems[s].name, opname, string("Z"), elem);
 				break;
 		}
 	}
-
-	// second part
-	// making sure that equivalent clusters are really equivalent, as far as density-waves are concerned
-	if(!op.is_density_wave) return;
-	for(int c=0; c<clusters.size(); c++){
-		auto data = ED::model_size(clusters[c].name);
-		size_t n_orb = get<0>(data) + get<1>(data);
-		int cref = clusters[c].ref;
-		if(c == cref) continue;
-		vector<matrix_element<T>> elem_ref;
-		vector<matrix_element<T>> elem;
-		for(auto& e : op.elements){
-			if(sites[e.site2].cluster == c and sites[e.site1].cluster == c and e.neighbor == 0){
-				matrix_element<T> X(sites[e.site1].index_within_cluster + e.spin1*n_orb, sites[e.site2].index_within_cluster + e.spin2*n_orb, native<T>(e.v));
-				elem.push_back(X);
-			}
-		}
-		int count=0;
-		for(auto& e : op.elements){
-			if(sites[e.site2].cluster == cref and sites[e.site1].cluster == cref and e.neighbor == 0){
-				if(count >= elem.size()){
-					qcm_throw("operator "+op.name+" is incompatible (different number of elements) between clusters "+to_string<int>(cref+1)+" and "+to_string<int>(c));
-				}
-				if(native<T>(e.v) != elem[count].v){
-					qcm_throw("element "+to_string<int>(count)+" of operator "+op.name+" is incompatible between clusters "+to_string<int>(cref+1)+" and "+to_string<int>(c));
-				}
-				count++;
-			}
-		}
-	}
-
 }
 
 

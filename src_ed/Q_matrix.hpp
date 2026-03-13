@@ -72,7 +72,7 @@ template<typename HilbertField>
 Q_matrix<HilbertField>::Q_matrix(const vector<double>& _e, const matrix<HilbertField>& _v) : e(_e), v(_v)
 {
   // cout << "Q dimensions : " << e.size() << '\t' << v.r << '\t' << v.c << endl; // TEMPO 
-  assert(e.size() == v.c);
+  QCM_ASSERT(e.size() == v.c);
   L = v.r;
   M = e.size();
   #ifdef QCM_DEBUG
@@ -90,7 +90,7 @@ Q_matrix<HilbertField>::Q_matrix(std::istream &flux){
   parser::find_next(flux, "w");
   flux >> L >> M;
   
-  assert(M > 0 and L > 0);
+  QCM_ASSERT(M > 0 and L > 0);
   v.set_size(L,M);
   e.resize(M);
   
@@ -124,7 +124,7 @@ void Q_matrix<HilbertField>::append(Q_matrix &q)
   if(q.M==0) return;
   M += q.M;
   if(e.size()>0){
-    assert(L == q.L);
+    QCM_ASSERT(L == q.L);
     vector<double> e_temp = e;
     matrix<HilbertField> v_temp(v);
     v.concatenate(v_temp, q.v);

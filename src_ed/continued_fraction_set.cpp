@@ -23,8 +23,8 @@ Green_function_set(_group, mixing), sec(_sec), is_complex(_is_complex)
 continued_fraction_set::continued_fraction_set(sector _sec, shared_ptr<symmetry_group> _group, int mixing, const vector<vector<double>> &A, const vector<vector<double>> &B, bool _is_complex) :
 Green_function_set(_group, mixing), sec(_sec), is_complex(_is_complex)
 {
-  assert(group->site_irrep_dim.size() == 2*A.size());
-  assert(group->site_irrep_dim.size() == 2*B.size());
+  QCM_ASSERT(group->site_irrep_dim.size() == 2*A.size());
+  QCM_ASSERT(group->site_irrep_dim.size() == 2*B.size());
   e.resize(group->site_irrep_dim.size());
   h.resize(group->site_irrep_dim.size());
   for(size_t r=0; r<group->site_irrep_dim.size(); ++r){

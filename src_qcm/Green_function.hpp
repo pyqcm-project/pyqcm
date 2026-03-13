@@ -34,7 +34,7 @@ struct Green_function_k
 	
 	//! constructor from a cluster Green function and k value
 	Green_function_k(Green_function &_G, const vector3D<double> &_k, const int &_ik = -1) : G(_G), k(_k), ik(_ik){
-		assert(G.G.r > 0);
+		QCM_ASSERT(G.G.r > 0);
 		V.set_size(dim_GF);
 		t.set_size(dim_GF);
 		Gcpt.set_size(dim_GF);

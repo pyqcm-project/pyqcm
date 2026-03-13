@@ -20,11 +20,10 @@ struct lattice_model_instance{
 	block_matrix<Complex> Hc; //!< one-body  matrix of the clusters
 	block_matrix<Complex> Hc_down; //!< one-body  matrix of the clusters (spin-down part, if mixing=4)
 	map<string, double> params; //!< values of the lattice and cluster parameters
-	vector<pair<double,string>> gs; //!< ground state energies and sectors of the clusters
+	vector<pair<double,string>> gs; //!< ground state energies and sectors of the systems
 	vector<vector<tuple<string,double,double>>> clus_ave; //!< cluster averages and variances of all operators
 	vector<pair<string,double>> ave; //!< lattice averages of all operators
 	vector<double> GS_energy; //!< ground state energies of the clusters + total (component 0)
-	size_t n_clus; //!< number of cluster instances in model (derived)
 	double omega; //!< value of the Potthoff functional
 	double E_pot; //!< potential energy
 	double E_kin; //!< kinetic energy
@@ -46,9 +45,12 @@ struct lattice_model_instance{
 	Green_function cluster_Green_function(Complex w, bool sig, bool spin_down);
 	lattice_model_instance(shared_ptr<lattice_model> _model, int label);
 	~lattice_model_instance();
+	matrix<complex<double>> cluster_Green_function_remix(size_t i, complex<double> w, bool spin_down, bool blocks);
 	matrix<complex<double>> cluster_Green_function(size_t i, complex<double> w, bool spin_down, bool blocks);
 	matrix<complex<double>> cluster_hopping_matrix(size_t i, bool spin_down);
+	matrix<complex<double>> cluster_self_energy_remix(size_t i, complex<double> w, bool spin_down);
 	matrix<complex<double>> cluster_self_energy(size_t i, complex<double> w, bool spin_down);
+	matrix<complex<double>> hybridization_function_remix(size_t i, complex<double> w, bool spin_down);
 	matrix<complex<double>> hybridization_function(size_t i, complex<double> w, bool spin_down);
 	matrix<complex<double>> Green_integral(bool spin_down, int clus);
 	matrix<Complex> epsilon(Green_function_k &M);

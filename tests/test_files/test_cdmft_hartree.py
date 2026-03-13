@@ -46,7 +46,7 @@ model.controlled_loop(
 )
 
 model.controlled_loop(
-    task=lambda : run_cdmft('Broyden'), 
+    task=lambda : run_cdmft('broyden'), 
     varia = varia,
     loop_param='U', 
     loop_range=(2, 4.1, 0.5)

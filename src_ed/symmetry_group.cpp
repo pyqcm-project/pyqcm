@@ -148,7 +148,7 @@ pair<uint32_t, int> symmetry_group::apply(const vector<int>& v, const uint32_t b
 template<typename T>
 vector<T> symmetry_group::apply_to_vector(const vector<int>& v, const vector<T>& x)
 {
-  assert(x.size()==L);
+  QCM_ASSERT(x.size()==L);
   vector<T> xp(L);
   for(int i=0; i<L; i++) xp[i] = x[v[i]];
   return xp;
@@ -462,8 +462,8 @@ rep_map symmetry_group::Representative(const binary_state &b, int irrep)
 void symmetry_group::to_site_basis(int r, vector<Complex> &x, vector<Complex> &y, int n_mixed)
 {
   to_zero(y);
-  assert(y.size() == n_mixed*n_sites);
-  assert(x.size() == n_mixed*site_irrep_dim[r]);
+  QCM_ASSERT(y.size() == n_mixed*n_sites);
+  QCM_ASSERT(x.size() == n_mixed*site_irrep_dim[r]);
   int offset = site_irrep_dim_cumul[r];
   for(int mr=0; mr<n_mixed; mr++){
     int y_offset = mr*n_sites;
@@ -482,8 +482,8 @@ void symmetry_group::to_site_basis(int r, vector<Complex> &x, vector<Complex> &y
 void symmetry_group::to_site_basis(int r, vector<double> &x, vector<double> &y, int n_mixed)
 {
   to_zero(y);
-  assert(y.size() == n_mixed*n_sites);
-  assert(x.size() == n_mixed*site_irrep_dim[r]);
+  QCM_ASSERT(y.size() == n_mixed*n_sites);
+  QCM_ASSERT(x.size() == n_mixed*site_irrep_dim[r]);
   int offset = site_irrep_dim_cumul[r];
   for(int mr=0; mr<n_mixed; mr++){
     int y_offset = mr*n_sites;

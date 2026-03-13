@@ -103,6 +103,15 @@ void lattice_model::pre_operator_consolidate()
   neighbor.push_back(vector3D<int64_t>(0,0,0)); //! adding self to list of neighbors
   spatial_dimension = (int)superlattice.D;
   
+  //..............................................................................
+  // computing sys_start and nsys for clusters
+
+  nsys = systems.size();
+  for(size_t s=0; s <nsys; s++) clusters[systems[s].clus].nsys++;
+  clusters[0].sys_start = 0;
+  for(size_t c=1; c <clusters.size(); c++) clusters[c].sys_start = clusters[c-1].sys_start + clusters[c].nsys;
+
+
   add_chemical_potential();
 }
 
@@ -652,10 +661,12 @@ vector<Complex> lattice_model::periodize(const vector3D<double> &k, vector<Compl
 void lattice_model::print(ostream &fout, bool asy_operators, bool asy_labels, bool asy_orb, bool asy_neighbors, bool asy_working_basis)
 {
   banner('=', "clusters", fout);
-  fout << "No\tmodel\tn_sites\tposition\tref.\n";
-  for(int i=0; i<clusters.size(); i++){
-    cluster& s = clusters[i];
-    fout << i+1 << '\t' << s.name << '\t' << s.n_sites << '\t' << s.position << '\t' << s.ref << '\t' << s.conj << endl;
+  fout << "No\tn_sites\tposition\tref.\tsystems\n";
+  for(int c=0; c<clusters.size(); c++){
+    cluster& C = clusters[c];
+    fout << c+1 << '\t' << C.n_sites << '\t' << C.position << '\t' << C.ref << '\t' << C.conj;
+    for(int s=0; s<C.nsys; s++) fout << systems[s+C.sys_start].name << ", ";
+    fout << endl;
   }
   banner('=', "sites", fout);
   fout << "No\tcluster\tNo in cluster\torbital\tposition\n";
@@ -732,7 +743,7 @@ void lattice_model::print(ostream &fout, bool asy_operators, bool asy_labels, bo
 
 //===============================================================================
 /**
- From a string, extract the name of the operator and the cluster label (the latter separated from the name by '_')
+ From a string, extract the name of the operator and the system label (the latter separated from the name by '_')
  @param S [in] input string
  @param cut [in] if true, cuts the cluster suffix of the name
  @returns a pair <name, label>
@@ -746,7 +757,7 @@ pair<string, int> lattice_model::name_and_label(string &S, bool cut)
     label =  from_string<int>(name.substr(pos+1));
     if(cut) name.erase(pos);
   }
-  if(label >clusters.size()) qcm_throw("cluster label in "+S+" is outside of range");
+  if(label > nsys) qcm_throw("system label in "+S+" is outside of range");
   if(label == 0 and term.find(name)  == term.end()) qcm_throw("operator "+name+" does not exist in model");
   if(term.find(name) != term.end()){
     if(term.at(name)->is_density_wave and label>0 and cut) name += '@' + to_string(label);
@@ -817,7 +828,7 @@ void lattice_model::interaction_operator(const string &name, vector3D<int64_t> &
       case latt_op_type::X:
       case latt_op_type::Y:
       case latt_op_type::Z:
-        assert(s1 != s2);
+        QCM_ASSERT(s1 != s2);
         tmp_op->elements.push_back({s1, 0, s2, 0, ni, amplitude});
         break;
       default:
@@ -858,7 +869,7 @@ void lattice_model::hopping_operator(const string &name, vector3D<int64_t> &link
   }
   // previous_name = name;
 
-  assert(tau>=0 and tau<=3 and sigma >=0 and sigma <=3);
+  QCM_ASSERT(tau>=0 and tau<=3 and sigma >=0 and sigma <=3);
   if(tau==0 and !link.is_null()) qcm_throw("Problem with the definition of " + tmp_op->name+ ". Cannot define an operator with nonzero link AND matrix tau = 0");
   if(tau!=0 and link.is_null()) qcm_throw("Problem with the definition of " + tmp_op->name + ". Cannot define an operator with on-site operator AND matrix tau != 0");
   if(tau==3) qcm_throw("Problem with the definition of " + tmp_op->name + ". Cannot define an operator with matrix tau = 3");
@@ -1184,13 +1195,13 @@ matrix<Complex> lattice_model::lattice_hybridization(int iw, int ik){
 
   // upgrade depending on mixing state
   if(mixing == 0) return gamma;
-  else if(mixing==1){
+  else if(HS_mixing::anomalous){
     matrix<Complex> h(2*H.d);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, 0, 0, h);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, H.d, H.d, h, -1.0);
     return h;
   }
-  else if(mixing==2){
+  else if(HS_mixing::spin_flip){
     matrix<Complex> h(2*H.d);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, 0, 0, h);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, H.d, H.d, h);

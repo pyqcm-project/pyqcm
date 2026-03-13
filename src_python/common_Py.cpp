@@ -192,7 +192,7 @@ vector<double> vectors_from_Py(PyArrayObject *k_pyobj) {
 vector<complex<double>> complex_array1_from_Py(PyArrayObject *k_pyobj) {
   vector<complex<double>> k;
   if (PyArray_Check(k_pyobj)) {
-    assert(PyArray_NDIM((PyArrayObject *)k_pyobj) == 1);
+    QCM_ASSERT(PyArray_NDIM((PyArrayObject *)k_pyobj) == 1);
     npy_intp *dims;
     dims = PyArray_DIMS((PyArrayObject *)k_pyobj);
 
@@ -209,7 +209,7 @@ vector<complex<double>> complex_array1_from_Py(PyArrayObject *k_pyobj) {
 matrix<complex<double>> complex_array2_from_Py(PyArrayObject *k_pyobj) {
   matrix<complex<double>> k;
   if (PyArray_Check(k_pyobj)) {
-    assert(PyArray_NDIM((PyArrayObject *)k_pyobj) == 2);
+    QCM_ASSERT(PyArray_NDIM((PyArrayObject *)k_pyobj) == 2);
     npy_intp *dims;
     dims = PyArray_DIMS((PyArrayObject *)k_pyobj);
 
@@ -228,7 +228,7 @@ matrix<complex<double>> complex_array2_from_Py(PyArrayObject *k_pyobj) {
 vector<matrix<complex<double>>> complex_array3_from_Py(PyArrayObject *k_pyobj) {
   vector<matrix<complex<double>>> k;
   if (PyArray_Check(k_pyobj)) {
-    assert(PyArray_NDIM((PyArrayObject *)k_pyobj) == 3);
+    QCM_ASSERT(PyArray_NDIM((PyArrayObject *)k_pyobj) == 3);
     npy_intp *dims;
     dims = PyArray_DIMS((PyArrayObject *)k_pyobj);
 

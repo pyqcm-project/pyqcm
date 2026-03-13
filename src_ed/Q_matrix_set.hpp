@@ -113,7 +113,7 @@ void Q_matrix_set<HilbertField>::integrated_Green_function(block_matrix<Complex>
 template<typename HilbertField>
 void Q_matrix_set<HilbertField>::append(Q_matrix_set &Q)
 {
-  assert(Q.q.size() == q.size());
+  QCM_ASSERT(Q.q.size() == q.size());
   for(size_t r=0; r<q.size(); ++r) q[r]->append(*Q.q[r]);
 }
 

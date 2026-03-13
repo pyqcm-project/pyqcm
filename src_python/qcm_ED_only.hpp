@@ -12,8 +12,8 @@ static PyObject *print_options_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "|i", &to_file))
       qcm_ED_throw("failed to read parameters in call to print_model (python)");
-  } catch (const string &s) {
-    qcm_ED_catch(s);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
   }
 
   print_options(to_file);

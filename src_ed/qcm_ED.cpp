@@ -207,7 +207,7 @@ namespace ED{
     #endif
     auto& M = model_instances.at(label);
 
-    assert(M->complex_Hilbert == false);
+    QCM_ASSERT(M->complex_Hilbert == false);
 
     if(M->the_model->is_factorized) return M->density_matrix_factorized(sites);
     else return M->density_matrix_mixed(sites);

@@ -48,22 +48,18 @@ struct state
     energy = from_string<double>(input[1]);
     weight = from_string<double>(input[2]);
     if(GF_solver == GF_format_BL){
-      try{gf = make_shared<Q_matrix_set<HilbertField>>(fin, group, mixing);}
-      catch(const string &s) {qcm_ED_catch(s);}
+      gf = make_shared<Q_matrix_set<HilbertField>>(fin, group, mixing);
     }
     else if(GF_solver == GF_format_CF){
-      try{gf = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));}
-      catch(const string &s) {qcm_ED_catch(s);}
+      gf = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
     }
     else qcm_ED_throw("unkown Green function solver (GF_solver)");
     if(mixing&HS_mixing::up_down){
       if(GF_solver == GF_format_BL){
-        try{gf_down = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(fin, group, mixing));}
-        catch(const string &s) {qcm_ED_catch(s);}
+        gf_down = shared_ptr<Q_matrix_set<HilbertField>>(new Q_matrix_set<HilbertField>(fin, group, mixing));
       }
       else if(GF_solver == GF_format_CF){
-        try{gf_down = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));}
-        catch(const string &s) {qcm_ED_catch(s);}
+        gf_down = shared_ptr<continued_fraction_set>(new continued_fraction_set(fin, sec, group, mixing, typeid(HilbertField) == typeid(Complex)));
       }
     }
   }

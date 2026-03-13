@@ -204,30 +204,27 @@ if(NOT EXISTS "${NUMPY_INCLUDE_DIR}/numpy/ndarrayobject.h")
     message(FATAL_ERROR "NumPy headers not found in ${NUMPY_INCLUDE_DIR}")
 endif()
 
-# Set NumPy variables to satisfy FindPython3
-set(Python3_NumPy_INCLUDE_DIRS ${NUMPY_INCLUDE_DIR} CACHE PATH "NumPy Include Directory")
-set(Python3_NumPy_FOUND TRUE CACHE BOOL "NumPy Found")
+# Python information
+message(STATUS "Detected NumPy include directory: ${NUMPY_INCLUDE_DIR}")
+message(STATUS "Python executable: ${Python3_EXECUTABLE}")
+message(STATUS "Python include dir: ${Python3_INCLUDE_DIRS}")
+message(STATUS "Python libs: ${Python3_LIBRARIES}")
 
-# Print configuration for debugging
-message(STATUS "Python configuration:")
-message(STATUS "  Python version: ${Python3_VERSION}")
-message(STATUS "  Python executable: ${Python3_EXECUTABLE}")
-message(STATUS "  Python include dirs: ${Python3_INCLUDE_DIRS}")
-message(STATUS "  Python libraries: ${Python3_LIBRARIES}")
-message(STATUS "  NumPy include dir: ${NUMPY_INCLUDE_DIR}")
+# ------
+# Eigen3 (always required: used in matrix.cpp and optionally for Hamiltonian)
+# ------
 
-# Make the variables available in parent scope
-set(NUMPY_INCLUDE_DIR "${NUMPY_INCLUDE_DIR}" CACHE PATH "Path to NumPy headers" FORCE)
-mark_as_advanced(NUMPY_INCLUDE_DIR)
+find_package(Eigen3 REQUIRED NO_MODULE)
+target_link_libraries(qcm PUBLIC Eigen3::Eigen)
 
 # -------------------------------------
 # External Dependencies for Hamiltonian
 # -------------------------------------
 if(EIGEN_HAMILTONIAN)
-    find_package(Eigen3 REQUIRED NO_MODULE)
-    target_link_libraries(qcm PUBLIC Eigen3::Eigen)
-    message(STATUS "Compile with Eigen Hamiltonian format 'E'")
-    add_compile_definitions(EIGEN_HAMILTONIAN)
+  find_package(Eigen3 REQUIRED NO_MODULE)
+  target_link_libraries(qcm PUBLIC Eigen3::Eigen)
+  message(STATUS "Compile with Eigen Hamiltonian format 'E'")
+  add_compile_definitions(EIGEN_HAMILTONIAN)
 endif()
 
 # ------------------

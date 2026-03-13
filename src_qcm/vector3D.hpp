@@ -145,7 +145,7 @@ struct vector3D
 	//! applies a matrix operation \a A to the wavevector
 	void transform(matrix<T> &A){
 		T xx,yy,zz;
-		assert(A.r == 3 and A.c == 3);
+		QCM_ASSERT(A.r == 3 and A.c == 3);
 		xx = x;
 		yy = y;
 		zz = z;
@@ -159,7 +159,7 @@ struct vector3D
 	//! applies a matrix operation \a A to the wavevector
 	void transform_transpose(matrix<T> &A){
 		T xx,yy,zz;
-		assert(A.r == 3 and A.c == 3);
+		QCM_ASSERT(A.r == 3 and A.c == 3);
 		xx = x;
 		yy = y;
 		zz = z;

@@ -4,6 +4,16 @@ import matplotlib.pyplot as plt
 np.set_printoptions(precision=4, linewidth=512, suppress=True)
 
 def fixed_qmatrix(site):
+    """
+    Returns the poles and spectral weights of the Green function for a specific site.
+    Computes the Q-matrix (Lehmann representation) and extracts the weight of the
+    given site column, then sorts by energy eigenvalue.
+
+    :param int site: index of the site (column of the Q-matrix) to extract spectral weights for
+    :returns: a 2-tuple (eigenvalues, weights) where eigenvalues is an array of sorted pole
+        energies and weights is an array of squared absolute values of the Q-matrix column
+    :rtype: (numpy.ndarray, numpy.ndarray)
+    """
     Q = pyqcm.qmatrix()
     W = np.abs(Q[1][:,site])**2
     S = np.argsort(Q[0])
@@ -15,6 +25,9 @@ def Kolmogorov_Smirnov(F, G, tol=1e-6, plot=False):
     :param ([float],[float]) F: a discrete spectrum. Sequence of poles and  (numpy arrays)
     :param ([float],[float]) G: a discrete spectrum. Sequence of poles and residues (numpy arrays)
     :param float tol : tolerance for the normalization of the distributions
+    :param bool plot: if True, plots the two cumulative distributions and the KS distance
+    :returns: the Kolmogorov-Smirnov distance between the two distributions (a float)
+    :rtype: float
     """
     # checks whether F and G have the right type and length
     err = 'The first two arguments of Kolmogorov_Smirnov() must be 2-tuples of numpy arrays'

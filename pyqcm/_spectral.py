@@ -257,7 +257,7 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='
         ax.axvline(0, ls='solid', lw=0.5)
 
     if title is None and plt_ax is None:
-        ax.set_title(title_prefix+self.model.parameter_string(clus=0), fontsize=6)
+        ax.set_title(title_prefix+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax.set_title(title, fontsize=6)
 
@@ -450,7 +450,7 @@ def spectral_function(self, wmax=6.0, eta=0.05, path=None, nk=32, period = 'G', 
         ax.axvline(0, ls='solid', lw=0.5)
 
     if title is None and plt_ax is None:
-        ax.set_title(title_prefix+self.model.parameter_string(clus=0), fontsize=6)
+        ax.set_title(title_prefix+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax.set_title(title, fontsize=6)
 
@@ -521,7 +521,7 @@ def plot_hybridization_function(self, wmax=6, eta=0.01, imaginary=False, clus = 
     if plt_ax is None:
         plt.xlabel(r'$\omega$')
         plt.ylabel(r'$\Gamma(\omega)$')
-        plt.title(r'$\Gamma(\omega)$: '+self.model.parameter_string(clus=0))
+        plt.title(r'$\Gamma(\omega)$: '+self.model.parameter_string(sys=0))
 
     if file is not None:
         plt.savefig(file)
@@ -618,7 +618,7 @@ def cluster_spectral_function(self, wmax=6, eta = 0.05, imaginary=False, clus=0,
 
     plt.xlabel(r'$\omega$')
     plt.axvline(0, ls='solid', lw=0.5)
-    plt.title(self.model.parameter_string(clus=0), fontsize=6)
+    plt.title(self.model.parameter_string(sys=0), fontsize=6)
 
     if file is not None:
         plt.savefig(file)
@@ -664,7 +664,7 @@ def spectral_function_Lehmann(self, path=None, nk=32, orb=1, offset=0.1, lims=No
 
     if lims is not None:
         plt.xlim(lims[0], lims[1])
-    plt.title(self.model.parameter_string(clus=0), fontsize=6)
+    plt.title(self.model.parameter_string(sys=0), fontsize=6)
     plt.yticks(offset * tick_pos, tick_str)
     G = self.Lehmann_Green_function(k, orb)
     for i in range(len(k)):
@@ -689,7 +689,8 @@ def gap(self, k, orb = 1, threshold=1e-3):
     :param k: set of wavevectors
     :param int orb: orbital number (starts at 1)
     :param float threshold: weight below which a Lehmann contribution is deemed zero
-    return: an array of gap values
+    :returns: an array of gap values (or a single float if only one wavevector was given)
+    :rtype: list or float
 
     """
 
@@ -746,7 +747,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
             plt.figure()
             plt.gcf().set_size_inches(13.5/2.54, 9/2.54)
             ax = plt.gca()
-            plt.title('DoS: '+self.model.parameter_string(clus=0), fontsize=6)
+            plt.title('DoS: '+self.model.parameter_string(sys=0), fontsize=6)
         else:
             ax = plt_ax
 
@@ -844,7 +845,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='G
     
     """
     if spin_down and self.model.mixing != 4:
-        raise RuntimeError('spin_down can only be True is mixing = 4')
+        raise ValueError('spin_down can only be True is mixing = 4')
     if plt_ax is None:
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
@@ -980,7 +981,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, zone=((0,0),1), opt='spin', freq =
 
     mix = self.model.mixing
     if mix != 2 and mix != 3:
-        raise RuntimeError('spin_mdc() makes sense only if spin-flip terms are present')
+        raise ValueError('spin_mdc() makes sense only if spin-flip terms are present')
     
     k, x, y = __kgrid(ax, nk, zone=zone, k_perp=k_perp, plane=plane)
 
@@ -1076,7 +1077,7 @@ def mdc_anomalous(self, nk=200, w=0.1j, orbitals=(1,1), selfenergy=False, im_par
     :param int nk: number of wavevectors on each side of the grid
     :param complex w: complex frequency at which the Green function is computed
     :param int orbitals: shows the weight for orbitals (b1,b2) (starts at 1), or numpy array of spin-Nambu projection
-    :param boolean self: if True, plots the anomalous self-energy instead of the spectral function
+    :param boolean selfenergy: if True, plots the anomalous self-energy instead of the spectral function
     :param boolean im_part: if True, plots the imaginary part instead of the real part
     :param zone: origin and half-size of the plot, in multiples of pi. By default ((0,0),1)
     :param float k_perp: for 3D models, value of the component of k perpendicular to the plane
@@ -1091,7 +1092,7 @@ def mdc_anomalous(self, nk=200, w=0.1j, orbitals=(1,1), selfenergy=False, im_par
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('anomalous mdc: '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title('anomalous mdc: '+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -1210,7 +1211,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
             
     if plt_ax is None:
         axis = _set_legend_mdc(plane, k_perp)
-        plt.title(axis+' '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title(axis+' '+self.model.parameter_string(sys=0), fontsize=6)
 
     if file is not None:
         plt.savefig(file)
@@ -1228,6 +1229,7 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param orb: orbital (or sequence of orbitals) to plot. None for all.
     :param boolean band_assign: if True, assigns band by using the continuity of the eigenvectors
+    :param float diff_coeff: coefficient used to weight velocity differences when tracking bands with overlaps (used only if band_assign is True)
     :param [str] colors : colors of the different orbitals
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: None
@@ -1258,7 +1260,7 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title(self.model.parameter_string(clus=0), fontsize=6)
+        plt.title(self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
 
@@ -1319,7 +1321,7 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, band_assign 
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title(self.model.parameter_string(clus=0), fontsize=6)
+        plt.title(self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
 
@@ -1436,7 +1438,7 @@ def Fermi_surface(self, nk=64, orb=None, zone=((0,0),1), plane='xy', k_perp=0.0,
 
     if plt_ax is None:
         axis = _set_legend_mdc('xy', 0.0)
-        plt.title('Fermi surface: '+axis+' '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title('Fermi surface: '+axis+' '+self.model.parameter_string(sys=0), fontsize=6)
     
     if file is not None:
         plt.savefig(file)
@@ -1477,7 +1479,7 @@ def G_dispersion(self, nk=64, orb=None, period = 'G', contour=False, inv=False, 
             plt.gca().set_aspect(1)
         else:
             ax = plt.axes(projection='3d')
-        plt.title('G dispersion: '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title('G dispersion: '+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
 
@@ -1549,7 +1551,7 @@ def Luttinger_surface(self, nk=200, orb=1, zone=((0,0),1), k_perp = 0, plane = '
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('Luttinger surface : '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title('Luttinger surface : '+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -1591,7 +1593,7 @@ def plot_momentum_profile(self, op, nk=50, zone=((0,0),1), k_perp=0.0, plane='xy
         plt.figure()
         plt.gcf().set_size_inches(14/2.54, 14/2.54)
         ax = plt.gca()
-        plt.title('profile of '+op+' : '+self.model.parameter_string(clus=0), fontsize=6)
+        plt.title('profile of '+op+' : '+self.model.parameter_string(sys=0), fontsize=6)
     else:
         ax = plt_ax
     ax.set_aspect(1)
@@ -1622,18 +1624,13 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, yli
     :param [float] w : array of frequencies used
     :param (int,int) e: matrix element to plot (zero based)
     :param int clus: cluster label (starts at 0)
+    :param str title: optional title for the plot, displayed when plt_ax is None
     :param str file: if not None, saves the plot in a file with that name
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :return: None
 
     """
-
-    # try:
-    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label) # second argument 0 means "spin up part"
-    # except:
-    #     qcm.CDMFT_host(w, np.ones(len(w)), self.label)
-    #     H = pyqcm.qcm.get_CDMFT_host(clus, 0, self.label)
 
     qcm.CDMFT_host(w, np.ones(len(w)), self.label)
     H = pyqcm.qcm.get_CDMFT_host(clus, False, self.label)
@@ -1766,7 +1763,7 @@ def Chern_number(self, nk=100, eta=0.0, period='G', offset=[0., 0., 0.], orb=Non
     :param int nk: number of wavevectors on the side of the grid
     :param float eta: imaginary part of the frequency at zero, i.e., w = eta*1j
     :param str period: type of periodization used (e.g. 'G', 'M', 'None')
-    :param wavevector offset: wavevector offset of the computation grid
+    :param [float] offset: wavevector offset of the computation grid (3-component list)
     :param int orb: the orbital to use in the computation (1 to number of bands). None (default) means a sum over all occupied bands.
     :param boolean subdivide: recursivity flag (wavevector grid subdivision)
     :returns float: The Chern number
@@ -1797,7 +1794,7 @@ def monopole(self, k, a=0.01, nk=20, orb=None, subdivide=False):
     :param float a: half-side of the cube surrounding the node 
     :param int nk: number of divisions along the side of the cube
     :param int orb: orbital to compute the charge of (if None, sums over all bands)
-    :param booleean subdivide: True if subdivision is allowed (False by default)
+    :param boolean subdivide: True if subdivision is allowed (False by default)
     :return: the monopole charge
     :rtype: float
 
@@ -1912,7 +1909,8 @@ def Berry_flux_map(self, nk=40, plane='z', dir='z', k_perp=0.0, orb=None, npoint
     :param str dir: direction of flux, 'xy'='z', 'yz'='x'='zy' or 'xz'='zx'='y'
     :param str k_perp: offset in wavevector in the direction perpendicular to the plane (x pi)
     :param int orb: the orbital to use in the computation (1 to number of bands). None (default) means a sum over all bands.
-    :param int npoints: nombre de points sur chaque boucle
+    :param int npoints: number of points on each Berry flux loop
+    :param float radius: radius of the loop used to compute Berry flux at each grid point; defaults to 0.8/nk if None
     :param str file: Name of the file to save the plot. If None, shows the plot on screen.
     :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
@@ -2244,7 +2242,7 @@ def plot_profile(self, n_scale=1, bond_scale=1, current_scale=1, spin_scale=1,
         if np.sqrt(sx*sx+sz*sz) > 0.01 :
             ax.add_patch(patches.Arrow(x-0.5*sx, y-0.5*sz, sx, sz, width=0.2, fc = 'red', ec = 'black', lw = 0.5, zorder=100))
 
-    plt.gcf().suptitle(self.model.parameter_string(clus=0)+', layer '+str(layer), y=1.0, fontsize=6)
+    plt.gcf().suptitle(self.model.parameter_string(sys=0)+', layer '+str(layer), y=1.0, fontsize=6)
     plt.tight_layout()
 
     if file is None:
@@ -2256,6 +2254,14 @@ def plot_profile(self, n_scale=1, bond_scale=1, current_scale=1, spin_scale=1,
 
 #---------------------------------------------------------------------------------------------------
 def wavevector_path_2_str(self, k):
+    """
+    Converts an array of wavevectors to a tab-separated string representation,
+    formatted according to the spatial dimension of the model.
+
+    :param numpy.ndarray k: array of wavevectors, shape (N, 3), in units of 2*pi
+    :returns: a tab-separated string of wavevector coordinates
+    :rtype: str
+    """
     K = ''
     if self.model.dim==1:
         for x in k:

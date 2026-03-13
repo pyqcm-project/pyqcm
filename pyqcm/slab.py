@@ -42,8 +42,13 @@ class slab:
         self.nband = pyqcm.model_size()[1]//nlayer
     
     def hopping_operator(self, name, link, amplitude, **kwargs):
-        """ Defines a hopping operator
-        Same arguments as the pyqcm.hopping_operator() function
+        """Defines a hopping operator repeated across all layers of the slab.
+        Same arguments as the pyqcm.hopping_operator() function.
+
+        :param str name: name of the hopping operator
+        :param [int] link: bond vector (3-component); the z-component must be 0 (intra-layer) or 1 (inter-layer)
+        :param float amplitude: hopping amplitude multiplier
+        :param kwargs: additional keyword arguments passed to pyqcm.hopping_operator() (e.g. orb1, orb2, tau, sigma)
 
         """
         
@@ -74,8 +79,12 @@ class slab:
             raise ValueError('hopping operators in slabs can only have a z-component of 0 or 1 for the link')
         
     def interaction_operator(self, name, **kwargs):
-        """Defines an interaction operator
-        Same arguments as the pyqcm.interaction_operator() function
+        """Defines an interaction operator repeated across all layers of the slab.
+        Same arguments as the pyqcm.interaction_operator() function.
+
+        :param str name: name of the interaction operator
+        :param kwargs: additional keyword arguments passed to pyqcm.interaction_operator()
+            (e.g. orb1, orb2, type, link, amplitude)
 
         """
         

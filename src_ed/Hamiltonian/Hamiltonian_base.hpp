@@ -198,7 +198,7 @@ Q_matrix<HilbertField> Hamiltonian<HilbertField>::build_Q_matrix(
   
     int max_banditer = (int)(14*phi.size()*log(1.0*this->dim));
     int M = max_banditer; // essai
-    assert(M>1);
+    QCM_ASSERT(M>1);
 
     vector<double> eval; // eigenvalues of the reduced Hamiltonian
     matrix<HilbertField> U;  // eigenvectors of the reduced Hamiltonian
