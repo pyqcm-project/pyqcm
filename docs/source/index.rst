@@ -18,6 +18,9 @@ pyqcm : documentation (|version|)
    cdmft
    vca
    hartree
+   loop
+   draw
+   lattice_hybrid
    other_functions
    options
    parallel

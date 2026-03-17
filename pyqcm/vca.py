@@ -97,11 +97,12 @@ def _quasi_newton(func=None, start=None, step=None, accur=None, max=10, gtol=1e-
     :param [float] accur: the required accuracy for each variable
     :param [float] max: maximum absolute value of each parameter
     :param float gtol: the gradient tolerance (gradient must be smaller than gtol for convergence)
-    :param boolean bfgs: True if the BFGS method is used, otherwise the symmetric rank-1 formula is used (default)
+    :param bool bfgs: True if the BFGS method is used, otherwise the symmetric rank-1 formula is used (default)
     :param int max_iterations: maximum number of iterations, beyond which an exception is raised
     :param float max_iter_diff: maximum step to make
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :return (float, [float], [[float]]): tuple of x (the solution), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
+    :returns: tuple of x (the solution), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
+    :rtype: tuple[float, list[float], list[list[float]]]
 
     """
     global root, verbose
@@ -171,9 +172,10 @@ def _quasi_newton_step(iteration = 0, func=None, x=None, step=None, gradient=Non
     :param [float] step: the steps used to computed the numerical second derivatives
     :param [float] gradient: the gradient array from the previous step (updated in place)
     :param [float] dx: the previous difference
-    :param boolean bfgs: True if the BFGS method is used, otherwise the symmetric rank-1 formula is used (default)
+    :param bool bfgs: True if the BFGS method is used, otherwise the symmetric rank-1 formula is used (default)
     :param float max_diff: maximum step to make
-    :return (float, float, [float], [[float]]): tuple of x (the new point), dx (the difference between the current and previous point), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
+    :returns: tuple of x (the new point), dx (the difference between the current and previous point), gradient (array, the value of the gradient), hessian (matrix, the Hessian matrix)
+    :rtype: tuple[float, float, list[float], list[list[float]]]
 
     """
     global verbose
@@ -234,7 +236,8 @@ def _NR_Hessian(func, x, step):
     :param func: the function
     :param [float] x: the base point 
     :param float step: step taken in each direction
-    :return (float, [float], [[float]]): the value of the function, the gradient, and the Hessian
+    :returns: the value of the function, the gradient, and the Hessian
+    :rtype: tuple[float, list[float], list[list[float]]]
 
     """
     n = len(x)
@@ -316,7 +319,8 @@ def _newton_raphson(func=None, start=None, step=None, accur=None, max=10, gtol=1
     :param int max_iterations:  maximum number of iterations, beyond which an exception is raised
     :param float max_iter_diff: optional maximum value of the maximum step
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :returns (float, [float], [[float]]): the value of the function, the gradient, and the Hessian
+    :returns: the value of the function, the gradient, and the Hessian
+    :rtype: tuple[float, list[float], list[list[float]]]
 
     """
     global current_instance, root, verbose
@@ -398,7 +402,8 @@ def _newton_raphson_step(func=None, x=None, step=None):
     :param func: a function of N variables
     :param [float] x: the current value of the parameters (changed by the function)
     :param [float] step: the steps used to computed the numerical second derivatives
-    :returns ([float], float, [float], [[float]]): the change in position, the value of the function, the gradient, and the Hessian
+    :returns: the change in position, the value of the function, the gradient, and the Hessian
+    :rtype: tuple[list[float], float, list[float], list[list[float]]]
 
     """
 
@@ -439,7 +444,8 @@ def _altNR(func=None, start=None, step=None, accur=None, max=10, gtol=1e-4, max_
     :param int max_iterations:  maximum number of iterations, beyond which an exception is raised
     :param float max_iter_diff: optional maximum value of the maximum step
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :returns (float, float, float): the value of the function, the gradient, and the 2nd derivative
+    :returns: the value of the function, the gradient, and the 2nd derivative
+    :rtype: tuple[float, float, float]
 
     """
     global verbose
@@ -505,11 +511,11 @@ class VCA:
     :param float max_iter_diff: optional maximum value of the maximum step in the quasi-Newton method
     :param str method: method used to optimize ('SYMR1', 'NR', 'BFGS', 'altNR', 'Nelder-Mead', 'COBYLA', 'Powell', 'CG', 'minimax')
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :param boolean hartree_self_consistent: True if the Hartree approximation is treated in the self-consistent, rather than variational, way.
+    :param bool hartree_self_consistent: True if the Hartree approximation is treated in the self-consistent, rather than variational, way.
     :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
     :param int var_max_start: label of the first variable for which the function is a maximum (minimal vars first, maximal vars last)
-    :param boolean verb: if True (default) prints ample progress messages
-    :return: None
+    :param bool verb: if True (default) prints ample progress messages
+    :returns:None
 
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar I: current model instance (changes in the course of the computation)
@@ -887,9 +893,9 @@ def plot_sef(model, param, prm, file="sef.tsv", accur_SEF=1e-4, hartree=None, sh
     :param float accur_SEF: precision of the computation of the self-energy functional
     :param str file: name of the file to which intermediate results are written
     :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
-    :param boolean show: if True, the plot is shown on the screen
+    :param bool show: if True, the plot is shown on the screen
     :param str symmetrized_operator: name of an operator with respect to which the functional is symmetrized
-    :param boolean consistency_check: if True, checks the ground state consistency at each point
+    :param bool consistency_check: if True, checks the ground state consistency at each point
     :returns: None
 
     """
@@ -935,7 +941,7 @@ def plot_GS_energy(model, param, prm, clus=0, file=None, plt_ax=None, **kwargs):
     :param [float] prm: list of values of the parameter
     :param int clus: label of the cluster (starts at 0)
     :param str file: if not None, saves the plot in a file with that name
-    :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :returns: None
 
@@ -987,7 +993,7 @@ def _transition(model, varia, P, bracket, step=0.001, verb=False, symmetrized_op
     :param str P: name of the control parameter (the parameter that controls the transition)
     :param (float,float) bracket: bracketing values for parameter P that enclose the transition
     :param float step: small, but finite value *s* of the Weiss field 
-    :param boolean verb: If True, prints progress
+    :param bool verb: If True, prints progress
     :returns: the value of P at the transition
 
     """
@@ -1027,9 +1033,9 @@ def transition_line(model, varia, P1, P1_range, P2, P2_range, delta, verb=False)
     :param [float] P1_range: an array of values of P1
     :param str P2: dependent parameter
     :param (float) P2_range: 2-uple of values of P2 that bracket the transition
-    :param boolean verb: If True, prints progress
+    :param bool verb: If True, prints progress
     :param float delta: at each step, the new bracket for P2 will be P2c +/- delta, P2c being the previous critical value 
-    :return: None
+    :returns:None
 
     """
 

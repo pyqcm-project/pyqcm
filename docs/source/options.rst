@@ -10,6 +10,7 @@ Boolean options
     "check_lanczos_residual", "false", "checks the Lanczos residual at the end of the eigenvector computation"
     "continued_fraction", "false", "Uses the continued fraction solver for the Green function instead of the band Lanczos method"
     "dual_basis", "false", "uses the dual basis for wavevector computations"
+    "merge_states", "false", "merges states in the mixed state case"
     "no_degenerate_BL", "false", "forbids band lanczos to proceed when the eigenstates have degenerate energies"
     "nosym", "false", "does not take cluster symmetries into account"
     "one_body_solution", "false", "Only solves the one-body part of the problem, for the Green function"
@@ -47,8 +48,8 @@ Integer-valued options
     "max_iter_BL", "600", "Maximum number of iterations in the band Lanczos procedure"
     "max_iter_CF", "400", "Maximum number of iterations in the continuous fraction Lanczos procedure"
     "max_iter_QN", "60", "maximum number of iterations in the quasi-Newton method"
-    "max_iter_lanczos", "600", "Maximum number of iterations in the Lanczos procedure"
-    "print_precision", "8", "precision of printed output"
+    "max_iter_lanczos", "1000", "Maximum number of iterations in the Lanczos procedure"
+    "print_precision", "9", "precision of printed output"
     "seed", "0", "seed of the random number generator"
 
 
@@ -66,7 +67,7 @@ Real-valued options
     "accur_Q_matrix", "1e-05", "tolerance in the normalization of the Q matrix"
     "accur_SEF", "5e-08", "Accuracy of the Potthoff functional"
     "accur_band_lanczos", "1e-12", "energy difference tolerance for stopping the BL process"
-    "accur_continued_fraction", "0.01", "value of beta below which the simple Lanczod process stops"
+    "accur_continued_fraction", "0.01", "value of beta below which the simple Lanczos process stops"
     "accur_deflation", "1e-07", "norm below which a vector is deflated in the band Lanczos method"
     "accur_lanczos", "1e-12", "tolerance of the Ritz residual estimate in the Lanczos method"
     "band_lanczos_minimum_gap", "1e-05", "gap between the lowest two states in BL below which the method fails"
@@ -85,7 +86,7 @@ Char-valued options
     :header: "name", "default", "description"
     :widths: 15, 10, 50
 
-    "Ground_state_method", "L", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
+    "Ground_state_method", "P", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
     "Hamiltonian_format", "E", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix))"
     "periodization", "G", "periodization scheme: G, S, M, C or N (None)"
 

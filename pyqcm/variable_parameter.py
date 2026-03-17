@@ -1,3 +1,9 @@
+"""Variable-parameter self-consistency utilities for pyqcm.
+
+Provides the :class:`variable_parameter` class and helper functions
+:func:`variable_parameter_self_consistency` and :func:`variable_parameter_search`
+to handle parameters that depend self-consistently on an observable (typically the density).
+"""
 import numpy as np
 import pyqcm
 
@@ -8,7 +14,7 @@ class variable_parameter:
         - param (str) : name of the parameter that depends on the observable
         - F : function that expresses the parameter as a function of the observable (supplied by the user)
         - obs (str) : name of the observable (a parameter). Default is 'mu'
-        - lattice (boolean) : True if lattice averages are used
+        - lattice (bool) : True if lattice averages are used
         - diff : difference between successive values of the parameter
         - ave : current value of the observable
         - accur : desired accuracy on the parameter
@@ -23,7 +29,7 @@ class variable_parameter:
         :param str param: name of the original parameter
         :param F: function that returns the value of the parameter as a function of the observable
         :param str obs: name of the parameter whose average is the observable
-        :param boolean lattice: if True, the lattice average is used, otherwise the cluster average
+        :param bool lattice: if True, the lattice average is used, otherwise the cluster average
         :param float accur: required accuracy of the self-consistent procedure
 
         """
@@ -41,7 +47,7 @@ class variable_parameter:
     def update(self, pr=False):
         """Updates the value of the parameter based on the value of the observable
         
-        :param boolean pr: if True, progress is printed on the screen
+        :param bool pr: if True, progress is printed on the screen
 
         """
 
@@ -72,7 +78,7 @@ class variable_parameter:
     def converged(self):
         """Tests whether the self-consistent procedure has converged
 
-        :return boolean: True if the mean-field procedure has converged
+        :return bool: True if the mean-field procedure has converged
         
         """
 

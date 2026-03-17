@@ -91,14 +91,14 @@ class cluster_model:
     :param int n_sites: number of physical sites
     :param int n_bath: number of bath orbitals
     :param str name: name of the cluster model (important if there are more than one cluster models)
-    :param [[int]] generators: permutations that generate the point group
-    :param boolean bath_irrep: if True, the elements of 'generators' associated to bath orbitals are phases (integers, in multiple of 2*pi/G, where G is the number of group elements)
+    :param list[list[int]] generators: permutations that generate the point group
+    :param bool bath_irrep: if True, the elements of 'generators' associated to bath orbitals are phases (integers, in multiple of 2*pi/G, where G is the number of group elements)
 
     :ivar str name: name of the model
     :ivar int n_sites: number of physical sites
     :ivar int n_bath: number of bath orbitals
-    :ivar [[int]] generators: symmetry generators
-    :ivar boolean is_closed: True if the model can no longer be modified by adding operators
+    :ivar list[list[int]] generators: symmetry generators
+    :ivar bool is_closed: True if the model can no longer be modified by adding operators
 
     """
 
@@ -127,7 +127,7 @@ class cluster_model:
         :param str op_name: name of the operator
         :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
         :param [(int,int,float)] elem: array of matrix elements (list of tuples)
-        :return: None
+        :returns:None
 
         """
 
@@ -157,7 +157,7 @@ class cluster_model:
         :param str op_name: name of the operator
         :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
         :param [(int, int, complex)] elem: array of matrix elements (list of tuples)
-        :return: None
+        :returns:None
 
         """
 
@@ -186,7 +186,7 @@ class cluster_model:
         returns the type and matrix elements defining a Hermitian operator
 
         :param str op: name of the operator
-        :return: a tuple (typ, elem)
+        :returns:a tuple (typ, elem)
 
         """
         return qcm.matrix_elements(self.name, op)
@@ -199,7 +199,7 @@ class cluster_model:
         :param str sec: target Hilbert space sectors
         :param int label: label of model_instance
 
-        :return: None
+        :returns:None
 
         """
 
@@ -212,7 +212,7 @@ class cluster:
     Class describing a geometric cluster, part of the repeated unit (or super unit cell)
 
     :param cluster_model X: abstract cluster model (or sequence thereof) the current cluster is hosting OR other cluster object to which the current cluster is equivalent
-    :param [[int]] sites: sequence of 3-component integer vectors, the geometric sites of the cluster
+    :param list[list[int]] sites: sequence of 3-component integer vectors, the geometric sites of the cluster
     :param [int] pos: base position of the cluster; all site vectors are added this position (for convenience)
 
     :ivar int index: index of the cluster within the set of clusters forming the repeated unit (starts at 1)
@@ -247,8 +247,8 @@ class lattice_model:
 
     :param str name: a name given to the model, for reference in the output data
     :param [cluster] clus: a single object or a sequence of objects of the class cluster, forming the repeated unit
-    :param [[int]] superlattice: the integer-component vectors defining the superlattice. Their number is the spatial dimension of the model.
-    :param [[int]] lattice: the the integer-component vectors defining the lattice. Used to define bands.
+    :param list[list[int]] superlattice: the integer-component vectors defining the superlattice. Their number is the spatial dimension of the model.
+    :param list[list[int]] lattice: the the integer-component vectors defining the lattice. Used to define bands.
 
     """
 
@@ -306,12 +306,9 @@ class lattice_model:
         :param float amplitude: hopping amplitude multiplier
         :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
 
-        :Keyword Arguments:
-
-            * tau (*int*) -- specifies the tau Pauli matrix  (0,1,2,3)
-            * sigma (*int*) -- specifies the sigma Pauli matrix  (0,1,2,3)
-
-        :return: None
+        :keyword int tau: specifies the tau Pauli matrix (0,1,2,3)
+        :keyword int sigma: specifies the sigma Pauli matrix (0,1,2,3)
+        :returns: None
 
         """
 
@@ -368,11 +365,8 @@ class lattice_model:
         :param complex amplitude: pairing multiplier
         :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
 
-        :Keyword Arguments:
-
-            * type (*str*) -- one of 'singlet' (default), 'dz', 'dy', 'dx'
-
-        :return: None
+        :keyword str type: one of 'singlet' (default), 'dz', 'dy', 'dx'
+        :returns: None
 
         """
 
@@ -397,13 +391,10 @@ class lattice_model:
         :param str name: name of operator
         :param [(list, list, complex)] elem: List of tuples. Each tuple contains three elements (in order): a list representing position, a list representing link and a complex amplitude.
 
-        :Keyword Arguments:
-
-            * tau (*int*) -- specifies the tau Pauli matrix  (0,1,2,3)
-            * sigma (*int*) -- specifies the sigma Pauli matrix  (0,1,2,3)
-            * type (*str*) -- one of 'one-body' [default], 'singlet', 'dz', 'dy', 'dx', 'Hubbard', 'Hund', 'Heisenberg', 'X', 'Y', 'Z'
-
-        :return: None
+        :keyword int tau: specifies the tau Pauli matrix (0,1,2,3)
+        :keyword int sigma: specifies the sigma Pauli matrix (0,1,2,3)
+        :keyword str type: one of 'one-body' [default], 'singlet', 'dz', 'dy', 'dx', 'Hubbard', 'Hund', 'Heisenberg', 'X', 'Y', 'Z'
+        :returns: None
 
         """
         if "_" in name:
@@ -422,14 +413,12 @@ class lattice_model:
         :param str t: type of density-wave -- one of 'Z', 'X', 'Y', 'N'='cdw', 'singlet', 'dz', 'dy', 'dx'
         :param wavevector Q:  wavevector of the density wave (in multiple of :math:`pi`)
 
-        :Keyword Arguments:
+        :keyword list[int] link: bond vector, for bond density waves
+        :keyword complex amplitude: amplitude multiplier. **Caution**: A factor of 2 must be used in some situations (see :ref:`density wave theory`)
+        :keyword int orb: orbital label (0 by default = all orbitals)
+        :keyword float phase: real phase (as a multiple of :math:`\pi`)
 
-            * link (*[int]*) -- bond vector, for bond density waves
-            * amplitude (*complex*) -- amplitude multiplier. **Caution**: A factor of 2 must be used in some situations (see :ref:`density wave theory`)
-            * orb (*int*) -- orbital label (0 by default = all orbitals)
-            * phase (*float*) -- real phase (as a multiple of :math:`pi`)
-
-        :return: None
+        :returns:None
 
         """
         if "_" in name:
@@ -445,7 +434,7 @@ class lattice_model:
         the two.
 
         :param B: the basis (a (D x 3) real matrix)
-        :return: None
+        :returns:None
 
         """
 
@@ -460,12 +449,9 @@ class lattice_model:
         :param (int,int) orbitals: lattice orbital labels (start at 1); if None, tries all possibilities.
         :param [int] link: link of the operator (None by default)
 
-        :Keyword Arguments:
-
-            * amplitude (*float*): amplitude multiplier
-            * type (*str*): one of 'Hubbard', 'Heisenberg', 'Hund', 'X', 'Y', 'Z'
-
-        :return: None
+        :keyword float amplitude: amplitude multiplier
+        :keyword str type: one of 'Hubbard', 'Heisenberg', 'Hund', 'X', 'Y', 'Z'
+        :returns: None
 
         """
 
@@ -491,7 +477,7 @@ class lattice_model:
 
         :param (str) sec: the target sectors
 
-        :return: None
+        :returns:None
 
         """
         if not is_sequence(sec):
@@ -569,7 +555,7 @@ class lattice_model:
 
         :param str name: name of the parameter, or list of names
         :param float value: its value (or iterable of values)
-        :return: None
+        :returns:None
 
         """
         if pr:
@@ -596,7 +582,7 @@ class lattice_model:
 
         :param str name: name of the parameter of iterable of names
         :param float value: its value (or iterable of values)
-        :return: None
+        :returns:None
 
         """
         if pr:
@@ -621,8 +607,8 @@ class lattice_model:
         """
         Returns a string with the model parameters. Used for including in plots.
         :param int sys : system label to print the parameters of (starts at 1). If 0, prints lattice parameters only. If None, prints all parameters.
-        :param boolean CR : if True, puts each parameter on a line.
-        :param boolean constr : if True, also includes constrained parameters
+        :param bool CR : if True, puts each parameter on a line.
+        :param bool constr : if True, also includes constrained parameters
         """
         par = qcm.parameter_set()
         S = ""
@@ -650,7 +636,7 @@ class lattice_model:
         if p is a list of parameter names, then returns an array of values associated (in the same order) to this list.
 
         :param [str] param: a list of parameter names (optional)
-        :return: a dict {string,float} OR a numpy array of values
+        :returns:a dict {string,float} OR a numpy array of values
 
         """
         par = qcm.parameters()
@@ -666,7 +652,7 @@ class lattice_model:
         returns the content of the parameter set
 
         :param str opt: governs the action of the function
-        :return: depends on opt
+        :returns:depends on opt
 
         if opt = 'all', all parameters as a dictionary {str,(float, str, float)}. The three components are
 
@@ -697,7 +683,7 @@ class lattice_model:
 
         :param str filename: name of the file
 
-        :return: None
+        :returns:None
         """
         qcm.print_model(filename)
 
@@ -708,7 +694,7 @@ class lattice_model:
 
         :param str out_file: name of output file from which parameters are read
         :param int n: line number of data in output file (excluding titles); -1 means the last line
-        :return: a dict of the line read in out_file
+        :returns:a dict of the line read in out_file
 
         """
         par = qcm.parameter_set()
@@ -793,7 +779,7 @@ class model_instance:
     :param lattice_model model: the (unique) lattice model
     :param int label: a unique label for the model instance. Most of the time the default is fine. Exception when two concurrent instances are needed.
 
-    :ivar boolean is_complex: True if the instance has a complex-valued state, as opposed to real
+    :ivar bool is_complex: True if the instance has a complex-valued state, as opposed to real
 
     """
 
@@ -827,7 +813,7 @@ class model_instance:
         if solver != None:
             solver(self)
 
-        # booleans to record tasks that risk being asked more than once
+        # bools to record tasks that risk being asked more than once
         self.averages_done = False
 
     # -----------------------------------------------------------------------------------------------
@@ -864,7 +850,7 @@ class model_instance:
         :param str op_name: name of the operator
         :param [complex] freqs: array of complex frequencies
         :param int clus: label of the cluster (starts at 0)
-        :return: array of complex susceptibilities
+        :returns:array of complex susceptibilities
 
         """
 
@@ -876,7 +862,7 @@ class model_instance:
         Returns the Lehmann representation of the Green function
 
         :param int sys: label of the system (0-based)
-        :return: 2-tuple made of
+        :returns:2-tuple made of
             1. the array of M real eigenvalues, M being the number of poles in the representation
             2. a rectangular (L x M) matrix (real of complex), L being the dimension of the Green function
 
@@ -891,7 +877,7 @@ class model_instance:
 
         :param str filename: name of the file
         :para int sys: label of system (0-based)
-        :return: None
+        :returns:None
 
         """
 
@@ -903,7 +889,7 @@ class model_instance:
         Writes the solved model instance (all clusters) to a collection of text files
 
         :param str filename: name of the file
-        :return: None
+        :returns:None
 
         """
         for s in range(self.model.nclus):
@@ -915,7 +901,7 @@ class model_instance:
         Reads the solved model instance (all clusters) from a collection of text files
 
         :param str filename: name of the file
-        :return: None
+        :returns:None
 
         """
         for s in range(self.model.nsys):
@@ -926,7 +912,7 @@ class model_instance:
         """
         Returns the values of the parameters of the instance (as opposed to the parameter_set object)
 
-        :return: a dict {string,float}
+        :returns:a dict {string,float}
 
         """
 
@@ -944,7 +930,7 @@ class model_instance:
 
         :param [str] ops: list of operators to compute the average of. If empty, then computes the averages of all one-body operators.
         :param str file: name of the file in which the information is appended
-        :return: a dict giving the values of the averages for each parameter
+        :returns:a dict giving the values of the averages for each parameter
         :rtype: {str,float}
 
         """
@@ -974,9 +960,9 @@ class model_instance:
 
         :param complex z: frequency
         :param int clus: label of the cluster (0 to the number of clusters-1)
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :param boolean blocks: true if returned in the basis of irreducible representations
-        :return: a complex-valued matrix
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
+        :param bool blocks: true if returned in the basis of irreducible representations
+        :returns:a complex-valued matrix
 
         """
 
@@ -988,8 +974,8 @@ class model_instance:
         Returns the one-body matrix of cluster no i
 
         :param clus: label of the cluster (0 to the number of clusters - 1)
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a complex-valued matrix
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a complex-valued matrix
 
         """
         if clus >= self.model.nclus:
@@ -1069,7 +1055,7 @@ class model_instance:
         :param sys: label of the system (0-based)
         :param str S: long string containing the solution
 
-        :return: None
+        :returns:None
 
         """
         if len(S) <= 32:
@@ -1088,8 +1074,8 @@ class model_instance:
 
         :param complex z: frequency
         :param int clus: label of the cluster (0 to the number of clusters -1)
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :return: a complex-valued matrix
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
+        :returns:a complex-valued matrix
 
         """
 
@@ -1101,8 +1087,8 @@ class model_instance:
         Computes the cluster Green function average (integral over frequencies)
 
         :param int sys: label of the system (0-based)
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :return: a complex-valued matrix
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
+        :returns:a complex-valued matrix
 
         """
         return qcm.Green_function_average(
@@ -1115,7 +1101,7 @@ class model_instance:
         returns the density-density interactions on a specific cluster
 
         :param int sys: label of the system (0-based)
-        :return: a list of matrix elements tuples (i,j,v)
+        :returns:a list of matrix elements tuples (i,j,v)
 
         """
 
@@ -1128,8 +1114,8 @@ class model_instance:
 
         :param z: complex frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single or an array of complex-valued matrices
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single or an array of complex-valued matrices
 
         """
 
@@ -1142,8 +1128,8 @@ class model_instance:
 
         :param z: complex frequency
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single or an array of complex-valued matrices
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single or an array of complex-valued matrices
 
         """
 
@@ -1154,9 +1140,9 @@ class model_instance:
         """
         Computes the frequency-integrated Green function
 
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param int clus: label of the cluster (starts at 1). If clus > 0, integrates the cluster Green function for cluster 'clus'. If clus = 0, then computes the integral over frequencies of the momentum-integrated CPT Green function. The momentum integration is done on the same regular grid as in CDMFT, as set by the global parameter "kgrid_side".
-        :return: a complex-valued matrix
+        :returns:a complex-valued matrix
 
         """
 
@@ -1168,8 +1154,8 @@ class model_instance:
         Computes the dispersion relation for a single or an array of wavevectors
 
         :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (ndarray(d)) or an array (ndarray(N,d)) of real values (energies). d is the reduced GF dimension.
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (ndarray(d)) or an array (ndarray(N,d)) of real values (energies). d is the reduced GF dimension.
 
         """
         return qcm.dispersion(k, spin_down, self.label)
@@ -1180,8 +1166,8 @@ class model_instance:
         Computes the hopping matrix (orbital basis) for a single or an array of wavevectors
 
         :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
 
         """
         return qcm.epsilon(k, spin_down, self.label)
@@ -1192,7 +1178,7 @@ class model_instance:
         computes the density of states at a given frequency.
 
         :param complex z: frequency
-        :return: ndarray(d) of real values, d being the reduced GF dimension
+        :returns:ndarray(d) of real values, d being the reduced GF dimension
 
         """
         return qcm.dos(z, self.label)
@@ -1203,7 +1189,7 @@ class model_instance:
         Usually, the Green function representation is computed only when needed, in a just-in-time fashion (i.e. in a lazy way).
         This forces the computation of the Green function representation for the current instance (i.e. non lazy).
 
-        :return: None
+        :returns:None
 
         """
         self.ground_state()
@@ -1215,9 +1201,9 @@ class model_instance:
         Computes the ground state of the cluster(s).
 
         :param str file: name of the file in which the cluster averages are printed (if not None)
-        :param boolean pr: if True, prints the result on the screen
-        :param boolean var: if True, prints the variances of the operators as well
-        :return: a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
+        :param bool pr: if True, prints the result on the screen
+        :param bool var: if True, prints the variances of the operators as well
+        :returns:a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
 
         """
 
@@ -1251,7 +1237,7 @@ class model_instance:
         Computes the average and variance of all operators of the cluster model in the cluster ground state.
 
         :param int sys: label of the system
-        :return: a dict str : (float, float) with the averages and variances as a function of operator name
+        :returns:a dict str : (float, float) with the averages and variances as a function of operator name
 
         """
         ave = qcm.cluster_averages(self.label * self.model.nsys + sys)
@@ -1283,8 +1269,8 @@ class model_instance:
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: orbital index (starts at 1)
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a pair {poles, residues}, each of poles and residues being itself a list.
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a pair {poles, residues}, each of poles and residues being itself a list.
 
         """
 
@@ -1301,8 +1287,8 @@ class model_instance:
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param complex z: frequency
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a complex-valued matrix
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a complex-valued matrix
 
         """
         return qcm.hybridization_function(z, spin_down, clus, self.label)
@@ -1314,7 +1300,7 @@ class model_instance:
 
         :param str name: name of the lattice operator
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :return: an array of values
+        :returns:an array of values
 
         """
 
@@ -1325,7 +1311,7 @@ class model_instance:
         """
         Returns the values of the parameters in a given instance
 
-        :return: a dict {string,float}
+        :returns:a dict {string,float}
 
         """
         return qcm.instance_parameters(self.label)
@@ -1337,8 +1323,8 @@ class model_instance:
 
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.periodized_Green_function(z, k, spin_down, self.label)
@@ -1352,8 +1338,8 @@ class model_instance:
         :param int c: a column index (starts at 0)
         :param complex z: frequency
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a vector of complex numbers
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a vector of complex numbers
 
         """
         return qcm.periodized_Green_function_element(r, c, z, k, spin_down, self.label)
@@ -1366,8 +1352,8 @@ class model_instance:
 
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.band_Green_function(z, k, spin_down, self.label)
@@ -1379,8 +1365,8 @@ class model_instance:
 
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.self_energy(z, k, spin_down, self.label)
@@ -1390,7 +1376,7 @@ class model_instance:
         """
         Computes the potential energy for a given instance, as the functional trace of Sigma x G
 
-        :return: the value of the potential energy (total for the unit cell, not per site)
+        :returns:the value of the potential energy (total for the unit cell, not per site)
 
         """
         Epot = qcm.potential_energy(self.label)
@@ -1415,7 +1401,8 @@ class model_instance:
         Computes the density from the Green function average
 
         :param int clus: label of the cluster (0 to the number of clusters-1)
-        :return (float): the density
+        :returns: the density
+        :rtype: float
 
         """
 
@@ -1428,7 +1415,7 @@ class model_instance:
 
         :param int sys: label of the system (starts at 0)
         :param [int] sites: list of sites defining subsystem A
-        :return: the density matrix, the left and right bases (spins up and down)
+        :returns:the density matrix, the left and right bases (spins up and down)
         :rtype:  [complex], [int32], [int32]
 
         """
@@ -1461,8 +1448,8 @@ class model_instance:
         :param [hartree] hartree: Hartree approximation couplings (see pyqcm/hartree.py)
         :param str file: name of the file to append with the result
         :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
-        :param boolean consistency_check: checks the consistency of the Green function
-        :return: the value of the self-energy functional
+        :param bool consistency_check: checks the consistency of the Green function
+        :returns:the value of the self-energy functional
 
         """
         OM = qcm.Potthoff_functional(self.label)
@@ -1497,7 +1484,7 @@ class model_instance:
         """
         Computes the site and bond profiles in all clusters of the repeated unit
 
-        :return: A pair of ndarrays
+        :returns:A pair of ndarrays
 
         site profile -- the components are
         x y z n Sx Sy Sz psi.real psi.imag
@@ -1516,7 +1503,7 @@ class model_instance:
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param bool pr: prints wavefunction to screen if pr=True
 
-        :return: the wavefunction
+        :returns:the wavefunction
         :rtype: str
 
         """
@@ -1535,8 +1522,8 @@ class model_instance:
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single float or an array of floats, depending on the shape of k
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single float or an array of floats, depending on the shape of k
 
         """
 
@@ -1562,8 +1549,8 @@ class model_instance:
         Computes the projected Green function at a given frequency, as used in CDMFT.
 
         :param complex z: frequency
-        :param boolean spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :return: the projected Green function matrix (d x d), d being the dimension of the CPT Green function.
+        :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:the projected Green function matrix (d x d), d being the dimension of the CPT Green function.
 
         """
         return qcm.projected_Green_function(z, spin_down, self.label)
@@ -1575,8 +1562,8 @@ class model_instance:
 
         :param complex z: frequency
         :param wavevector k: wavevector (ndarray(3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.V_matrix(z, k, spin_down, self.label)
@@ -1587,8 +1574,8 @@ class model_instance:
         Computes the k-dependent one-body matrix of the lattice model
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a single or an array of complex-valued matrices
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a single or an array of complex-valued matrices
 
         """
         return qcm.tk(k, spin_down, self.label)
@@ -1601,8 +1588,8 @@ class model_instance:
         :param int clus: cluster label (starts at 0)
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
-        :param boolean spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :return: a float
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns:a float
 
         """
         sigma1 = self.cluster_self_energy(
@@ -1625,7 +1612,7 @@ class model_instance:
         :param freq: complex freqency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: if None, sums all the orbitals. Otherwise just shows the weight for that orbital (starts at 1)
-        :return: depending on the shape of k, a nd.array(3) of nd.array(N,3)
+        :returns:depending on the shape of k, a nd.array(3) of nd.array(N,3)
 
         """
         orbs = orbital_manager(orb, from_zero=True)
@@ -1854,13 +1841,13 @@ class hartree:
     :param str V: name of the interaction operator
     :param float eig: eigenvalue
     :param float accur: required accuracy of the self-consistent procedure
-    :param boolean lattice: if True, the lattice average is used, otherwise the cluster average
+    :param bool lattice: if True, the lattice average is used, otherwise the cluster average
     :param float alpha: damping factor (0 if no damping)
 
     :ivar str Vm: mean-field operator
     :ivar str V: extended interaction
     :ivar float eig: eigenvalue *e* of the mean-field operator in the self-consistency relation
-    :ivar boolean lattice: True if lattice averages are used
+    :ivar bool lattice: True if lattice averages are used
     :ivar float diff: difference between successive values of :math:`v_m`
     :ivar float ave: average of the operator :math:`V_m`
     :ivar float accur: desired accuracy
@@ -1894,7 +1881,7 @@ class hartree:
         Updates the value of the mean-field operator based on its average
 
         :param model_instance I: instance of the lattice model
-        :param boolean pr: if True, progress is printed on the screen
+        :param bool pr: if True, progress is printed on the screen
 
         """
 
@@ -1963,7 +1950,7 @@ class hartree:
         """
         Tests whether the mean-field procedure has converged
 
-        :return: True if the mean-field procedure has converged
+        :returns:True if the mean-field procedure has converged
 
         """
 
@@ -2155,7 +2142,7 @@ def set_global_parameter(name, value=None):
 
     :param str name: name of the global option
     :param value: value of that option (None, int, float or str)
-    :return: None
+    :returns:None
 
     """
     if value is None:
@@ -2170,7 +2157,7 @@ def get_global_parameter(name, value=None):
     Gets the value of a global parameter.
 
     :param str name: name of the global option
-    :return: the value, according to type
+    :returns:the value, according to type
 
     """
     return qcm.get_global_parameter(name)
@@ -2432,7 +2419,7 @@ def wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp=0, plane="z"):
     :param float side: length of the side (in multiples of pi)
     :param float k_perp: momentum component in the third direction (in multiples of pi)
     :param str plane: momentum plane, 'xy'='z', 'yz'='x'='zy' or 'xz'='zx'='y'
-    :return: ndarray of wavevectors (n*n x 3), in units of 2*pi
+    :returns:ndarray of wavevectors (n*n x 3), in units of 2*pi
 
     """
 
@@ -2600,8 +2587,8 @@ def epsilon(y, pr=False):
     Performs the epsilon algorithm for accelerated convergence (e.g. in CDMFT)
 
     :param [float] y: sequence to be extrapolated
-    :param boolean pr: if True, prints the resulting extrapolation
-    :return: the extrapolated values
+    :param bool pr: if True, prints the resulting extrapolation
+    :returns:the extrapolated values
     :rtype: [float]
 
     """
@@ -2642,7 +2629,7 @@ def fixed_point_iteration(
     :param int miniter: minimum number of iterations
     :param float alpha: damping coefficient
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
-    :return: the solution, the number of iterations
+    :returns:the solution, the number of iterations
     :rtype: [float], int
 
     """
@@ -2697,8 +2684,8 @@ def broyden(F, x0, iJ0=0.0, xtol=1e-6, convergence_test=None, maxiter=32, minite
     :param function convergence_test: function called to perform custom convergence tests. Returns True if converged
     :param int maxiter: maximum number of iterations
     :param int miniter: minimum number of iterations
-    :return: the solution, the number of iterations needed, the concerged inverse Jacobian
-    :rtype: [float], int, [[float]]
+    :returns:the solution, the number of iterations needed, the concerged inverse Jacobian
+    :rtype: [float], int, list[list[float]]
 
     """
     n = len(x0)

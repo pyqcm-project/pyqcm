@@ -1,3 +1,9 @@
+"""Looping utilities for VCA and CDMFT calculations.
+
+Provides functions for iterating over parameter spaces with predictors, including
+:func:`linear_loop`, :func:`controlled_loop`, :func:`fade`, :func:`Hartree_procedure`,
+and file-driven loops. These functions are added as methods of the lattice model class.
+"""
 import numpy as np
 import pyqcm
 import os
@@ -103,7 +109,7 @@ def linear_loop(self, N, task, varia=None, params = None, predict=True):
 	:param task: function called at each step of the loop
 	:param [str] varia: names of the variational parameters
 	:param dict params: dict mapping parameter names to 2-tuples of (initial, final) values
-	:param boolean predict: if True, uses a linear or quadratic predictor
+	:param bool predict: if True, uses a linear or quadratic predictor
 	:returns: None
 
 	"""
@@ -168,10 +174,10 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 	:param [str] varia: names of the variational parameters
 	:param str loop_param: name of the parameter looped over
 	:param (float, float, float) loop_range: range of the loop (start, end, step)
-	:param control_func: (optional) name of the function that controls the loop (returns boolean). Takes a model instance as argument
+	:param control_func: (optional) name of the function that controls the loop (returns bool). Takes a model instance as argument
 	:param char retry: If None, stops on failure. If 'refine', adjusts the step (divide by 2) and retry. If 'skip', skip to next value.
 	:param int max_retry: Maximum number of retries of either type
-	:param boolean predict: if True, uses a linear or quadratic predictor
+	:param bool predict: if True, uses a linear or quadratic predictor
 
 	"""
 	if retry not in (None, 'skip', 'refine'): 
@@ -299,9 +305,9 @@ def controlled_loop(self, task, varia=None, loop_param=None, loop_range=None, co
 #---------------------------------------------------------------------------------------------------
 def fade(self, task, P, n):
 	"""
-	fades the model between two sets of parameters, in n steps
+	Fades the model between two sets of parameters, in n steps
 
-	:param task: task to perform wihtin the loop
+	:param task: task to perform within the loop
 	:param dict P: dict of parameters with a tuple of values (start and finish) for each
 	:param n: number of steps
 	:returns: None
@@ -318,9 +324,9 @@ def fade(self, task, P, n):
 def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broyden', maxiter=32, alpha=0.0, eps_algo=0, bracket=None, delta=None, verb=False):
 # IN DEVELOPMENT
 	"""
-	fades the model between two sets of parameters, in n steps
+	Fades the model between two sets of parameters, in n steps
 
-	:param task: task to perform wihtin the loop
+	:param task: task to perform within the loop
 	:param dict P: dict of parameters with a tuple of values (start and finish) for each
 	:param n: number of steps
 	:param dict C: dict of adjustable parameters whose average (the value of C) should stay fixed during the fade
@@ -332,7 +338,7 @@ def controlled_fade(self, task, P, n, C, file='fade.tsv', tol=1e-4, method='Broy
 	:param int eps_algo: convergence accelerator parameter in fixed_point
 	:param (float,float) bracket: bracket used in some nonlinear 1D solvers
 	:param float delta: interval used to update the bracket used in some nonlinear 1D solvers
-	:param boolean verb: If True, writes progress reports
+	:param bool verb: If True, writes progress reports
 
 	"""
 	assert type(P) is dict
@@ -407,8 +413,8 @@ def Hartree_procedure(self, task, couplings, maxiter=32, iteration='fixed_point'
     :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
 	:param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
 	:param str file: name of the file to which the converged result is written via write_summary()
-	:param boolean SEF: if True, computes the Potthoff functional at the end of the procedure
-	:param boolean pr: if True, prints progress of each coupling update
+	:param bool SEF: if True, computes the Potthoff functional at the end of the procedure
+	:param bool pr: if True, prints progress of each coupling update
     :param float alpha: if iteration='fixed_point', damping parameter, otherwise trial inverse Jacobian (if a float, that is (1+alpha)*unit matrix)
 	:returns: model instance, converged inverse Jacobian
 

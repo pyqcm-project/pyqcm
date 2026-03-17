@@ -98,7 +98,7 @@ The member function ``new_operator(name, type, elements)`` takes the following a
 
 #. The name of the operator
 #. The type of operator; one of 'one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg'
-#. An array of real matrix elements. Each element of the array is a 3-tuple giving the labels of the orbitals involved and the value of the matrix element itself. Note that spin-up and spin-down orbital labels are separated by the total number of orbitals on the custer, here `no=10`.
+#. An array of real matrix elements. Each element of the array is a 3-tuple giving the labels of the orbitals involved and the value of the matrix element itself. Note that spin-up and spin-down orbital labels are separated by the total number of orbitals on the cluster, here `no=10`.
 
 If a complex-valued operator is needed, then the function ``new_cluster_operator_complex()`` must be used, the only difference being that the actual matrix elements are complex numbers.
 
@@ -112,7 +112,7 @@ Class for defining clusters
 ---------------------------
 
 When the repeated unit contains more than one cluster, several of them can be based on the same cluster model.
-This is an important memory saving point, as operators as stored in memory for each cluster model, not for each
+This is an important memory saving point, as operators are stored in memory for each cluster model, not for each
 cluster. Moreover, a cluster model has no notion of geometry of site positions. The latter information is 
 contained in a different class, `pyqcm.cluster`.
 

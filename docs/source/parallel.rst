@@ -5,8 +5,8 @@ Parallel processing
 Generality
 ==========
 
-Pyqcm could benefit from various methods to perform parallel processing in shared memory system.
-Three parallelisations method could be used in theory:
+Pyqcm could benefit from various methods to perform parallel processing in shared memory systems.
+Three parallelization methods could be used in theory:
 
 * Those implemented in BLAS/LAPACK,
 * Those implemented in the CUBA numerical integration library
@@ -46,8 +46,8 @@ BLAS parallelization
 --------------------
 
 BLAS could use multiple threads to treat linear algebra operations in parallel such as matrix vector multiplication during Hamiltonian ground state resolution.
-However, threads are spawn at each call which can results in significant overhead.
-In practice, BLAS parallelization is not recommanded and users can set the following environment variables depending on the BLAS library::
+However, threads are spawned at each call which can result in significant overhead.
+In practice, BLAS parallelization is not recommended and users can set the following environment variables depending on the BLAS library::
 
     export OPENBLAS_NUM_THREADS=1
     export BLIS_NUM_THREADS=1
@@ -63,7 +63,7 @@ Performance
 Exact Diagonalisation
 ---------------------
 
-The below figure show the wall clock time for the Exact Diagonalisation of a 2D chain of 2x7 sites at half-filling considering the symmetry and the calculation of the Green Function.
+The below figure shows the wall clock time for the Exact Diagonalisation of a 2D chain of 2x7 sites at half-filling considering the symmetry and the calculation of the Green Function.
 The dimension of the Hilbert space was 2945056 for ground state calculation.
 Tests were performed concurrently on a laptop with 11th Gen Intel® Core™ i7-1165G7 @ 2.80GHz (4 cores with HT) and with the Hamiltonian in Eigen format.
 
@@ -73,7 +73,7 @@ Tests were performed concurrently on a laptop with 11th Gen Intel® Core™ i7-1
     Figure 1: Parallel performance of the Exact Diagonalisation solver for calculation. Using pyqcm version 2.2.4.
 
 Results show parallelization of the Green function calculation is beneficial up to 8 threads, but adding more and more threads reduce the effective speedup.
-Efficiency of the parallelization in this case is low (8 times more ressources only decrease the calculation time by 15%).
+Efficiency of the parallelization in this case is low (8 times more resources only decrease the calculation time by 15%).
 Larger Hamiltonian are in general better suited to parallel processing.
 
 
@@ -81,7 +81,7 @@ Numerical integration
 ---------------------
 
 The following figure compares parallelization performance on a simulation which spend most of its time in the numerical integration.
-Test was performed on a 2 x 48 cores AMD EPYC 7463 @ 2.30GHz server and with 3 different BLAS library implementation (Intel MKL, OpenBLAS and BLIS) controled by the FlexiBLAS abstraction layer.
+Test was performed on a 2 x 48 cores AMD EPYC 7463 @ 2.30GHz server and with 3 different BLAS library implementation (Intel MKL, OpenBLAS and BLIS) controlled by the FlexiBLAS abstraction layer.
 
 .. figure:: parallel_performance_integrals.png
     :align: center
@@ -90,18 +90,18 @@ Test was performed on a 2 x 48 cores AMD EPYC 7463 @ 2.30GHz server and with 3 d
 
 Results show the parallelization of the integration section is beneficial up to an optimal number of threads. 
 In the present case, using more than 12 threads will increase the calculation time and is therefore not recommended.
-The optimal number of threads depends of the problem and its size.
+The optimal number of threads depends on the problem and its size.
 
-Note that the integration section can use the Cuba parallelization capability. 
-However, while OpenMP used the same object in memory to perform calculation in parallel, CUBA rather duplicate the object in the memory, resulting in a significant memory consumption.
-Cuba parallelization is therefore not recommanded.
+Note that the integration section can use the Cuba parallelization capability.
+However, while OpenMP uses the same object in memory to perform calculation in parallel, CUBA rather duplicates the object in the memory, resulting in a significant memory consumption.
+Cuba parallelization is therefore not recommended.
 
 
-Concurrent use of ressources
+Concurrent use of resources
 ----------------------------
 
-Some of the operation done by pyqcm require large data transfert between the memory and the CPU.
-Thus, launching several instance of pyqcm at the same time may bottleneck these transfert and increase the calculation time.
+Some of the operations done by pyqcm require large data transfers between the memory and the CPU.
+Thus, launching several instances of pyqcm at the same time may bottleneck these transfers and increase the calculation time.
 The following figure shows how the calculation time increases against the number of running concurrent pyqcm instances.
 Each instance is a duplicate of the numerical integration test above using 4 threads.
 Test was ran on a 2 x 48 cores AMD EPYC 7463 @ 2.30GHz server with the OpenBLAS implementation.
@@ -109,7 +109,7 @@ Test was ran on a 2 x 48 cores AMD EPYC 7463 @ 2.30GHz server with the OpenBLAS 
 .. figure:: parallel_performance_concurrent.png
     :align: center
 
-    Figure 3: Median wall clock time per instance of pyqcm runned concurrently. 24 concurrent instances saturate the server.
+    Figure 3: Median wall clock time per instance of pyqcm run concurrently. 24 concurrent instances saturate the server.
 
 This result illustrates that on shared system, a higher load could increase the calculation time.
 
@@ -117,9 +117,9 @@ This result illustrates that on shared system, a higher load could increase the 
 Conclusion
 ==========
 
-* It is recommanded to use OpenMP parallelization and controlling the number of thread using the environment variable ``OMP_NUM_THREADS=X``, and set no BLAS parallelization with ``[MKL,OPENBLAS,BLIS]_NUM_THREADS=1``. CUBA parallelization is disable by default.
+* It is recommended to use OpenMP parallelization and controlling the number of thread using the environment variable ``OMP_NUM_THREADS=X``, and set no BLAS parallelization with ``[MKL,OPENBLAS,BLIS]_NUM_THREADS=1``. CUBA parallelization is disabled by default.
 * Because of bad performance with BLIS implementation of BLAS operation, user might use either MKL or OpenBLAS library.
-* It always exists an optimal number of threads depending of the problem and its size. 
+* There is always an optimal number of threads depending on the problem and its size.
 * Exact diagonalisation solver and integration optimal number of threads might be different so user can conduct a parallel study to know the right number of threads to choose.
-* The higher the charge on shared server, the highter the calculation time.
-* Objective on shared system would be to maximize the throughout of the server, i.e. is it acceptable to ask 2 times more ressources for only 10% lesser calculation time ?
+* The higher the load on a shared server, the higher the calculation time.
+* The objective on a shared system would be to maximize the throughput of the server, i.e. is it acceptable to ask 2 times more resources for only 10% less calculation time?

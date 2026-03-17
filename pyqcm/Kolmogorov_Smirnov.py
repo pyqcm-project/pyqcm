@@ -1,3 +1,9 @@
+"""Kolmogorov–Smirnov distance functions for comparing discrete spectra.
+
+Provides :func:`fixed_qmatrix` for extracting spectral weights from the Q-matrix, and
+:func:`Kolmogorov_Smirnov` for computing the KS distance between two discrete spectral
+distributions (e.g., from successive CDMFT iterations).
+"""
 import numpy as np
 import pyqcm
 import matplotlib.pyplot as plt

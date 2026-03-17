@@ -36,7 +36,7 @@ class convergence_manager:
         :param function diff_func: difference function applied to the objects tested
         :param float tol: tolerance for convergence
         :param int depth: number of previous iterations the comparison is made with
-        :param boolean stdev: indicates that the convergence is tested using the standard deviation
+        :param bool stdev: indicates that the convergence is tested using the standard deviation
         """
 
         self.name = name
@@ -56,10 +56,10 @@ class convergence_manager:
 
     def test(self, x):
         """
-        tests for convergence and stores the test object x in an array for comparisons with 'depth' future iterations
+        Tests for convergence and stores the test object x in an array for comparisons with 'depth' future iterations
 
         :param object x: the object containing the current test quantity
-        :return: True if converged, False otherwise
+        :returns:True if converged, False otherwise
         """
         self.iter += 1
         if self.stdev:
@@ -133,7 +133,7 @@ class CDMFT:
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid) or, if grid_type = 'legendre', (w1, w2, n), where w1 is a low-frequency boundary, w2 a high-frequency boundary and n the number of points in each of the 3 segments 
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'adapt', 'legendre'
-    :param boolean selfnorm: multiplies the weights of the frequency grid by the norm of the self-energy
+    :param bool selfnorm: multiplies the weights of the frequency grid by the norm of the self-energy
     :param int maxiter: maximum number of CDMFT iterations
     :param int miniter: minimum number of CDMFT iterations
     :param float accur_bath: the x-tolerance for distance function optimization
@@ -141,7 +141,7 @@ class CDMFT:
     :param [float] accur: the tolerance for the various convergence tests (sequence of floats or single float)
     :param [float] accur_dist: relative tolerance of the distance function when minimizing it
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
-    :param boolean converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
+    :param bool converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
     :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
     :param str method: method to use, as used in scipy.optimize.minimize(). Choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', or a choice of NLopt methods : 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'
@@ -149,10 +149,10 @@ class CDMFT:
     :param str iter_file: name of the file where the CDMFT iterations are recorded
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :param float initial_step: initial step in the minimization routine
-    :param boolean SEF: if True, computes the Potthoff functional at the end
-    :param boolean check_ground_state: if True, checks the ground state consistency and raises exception if inconsistent
+    :param bool SEF: if True, computes the Potthoff functional at the end
+    :param bool check_ground_state: if True, checks the ground state consistency and raises exception if inconsistent
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
-    :param boolean compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
+    :param bool compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
     :param ndarray host_function: if not None, function that computes the host array and passes it to qcm
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
@@ -754,7 +754,7 @@ class frequency_grid:
     :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq'
     :param float beta: inverse fictitious temperature (for the frequency grid)
     :param float wc: cutoff frequency (for the frequency grid) OR, if grid_type='legendre', (w1, w2, n) where w1 and w2 are low- and high-frequency boundaries and n is the number of points for each of the 3 frequency regions
-    :param boolean self_norm: if true, multiplies the weight by the norm of the self-energy
+    :param bool self_norm: if true, multiplies the weight by the norm of the self-energy
 
     :ivar float beta: inverse fictitious temperature
     :ivar float wc: cutoff frequency (for the frequency grid)
@@ -819,23 +819,23 @@ class general_bath:
     :param str name: name of the cluster-bath model to be defined
     :param int ns: number of sites in the cluster
     :param int nb: number of bath orbitals in the cluster
-    :param boolean spin_dependent: if True, the parameters are spin dependent
-    :param boolean spin_flip: if True, spin-flip hybridizations are present
-    :param boolean singlet: if True, defines anomalous singlet hybridizations
-    :param boolean triplet: if True, defines anomalous triplet hybridizations
-    :param boolean complex: if True, defines imaginary parts as well, when appropriate
-    :param [[int]] sites: 2-level list of sites to couple to the bath orbitals (labels from 1 to ns). Format resembles [[site labels to bind to orbital 1], ...] .
+    :param bool spin_dependent: if True, the parameters are spin dependent
+    :param bool spin_flip: if True, spin-flip hybridizations are present
+    :param bool singlet: if True, defines anomalous singlet hybridizations
+    :param bool triplet: if True, defines anomalous triplet hybridizations
+    :param bool complex: if True, defines imaginary parts as well, when appropriate
+    :param list[list[int]] sites: 2-level list of sites to couple to the bath orbitals (labels from 1 to ns). Format resembles [[site labels to bind to orbital 1], ...] .
 
     :ivar int ns: number of physical sites in the cluster
     :ivar int nb: number of bath orbitals in the cluster
     :ivar str name: name of the cluster model
     :ivar [str] var_E: list of bath parameters of the type "energy level"
     :ivar [str] var_H: list of bath parameters of the type "hybridization"
-    :ivar boolean spin_dependent: True if the bath parameter conserve spin, but are different for spins up and down
-    :ivar boolean spin_flip: True if we include spin-flip hybridizations terms
-    :ivar boolean singlet: True if we include anomalous hybridizations of the singlet type
-    :ivar boolean triplet: True if we include anomalous hybridizations of the triplet type
-    :ivar boolean complex: True if the model is complex-valued and thus hybridization operators have both real and imaginary components
+    :ivar bool spin_dependent: True if the bath parameter conserve spin, but are different for spins up and down
+    :ivar bool spin_flip: True if we include spin-flip hybridizations terms
+    :ivar bool singlet: True if we include anomalous hybridizations of the singlet type
+    :ivar bool triplet: True if we include anomalous hybridizations of the triplet type
+    :ivar bool complex: True if the model is complex-valued and thus hybridization operators have both real and imaginary components
 
     """
 
@@ -1069,7 +1069,7 @@ class general_bath:
         :param ndarray H: matrix of hybridization values, shape (nmixed*nb, nmixed*ns)
         :param ndarray E: array of energy values for the bath orbitals
         :param int c: label of the cluster (starts at 1), used as suffix in parameter names
-        :param boolean spin_down: True for the spin-down values
+        :param bool spin_down: True for the spin-down values
         :return {str,float}: dict of variational parameters to values
 
         """
@@ -1190,7 +1190,7 @@ class general_bath:
         :param (float,float) e: bounds of the values for the bath energies (absolute value)
         :param (float,float) hyb: average and deviation of the normal hybridization parameters
         :param (float,float) shyb: average and deviation of the anomalous hybridization parameters
-        :param boolean pr: prints the starting values if True
+        :param bool pr: prints the starting values if True
         :return str: initialization string
 
         """
@@ -1232,7 +1232,7 @@ class general_bath:
         :param (float) e: range of bath energies
         :param (float,float) hyb: average and deviation of the normal hybridization parameters
         :param [int] phi: PH phases of the cluster sites proper
-        :param boolean pr: if True, prints info
+        :param bool pr: if True, prints info
         :return str: initialization string
 
         """
@@ -1431,7 +1431,7 @@ def check_bounds(x, B=100, v=None):
     :param [float] x: array of parameters
     :param float B: maximum value of all parameters
     :param [str] v: list of corresponding names, if available
-    :return: None
+    :returns:None
     """
     for i in range(len(x)):
         if np.abs(x[i]) > B:

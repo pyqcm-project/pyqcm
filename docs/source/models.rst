@@ -10,7 +10,7 @@ Lattices and superlattices
 ==========================
 
 In quantum cluster methods, the lattice is divided into repeated units that are generally (but not necessarily) larger than
-the unit cell. The repeated unit is called the the *super unit cell* (SUC) and is made of one or more *clusters*. 
+the unit cell. The repeated unit is called the *super unit cell* (SUC) and is made of one or more *clusters*. 
 The repetition defines a superlattice. For instance, the figure below shows how the honeycomb lattice is tiled with an 8-site super unit cell (shaded in blue), itself made of two 4-site clusters. The original Bravais basis vectors are :math:`\mathbf{e}_1` and :math:`\mathbf{e}_2`. The superlattice vectors are :math:`\mathbf{E}_1` and :math:`\mathbf{E}_2`. The inter-cluster links are indicated by dashed lines and the intra-cluster links by full lines.
 
 .. figure:: h8.png
@@ -19,7 +19,7 @@ The repetition defines a superlattice. For instance, the figure below shows how 
 
     Figure 1
 
-Another example is the triangular lattice, where the supercell can be made of a two contiguous and inverted 15-site triangles, each of them being a cluster with the point group of the lattice, but not a repeatable pattern on the lattice. Only by adjoining two such clusters does one recover a repeatable unit:
+Another example is the triangular lattice, where the supercell can be made of two contiguous and inverted 15-site triangles, each of them being a cluster with the point group of the lattice, but not a repeatable pattern on the lattice. Only by adjoining two such clusters does one recover a repeatable unit:
 
 .. figure:: t15.png
     :align: center
@@ -83,7 +83,7 @@ where again the indices :math:`\alpha` and :math:`\beta` are composite indices. 
     H_a = \sum_{i,j,s,s'} \left(\Delta^{(a)}_{ij,b} c_{is} (i\sigma_b\sigma_2)_{ss'} c_{js'}  + \mathrm{H.c.}\right)
 
 where the index :math:`b` can take the values 0 to 3. The case :math:`b=0` corresponds to singlet superconductivity (in which case
-:math:`(\Delta^{(a)}_{ij,0} = \Delta^{(a)}_{ji,0}`) and the cases :math:`b=1,2,3` corresponds to triplet superconductivity (in which case
+:math:`\Delta^{(a)}_{ij,0} = \Delta^{(a)}_{ji,0}`) and the cases :math:`b=1,2,3` corresponds to triplet superconductivity (in which case
 :math:`\Delta^{(a)}_{ij,b} = -\Delta^{(a)}_{ji,b}`).
 
 **pyqcm** provides functions to define pairing operators by specifying the vectors :math:`i-j` and the values of :math:`b`.
@@ -192,10 +192,15 @@ Clusters
 A cluster is a unit of the system (or *impurity*, in the DMFT jargon) that is solved exactly by the *impurity solver*, in our case by exact diagonalization. There may be more than one cluster in the repeated unit (or super unit cell). The spatial correlations are exactly taken care of only within the cluster. The size of the cluster is limited by the capacity to perform exact diagonalizations. Clusters may also be attached to bath sites, which are not part of the lattice model *per se* but serve to simulate each cluster's environment in cluster (or cellular) dynamical mean field theory (CDMFT).
 The cluster Hamiltonian :math:`H'`, or *reference Hamiltonian*, has the same form as the lattice Hamiltonian (except for the possible presence of a bath), but the values of its one-body terms, noted :math:`h'_a`, may differ. The interaction terms are the same on the cluster and on the lattice. The case of extended interactions requires a special treatment because of the bonds broken across cluster boundaries, which must be treated within the Hartree approximation.
 
+Clusters vs Systems
+===================
+
+From v2.19.0 onwards, one distinguishes *clusters* from *systems*. A *system* is an impurity model with a specific Hamiltonian, that lives on a *cluster*, the latter being defined by the physical orbitals (and sites). The distinction between the two arises because of bath systems in CDMFT: different bath systems can be associated to the same cluster. These different systems are possibly based on different ``cluster_models`` objects, as the baths may have different symmetry properties. When computing the properties of a cluster, the different systems associated with that cluster are solved and their solutions combined in some way. For instance, their self-energies and hybridizations functions may be averaged, and so on. In most applications, it is prudent to say that there is one system per cluster.
+
 Multiband models
 ================
 
-Multiband models are treated in **pyqcm** in a seemingly restrictive fashion, which in fact poses no restriction at all. It is assumed that each geometric site on the lattice correspond to a single orbital (with two spins). Models with more than one band must necessarily be accounted for by assigning differents sites to each lattice orbital. The perfect example of this is the Hubbard model on the honeycomb (aka graphene) lattice.  The lattice is not a Bravais lattice, since it contains one vacancy for every two occupied sites on an underlying triangular lattice. But there is no obligation in **qcm** for the lattice to be a Bravais lattice, i.e., for every site of the lattice to be occupied by an orbital (empty sites are allowed).
+Multiband models are treated in **pyqcm** in a seemingly restrictive fashion, which in fact poses no restriction at all. It is assumed that each geometric site on the lattice correspond to a single orbital (with two spins). Models with more than one band must necessarily be accounted for by assigning different sites to each lattice orbital. The perfect example of this is the Hubbard model on the honeycomb (aka graphene) lattice.  The lattice is not a Bravais lattice, since it contains one vacancy for every two occupied sites on an underlying triangular lattice. But there is no obligation in **qcm** for the lattice to be a Bravais lattice, i.e., for every site of the lattice to be occupied by an orbital (empty sites are allowed).
 The reason for doing things this way is that sometimes the two lattice orbitals are equivalent, like in graphene. For instance, one can then define a 6-site cluster centered on a vacancy (the vertices of a hexagon). See Fig. 3 below. This cluster, interesting to use because of its symmetry, is a repeatable unit of the honeycomb lattice, but does not contain three identical unit cells of graphene, and could not be used if lattice orbitals were treated only on a unit-cell basis.
 The concept of lattice orbitals in fact is only relevant to the lattice itself, not to the clusters, which ignore it.
 
@@ -258,7 +263,7 @@ This mixing state is called *normal mixing*.
 **Spin asymmetric mixing**. If the model is not spin symmetric, i.e., if the up and down spins are not equivalent, then the down part of the Green function is different, but is still a :math:`N_s\times N_s` matrix. This case is called *spin asymmetric mixing*.
 It entails separate computations for the up and down spin Green functions.
 
-**Spin-flip mixing**. If there are spin-flip terms, but sill no anomalous terms, the cluster Green function is a :math:`2N_{si}\times 2N_{si}` matrix, associated with the destructions operators forming an array 
+**Spin-flip mixing**. If there are spin-flip terms, but still no anomalous terms, the cluster Green function is a :math:`2N_{si}\times 2N_{si}` matrix, associated with the destructions operators forming an array 
 
 .. math::
     (c_{i\uparrow})\oplus(c_{i\downarrow}) \qquad i=0,\dots,N_{si}-1
@@ -277,7 +282,7 @@ The CPT Green function for the SUC is then a :math:`2N_s\times 2N_s` matrix, and
 .. math::
     (c_{i\uparrow})\oplus(c_{i\downarrow})\oplus(c^\dagger_{i\uparrow})\oplus(c^\dagger_{i\downarrow})\qquad i=0,\dots,N_{si}-1 
 
-The CPT Green function for the SUC is then a :math:`4N_s\times 4N_s` matrix, and the cluster index is still the outermost index. This is called *full Nambu mixing*. This also applies if there are no spin-flip terms, but triplet anomalous terms of the types `dx`and `dy`.
+The CPT Green function for the SUC is then a :math:`4N_s\times 4N_s` matrix, and the cluster index is still the outermost index. This is called *full Nambu mixing*. This also applies if there are no spin-flip terms, but triplet anomalous terms of the types `dx` and `dy`.
 
 Different clusters may have different mixings, for instance if one of them describes a normal layer and another one a superconducting layer.
 However, the lattice model will have the more general mixing of the two and the Green function of each cluster will be *upgraded* to the lattice mixing as needed, for instance by doubling it by adding a Nambu transformed part.

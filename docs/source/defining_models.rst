@@ -27,7 +27,7 @@ The following simple example illustrates how to define a Hubbard model on the sq
 
 There is a call to ``cluster_model()`` to define a :math:`2\times2` plaquette with a :math:`C_2` symmetry (rotation by 180 degrees). Then another object, of type `cluster`, is defined based on this model. This object has geometrical meaning, whereas the `cluster_model` does not. The `cluster` constructor takes the following arguments:
 
-#. The `cluster_model` object it is based on
+#. The `cluster_model` object it is based on. It is possible to associate more than one cluster model to a cluster, if one wants to use the *subbath* concept is dynamical mean field theory.
 #. An array of integer positions of the different cluster sites. This is where the geometry of the cluster appears.
 #. The base position of the cluster within the super unit cell ( ``[0,0,0]`` by default). This is just added for convenience when complex super unit cells are built out of the same cluster, shifted in position.
 
@@ -73,7 +73,7 @@ Additional keyword arguments to ``density_wave()`` include the link on which the
 A more complex example
 ----------------------
 
-The following example defines a model on the graphene lattice using two cluster within the super unit cell and the graphene lattice, as illustrated below:
+The following example defines a model on the graphene lattice using two clusters within the super unit cell and the graphene lattice, as illustrated below:
 
 .. figure:: h8.png
     :align: center
@@ -81,7 +81,7 @@ The following example defines a model on the graphene lattice using two cluster 
 
     Figure 3
 
-Of possible set of function calls to define the Hubbard model on this system is::
+A possible set of function calls to define the Hubbard model on this system is::
 
     from cluster_h4_6b_C3 import CM
     import pyqcm

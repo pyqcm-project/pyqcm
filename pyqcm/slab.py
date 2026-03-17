@@ -10,9 +10,9 @@ class slab:
         :param str name: name of the 2D model
         :param int nlayer: total number of layers in the slab
         :param str cluster: name of the cluster model assembled (limited to one cluster)
-        :param [[int,int,int]] sites: list of sites in each layer
-        :param [[int,int,int]] superlattice: superlattice vectors in 2D
-        :param [[int,int,int]] lattice: lattice vectors in 2D
+        :param list[list[int]] sites: list of sites in each layer
+        :param list[list[int]] superlattice: superlattice vectors in 2D
+        :param list[list[int]] lattice: lattice vectors in 2D
         :param int thickness: number of inequivalent layers (<= nlayer/2). If None, all layers are different
 
         """

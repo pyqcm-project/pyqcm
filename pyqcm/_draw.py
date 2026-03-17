@@ -1,3 +1,8 @@
+"""Visualization utilities for drawing lattice and cluster model operators on the screen.
+
+These functions are added as methods of the :class:`pyqcm.lattice_model` and related classes
+and are intended primarily for debugging and visual inspection of model operators.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 import re
@@ -9,16 +14,16 @@ def draw_operator(self, op_name, show_labels=False, show_orb_labels=True, show_n
     Draws an operator defined on a lattice model to the screen (for debugging purposes)
 
     :param str op_name: name of the operator
-    :param boolean show_labels: if True, shows the labels of the cluster 
-    :param boolean show_neighbors: if True, shows the neighbors of the central cluster 
-    :param boolean values: if True, prints de values of the elements 
+    :param bool show_labels: if True, shows the labels of the cluster 
+    :param bool show_neighbors: if True, shows the neighbors of the central cluster 
+    :param bool values: if True, prints de values of the elements 
     :param float offset: offset between sites and labels
     :param float orb_offset: offset between sites and orbital labels
     :param float z_offset: offset between sites and labels for sites along the z axis 
     :param float alpha_inter: alpha value of the inter-cluster links
-    :param boolean show_orb_labels: if True, shows the orbital index labels next to each site
+    :param bool show_orb_labels: if True, shows the orbital index labels next to each site
     :param float spin_scale: scale factor for the arrows representing spin polarization
-    :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     """
 
     file = 'tmp_model.out'
@@ -302,10 +307,10 @@ def draw_cluster_operator(self, sys, op_name, show_labels=True, values=False, sp
 
     :param int sys: label of a system
     :param str op_name: name of the operator
-    :param boolean show_labels: if True, shows the labels of the cluster 
-    :param boolean values: if True, prints de values of the elements 
+    :param bool show_labels: if True, shows the labels of the cluster 
+    :param bool values: if True, prints de values of the elements 
     :param float spin_offset: graphical offset between up and down spins 
-    :param plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
+    :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     """
 
     if plt_ax is not None: plt.sca(plt_ax)

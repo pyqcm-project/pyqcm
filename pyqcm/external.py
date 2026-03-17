@@ -1,3 +1,9 @@
+"""Interface utilities for external exact-diagonalization (ED) solvers.
+
+Provides :func:`freq_grid` for building Matsubara frequency grids and
+:func:`test_ed_solver` for writing impurity problem data to a file and
+reading back the resulting cluster model instance from an external solver.
+"""
 import pyqcm
 import os
 import subprocess
@@ -10,7 +16,7 @@ def freq_grid(beta=50,wc=2,real=False):
 
     :param float beta: inverse fictitious temperature used to define the Matsubara frequency spacing (2*pi/beta)
     :param float wc: cutoff frequency; the grid runs from pi/beta to wc
-    :param boolean real: if False (default), returns purely imaginary frequencies (multiplied by 1j); if True, returns real-valued frequencies
+    :param bool real: if False (default), returns purely imaginary frequencies (multiplied by 1j); if True, returns real-valued frequencies
     :returns: array of frequencies (complex if real=False, real otherwise)
     :rtype: numpy.ndarray
     """

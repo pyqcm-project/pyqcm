@@ -1,3 +1,9 @@
+"""Superlattice analysis tools for charge-density wave (CDW) and spin-density wave (SDW) computations.
+
+The :class:`superlattice` class folds lattice sites into a supercell, computes CDW/SDW
+eigenstates and energies, and provides visualization of CDW patterns and interaction links.
+Intended for use with the inter-cluster Hartree mean-field approximation.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,8 +17,8 @@ class superlattice:
     def __init__(self, sites, e):
         """
         This class is used to define a supercluster and the associated superlattice
-        :param [[int]] sites: list of sites of the cluster (integer components), or tuple of such collections if more than one cluster in a supercluster.
-        :param [[int]] e: superlattice basis vectors (integer components, the number of vectors is the dimension). Must be right oriented.
+        :param list[list[int]] sites: list of sites of the cluster (integer components), or tuple of such collections if more than one cluster in a supercluster.
+        :param list[list[int]] e: superlattice basis vectors (integer components, the number of vectors is the dimension). Must be right oriented.
         """
         e = np.array(e, dtype='int')
         self.e = e
@@ -71,7 +77,8 @@ class superlattice:
         This shifted unit cell is such that all of its vectors have positive or zero components in terms of superlattice vectors
 
         :param [int] r: integer component vector to be folded into the unit cell
-        :return (int, [int], [int]): I, S, R where r = S + R and R is a superlattice vector, I is the index of the folded site
+        :returns: I, S, R where r = S + R and R is a superlattice vector, I is the index of the folded site
+        :rtype: tuple[int, list[int], list[int]]
 
         """
         r = np.array(r, dtype=int)
@@ -135,7 +142,8 @@ class superlattice:
         """
         like 'fold_shifted', but this time folds back to the cluster itself, i.e., a different unit cell
         :param [int] r: integer component vector to be folded into the unit cell
-        :return (int, [int], [int]): I, S, R where r = S + R and R is a superlattice vector, I is the index of the folded site
+        :returns: I, S, R where r = S + R and R is a superlattice vector, I is the index of the folded site
+        :rtype: tuple[int, list[int], list[int]]
         """
         I, S, R = self.fold_shifted(r)
         if I != None:
@@ -148,9 +156,9 @@ class superlattice:
     def draw(self, basis=None, plt_ax=None, labels=False):
         """
         Plots the sites, the shifted sites and the superlattice vectors
-        :param [[float]] basis: the real space, geometric basis
-        :param plt_ax: optional matplotlib axis object; if None, uses the current axis
-        :param boolean labels: if True, annotates each site with its index
+        :param list[list[float]] basis: the real space, geometric basis
+        :param matplotlib.axes.Axes plt_ax: optional matplotlib axis object; if None, uses the current axis
+        :param bool labels: if True, annotates each site with its index
 
         """
         if self.dim != 2:
@@ -195,10 +203,10 @@ class superlattice:
         """
         Plots the amplitudes of a cdw
         :param [float] cdw: the cdw amplitudes (same order as the sites)
-        :param [[float]] basis: the real space, geometric basis
-        :param plt_ax: optional matplotlib axis object; if None, uses the current axis
-        :param boolean labels: if True, annotates each site with its index
-        :param boolean neighbors: if True, also plots the CDW pattern for neighboring supercells
+        :param list[list[float]] basis: the real space, geometric basis
+        :param matplotlib.axes.Axes plt_ax: optional matplotlib axis object; if None, uses the current axis
+        :param bool labels: if True, annotates each site with its index
+        :param bool neighbors: if True, also plots the CDW pattern for neighboring supercells
 
         """
         if self.dim != 2:
@@ -251,12 +259,13 @@ class superlattice:
         Computes the possible CDW states of the cluster, to be used with the Hartree approximation
 
         :param [([int], float)] _V: density-density interactions
-        :param plt_ax: optional matplotlib axis object; if not None, plots the interaction links on the sites
-        :param [[float]] basis: the real space, geometric basis (identity by default)
+        :param matplotlib.axes.Axes plt_ax: optional matplotlib axis object; if not None, plots the interaction links on the sites
+        :param list[list[float]] basis: the real space, geometric basis (identity by default)
         :param str file: if not None, saves the figure to this file path
-        :param boolean silent: if True, suppresses all printed output and figure generation
-        :param boolean neighbors: if True, plots the CDW patterns including neighboring supercells
-        :return ([float], [float,float], [float,float]): the array of eigenvalues, the matrix of eigenvectors, and the inter-cluster interaction matrix
+        :param bool silent: if True, suppresses all printed output and figure generation
+        :param bool neighbors: if True, plots the CDW patterns including neighboring supercells
+        :returns: the array of eigenvalues, the matrix of eigenvectors, and the inter-cluster interaction matrix
+        :rtype: tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
 
         """
 
@@ -339,8 +348,8 @@ class superlattice:
         :param float U: on-site Hubbard interaction strength
         :param [([int], float)] V: density-density interactions
         :param [float] n: density pattern
-        :param boolean cluster: If True, limits the computation to the cluster (no inter-cluster interactions)
-        :param boolean pr: If True, prints progress
+        :param bool cluster: If True, limits the computation to the cluster (no inter-cluster interactions)
+        :param bool pr: If True, prints progress
         :return float: potential energy
 
         """
@@ -388,9 +397,9 @@ class superlattice:
         draws the links associated with extended interactions
 
         :param [([int], float)] _V: density-density interactions
-        :param plt_ax: matplotlib axis set; triggers plotting
-        :param [[float]] basis: the real space, geometric basis
-        :return: None
+        :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
+        :param list[list[float]] basis: the real space, geometric basis
+        :returns:None
 
         """
         
@@ -420,9 +429,9 @@ class superlattice:
         draws the links associated with extended interactions
 
         :param [([int], float)] _V: density-density interactions
-        :param plt_ax: matplotlib axis set; triggers plotting
-        :param [[float]] basis: the real space, geometric basis
-        :return: None
+        :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
+        :param list[list[float]] basis: the real space, geometric basis
+        :returns:None
 
         """
         
@@ -454,9 +463,9 @@ class superlattice:
         draws the links associated with extended interactions
 
         :param [float] X: amplitude (one per site)
-        :param plt_ax: matplotlib axis set; triggers plotting
-        :param [[float]] basis: the real space, geometric basis
-        :return: None
+        :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
+        :param list[list[float]] basis: the real space, geometric basis
+        :returns:None
 
         """
         
@@ -476,10 +485,10 @@ class superlattice:
         """
         Computes the energy per site associated with a given SDW pattern
 
-        :param [([int], [[float]])] J: spin interactions
-        :param [[float]] sdw: spin pattern (3 x N) : for each site, 3 angles are specifies : chi,theta,phi. The amplitude of the spin is sin(chi), its polar angle is theta and phi is the azimutal angle
-        :param boolean cluster: If True, limits the computation to the cluster (no inter-cluster interactions)
-        :param boolean pr: If True, prints progress
+        :param [([int], list[list[float]])] J: spin interactions
+        :param list[list[float]] sdw: spin pattern (3 x N) : for each site, 3 angles are specifies : chi,theta,phi. The amplitude of the spin is sin(chi), its polar angle is theta and phi is the azimutal angle
+        :param bool cluster: If True, limits the computation to the cluster (no inter-cluster interactions)
+        :param bool pr: If True, prints progress
         :return float: energy
 
         """
@@ -528,7 +537,7 @@ class superlattice:
         Each site is described by three angles: chi (amplitude), theta (polar), phi (azimuthal).
 
         :param [float] x: flat array of 3*N angular values (chi, theta, phi for each site), reshaped to (3, N)
-        :param boolean pr: if True, prints each site position and its spin vector
+        :param bool pr: if True, prints each site position and its spin vector
         :returns: spin vectors for each site, shape (N, 3)
         :rtype: numpy.ndarray
         """

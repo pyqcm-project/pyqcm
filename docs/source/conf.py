@@ -32,11 +32,22 @@ sys.path.insert(0, os.path.abspath('../..'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [  # 'sphinx.ext.intersphinx'
+extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.autodoc'
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
 ]
+
+autodoc_member_order = 'bysource'
+napoleon_use_rtype = True
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -78,7 +89,7 @@ language = 'en'
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'colorful'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
@@ -140,13 +151,12 @@ latex_elements = {
     #
     # 'pointsize': '10pt',
 
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
+
+    # Colored hyperlinks
+    'passoptionstopackages': r'\PassOptionsToPackage{colorlinks=true,linkcolor=blue,urlcolor=teal,citecolor=green}{hyperref}',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -181,6 +191,3 @@ texinfo_documents = [
 
 
 
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}

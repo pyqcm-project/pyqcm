@@ -28,12 +28,12 @@ Then, in terms of the coefficients :math:`h_a=\lambda_a\langle O_a\rangle` of th
 .. math::
     H_m = \sum_a \left\{ h_a O_a - \frac{h_a^2}{2\lambda_a} \right\}
 
-The variation of parameter :math:`h_a` the yields
+The variation of parameter :math:`h_a` yields
 
 .. math::
     \langle O_a\rangle = \frac{h_a}{\lambda_a} \rightarrow h_a=\lambda_a\langle O_a\rangle
 
-The Hartree procedure consists in starting with trial values of :math:`_a` and iteratively performing the above assignation until convergence.
+The Hartree procedure consists in starting with trial values of :math:`h_a` and iteratively performing the above assignation until convergence.
 
 
 .. autoclass:: pyqcm.hartree
