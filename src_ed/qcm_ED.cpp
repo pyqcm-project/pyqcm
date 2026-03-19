@@ -435,5 +435,124 @@ namespace ED{
       qcm_ED_throw("operator "+op_name+" is not defined in model . Check spelling.");
     return {M->term[op_name]->type(), M->term[op_name]->matrix_elements()};
   }
+
+
+  //============================================================================
+  // Helper: assembles MCF site-basis data for one model_instance<HilbertField>
+  //============================================================================
+
+  template<typename HilbertField>
+  static MCF_periodization_data assemble_mcf_site_data(
+      shared_ptr<model_instance<HilbertField>> inst, bool spin_down)
+  {
+    MCF_periodization_data result;
+
+    auto& group   = inst->the_model->group;
+    int   n_mixed = inst->n_mixed;
+    int   dim_GF  = inst->dim_GF;
+
+    for(auto& x : inst->states){
+      shared_ptr<mcf_set> mcf =
+        dynamic_pointer_cast<mcf_set>(spin_down ? x->gf_down : x->gf);
+      if(!mcf) continue;
+
+      MCF_periodization_data::State s;
+
+      // ------------------------------------------------------------------
+      // Hole sector
+      // ------------------------------------------------------------------
+      int M_h = 0;
+      for(size_t r = 0; r < group->g; ++r)
+        M_h = max(M_h, mcf->h[r].floors());
+
+      if(M_h > 0){
+        s.A_h.resize(M_h);
+        s.B_h.resize(M_h);
+
+        for(int j = 0; j < M_h; ++j){
+          // Assemble block_matrix: block[r] = A_h_r[j] (or zero if irrep is shorter)
+          block_matrix<Complex> A_blk(group->site_irrep_dim * n_mixed);
+          block_matrix<Complex> B_blk(group->site_irrep_dim * n_mixed);
+          for(size_t r = 0; r < group->g; ++r){
+            if(j < mcf->h[r].floors()){
+              A_blk.block[r] = mcf->h[r].A[j];
+              B_blk.block[r] = mcf->h[r].B[j];
+            }
+            // blocks left at zero (default-constructed) when j >= floors
+          }
+          // Convert to site basis (to_site_basis accumulates; matrices start zero)
+          s.A_h[j] = matrix<Complex>(dim_GF);
+          s.B_h[j] = matrix<Complex>(dim_GF);
+          group->to_site_basis(A_blk, s.A_h[j], n_mixed);
+          group->to_site_basis(B_blk, s.B_h[j], n_mixed);
+        }
+
+        // Weight matrix W in site basis
+        block_matrix<Complex> W_blk(group->site_irrep_dim * n_mixed);
+        for(size_t r = 0; r < group->g; ++r)
+          if(mcf->h[r].floors() > 0) W_blk.block[r] = mcf->h[r].W;
+        s.W_h = matrix<Complex>(dim_GF);
+        group->to_site_basis(W_blk, s.W_h, n_mixed);
+      }
+
+      // ------------------------------------------------------------------
+      // Electron sector
+      // ------------------------------------------------------------------
+      int M_e = 0;
+      for(size_t r = 0; r < group->g; ++r)
+        M_e = max(M_e, mcf->e[r].floors());
+
+      if(M_e > 0){
+        s.A_e.resize(M_e);
+        s.B_e.resize(M_e);
+
+        for(int j = 0; j < M_e; ++j){
+          block_matrix<Complex> A_blk(group->site_irrep_dim * n_mixed);
+          block_matrix<Complex> B_blk(group->site_irrep_dim * n_mixed);
+          for(size_t r = 0; r < group->g; ++r){
+            if(j < mcf->e[r].floors()){
+              A_blk.block[r] = mcf->e[r].A[j];
+              B_blk.block[r] = mcf->e[r].B[j];
+            }
+          }
+          s.A_e[j] = matrix<Complex>(dim_GF);
+          s.B_e[j] = matrix<Complex>(dim_GF);
+          group->to_site_basis(A_blk, s.A_e[j], n_mixed);
+          group->to_site_basis(B_blk, s.B_e[j], n_mixed);
+        }
+
+        block_matrix<Complex> W_blk(group->site_irrep_dim * n_mixed);
+        for(size_t r = 0; r < group->g; ++r)
+          if(mcf->e[r].floors() > 0) W_blk.block[r] = mcf->e[r].W;
+        s.W_e = matrix<Complex>(dim_GF);
+        group->to_site_basis(W_blk, s.W_e, n_mixed);
+      }
+
+      result.states.push_back(s);
+    }
+
+    return result;
+  }
+
+
+  MCF_periodization_data get_mcf_for_periodization(bool spin_down, size_t label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    auto& inst_base = model_instances.at(label);
+    if(inst_base->GF_solver != GF_format_MCF)
+      qcm_ED_throw("get_mcf_for_periodization: the instance at label "
+                   + to_string(label) + " does not use the MCF format (GF_method != 'M').");
+    if(!inst_base->gf_solved) inst_base->Green_function_solve();
+
+    if(inst_base->complex_Hilbert){
+      return assemble_mcf_site_data(
+        dynamic_pointer_cast<model_instance<Complex>>(inst_base), spin_down);
+    } else {
+      return assemble_mcf_site_data(
+        dynamic_pointer_cast<model_instance<double>>(inst_base), spin_down);
+    }
+  }
 }
 

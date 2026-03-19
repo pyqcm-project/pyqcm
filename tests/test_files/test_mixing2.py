@@ -1,6 +1,7 @@
 import pyqcm
 pyqcm.set_global_parameter('nosym')
-from model_1D_4 import model
+from model_1D import model1D
+model = model1D(4)
 
 mixing = 1
 

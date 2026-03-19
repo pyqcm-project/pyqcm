@@ -567,7 +567,7 @@ bool blockLanczos(
     }
 
     M0 = j + 1;
-    if(verb) cout << M0 << " block Lanczos steps performed" << endl;
+    if(verb) cout << A.size() << " block Lanczos floors obtained" << endl;
     return converged;
 }
 

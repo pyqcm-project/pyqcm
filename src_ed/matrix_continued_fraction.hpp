@@ -107,6 +107,27 @@ struct matrix_continued_fraction
         W = to_complex_matrix(_W);
     }
 
+    //! Constructor from pre-processed (already complex, already shifted) matrices and explicit weight.
+    /**
+     Used when the MCF coefficients have been constructed externally (e.g., after
+     periodization in the lattice model), so no additional template conversion or
+     energy shift is needed.
+
+     @param _A  Diagonal blocks, already complex and energy-shifted.
+     @param _B  Off-diagonal QR blocks, already complex.
+     @param _W  Weight matrix (p×p); G(z) = W^H F_0(z) W.
+    */
+    matrix_continued_fraction(const vector<matrix<Complex>> &_A,
+                               const vector<matrix<Complex>> &_B,
+                               const matrix<Complex> &_W)
+    {
+        if(_A.empty()){ p = 0; return; }
+        p = (int)_A[0].r;
+        A = _A;
+        B = _B;
+        W = _W;
+    }
+
     //! Evaluate the matrix continued fraction at complex frequency z.
     /**
      Returns G(z) = W^H F_0(z) W where

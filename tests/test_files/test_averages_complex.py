@@ -1,5 +1,6 @@
 import pyqcm
-import model_1D_4 as M
+from model_1D import model1D
+model = model1D(4)
 
 sec = 'R0:S0'
 M.model.set_target_sectors([sec])

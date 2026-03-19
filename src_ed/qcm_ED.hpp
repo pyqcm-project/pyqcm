@@ -317,6 +317,44 @@ namespace ED{
   label : label of instance
   */
   pair<matrix<Complex>, vector<uint64_t>> density_matrix(const vector<int> &sites, size_t label);
+
+
+  /**
+   Data returned by get_mcf_for_periodization().
+
+   For each ground state contributing to the Green function, stores the MCF
+   coefficient matrices (A[j], B[j]) and weight (W) for the hole and electron
+   sectors, assembled in the full cluster site-orbital basis (dim_GF × dim_GF).
+   These are ready to be passed to lattice_model::periodize() and used to build
+   a new matrix_continued_fraction for the periodized Green function.
+
+   Convention (matching mcf_set):
+   - Hole contribution:     G_h(z) = W_h^H F_h(z) W_h   (added directly)
+   - Electron contribution: G_e(z) = [W_e^H F_e(z) W_e]^T  (transposed before adding)
+  */
+  struct MCF_periodization_data {
+    struct State {
+      vector<matrix<Complex>> A_h; //!< hole MCF diagonal blocks in site basis [j]
+      vector<matrix<Complex>> B_h; //!< hole MCF off-diagonal QR blocks in site basis [j]
+      matrix<Complex>         W_h; //!< hole MCF weight matrix in site basis
+      vector<matrix<Complex>> A_e; //!< electron MCF diagonal blocks in site basis [j]
+      vector<matrix<Complex>> B_e; //!< electron MCF off-diagonal QR blocks in site basis [j]
+      matrix<Complex>         W_e; //!< electron MCF weight matrix in site basis
+    };
+    vector<State> states; //!< one entry per ground state
+  };
+
+  /**
+   Returns the MCF coefficient matrices (A[j], B[j], W) for hole and electron
+   sectors, assembled in the full cluster site-orbital basis.
+
+   Only valid when GF_method = 'M' (matrix continued fraction solver).
+   Throws if the instance does not use the MCF format.
+
+   spin_down : true to access the spin-down sector (mixing = 4)
+   label     : label of the model instance
+  */
+  MCF_periodization_data get_mcf_for_periodization(bool spin_down, size_t label);
 };
 
 #endif

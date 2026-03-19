@@ -1,6 +1,7 @@
 import pyqcm
 import matplotlib.pyplot as plt
-from model_1D_4 import model
+from model_1D import model1D
+model = model1D(4)
 
 sec = 'R0:N4:S0'
 model.set_target_sectors([sec])

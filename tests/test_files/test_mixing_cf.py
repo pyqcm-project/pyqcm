@@ -1,5 +1,6 @@
 import pyqcm
-from model_1D_4 import model
+from model_1D import model1D
+model = model1D(4)
 import matplotlib.pyplot as plt
 mixing = 3
 

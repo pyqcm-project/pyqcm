@@ -1,4 +1,5 @@
 #include "lattice_model_instance.hpp"
+#include "matrix_continued_fraction.hpp"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -198,6 +199,50 @@ void lattice_model_instance::periodized_Green_function(Green_function_k &M)
 	}
 	else if(periodization == 'N'){ // None
 		M.g = M.Gcpt;
+	}
+	else if(periodization == 'L'){ // Lanczos MCF periodization
+		if(global_char("GF_method") != 'M')
+			qcm_throw("periodization='L' requires GF_method='M' (matrix continued fraction)");
+		QCM_ASSERT(model->clusters.size() == 1);
+
+		// System label for the single cluster of this lattice instance
+		size_t sys_label = model->nsys * label + model->clusters[0].sys_start;
+
+		// Retrieve MCF coefficient matrices in the full cluster site-orbital basis
+		auto mcf_data = ED::get_mcf_for_periodization(M.G.spin_down, sys_label);
+
+		Complex z = M.G.w;
+		to_zero(M.g.v);
+
+		for(auto& s : mcf_data.states){
+			// ---- Hole sector ------------------------------------------------
+			if(!s.A_h.empty()){
+				vector<matrix<Complex>> A_per(s.A_h.size()), B_per(s.B_h.size());
+				#pragma omp parallel for 
+				for(size_t j = 0; j < s.A_h.size(); ++j){
+					A_per[j] = model->periodize(M.k, s.A_h[j]);
+					B_per[j] = model->periodize(M.k, s.B_h[j]);
+				}
+				matrix<Complex> W_per = model->periodize(M.k, s.W_h);
+				matrix_continued_fraction mcf_per(A_per, B_per, W_per);
+				M.g.v += mcf_per.evaluate(z).v;
+			}
+
+			// ---- Electron sector (transposed, matching mcf_set convention) --
+			if(!s.A_e.empty()){
+				vector<matrix<Complex>> A_per(s.A_e.size()), B_per(s.B_e.size());
+				#pragma omp parallel for
+				for(size_t j = 0; j < s.A_e.size(); ++j){
+					A_per[j] = model->periodize(M.k, s.A_e[j]);
+					B_per[j] = model->periodize(M.k, s.B_e[j]);
+				}
+				matrix<Complex> W_per = model->periodize(M.k, s.W_e);
+				matrix_continued_fraction mcf_per(A_per, B_per, W_per);
+				auto Ge = mcf_per.evaluate(z);
+				Ge.transpose();
+				M.g.v += Ge.v;
+			}
+		}
 	}
 	else{
 		qcm_throw("undefined periodization scheme");
