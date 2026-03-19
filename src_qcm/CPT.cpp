@@ -201,55 +201,86 @@ void lattice_model_instance::periodized_Green_function(Green_function_k &M)
 		M.g = M.Gcpt;
 	}
 	else if(periodization == 'L'){ // Lanczos MCF periodization
-		if(global_char("GF_method") != 'M')
-			qcm_throw("periodization='L' requires GF_method='M' (matrix continued fraction)");
-		QCM_ASSERT(model->clusters.size() == 1);
+		qcm_throw("This periodization option (L) is not yet implemented")
+		// if(global_char("GF_method") != 'M')
+		// 	qcm_throw("periodization='L' requires GF_method='M' (matrix continued fraction)");
+		// QCM_ASSERT(model->clusters.size() == 1);
 
-		// System label for the single cluster of this lattice instance
-		size_t sys_label = model->nsys * label + model->clusters[0].sys_start;
+		// // System label for the single cluster of this lattice instance
+		// size_t sys_label = model->nsys * label + model->clusters[0].sys_start;
 
-		// Retrieve MCF coefficient matrices in the full cluster site-orbital basis
-		auto mcf_data = ED::get_mcf_for_periodization(M.G.spin_down, sys_label);
+		// // Retrieve MCF coefficient matrices in the full cluster site-orbital basis
+		// auto mcf_data = ED::get_mcf_for_periodization(M.G.spin_down, sys_label);
 
-		Complex z = M.G.w;
-		to_zero(M.g.v);
+		// Complex z = M.G.w;
+		// to_zero(M.g.v);
 
-		for(auto& s : mcf_data.states){
-			// ---- Hole sector ------------------------------------------------
-			if(!s.A_h.empty()){
-				vector<matrix<Complex>> A_per(s.A_h.size()), B_per(s.B_h.size());
-				#pragma omp parallel for 
-				for(size_t j = 0; j < s.A_h.size(); ++j){
-					A_per[j] = model->periodize(M.k, s.A_h[j]);
-					B_per[j] = model->periodize(M.k, s.B_h[j]);
-				}
-				matrix<Complex> W_per = model->periodize(M.k, s.W_h);
-				matrix_continued_fraction mcf_per(A_per, B_per, W_per);
-				M.g.v += mcf_per.evaluate(z).v;
-			}
+		// // Builds the 2n×2n combined block matrix: 0.5*[[Me+Mh, Me-Mh],[Me-Mh, Me+Mh]]
+		// auto make_block_matrix = [](const matrix<Complex>& Me, const matrix<Complex>& Mh) {
+		// 	size_t n = Me.r;
+		// 	matrix<Complex> M2;
+		// 	M2.set_size(2*n);
+		// 	for(size_t i = 0; i < n; ++i)
+		// 		for(size_t j = 0; j < n; ++j){
+		// 			Complex sum  = 0.5*(Me(i,j) + Mh(i,j));
+		// 			Complex diff = 0.5*(Me(i,j) - Mh(i,j));
+		// 			M2(i,   j  ) = sum;
+		// 			M2(i,   j+n) = diff;
+		// 			M2(i+n, j  ) = diff;
+		// 			M2(i+n, j+n) = sum;
+		// 		}
+		// 	return M2;
+		// };
 
-			// ---- Electron sector (transposed, matching mcf_set convention) --
-			if(!s.A_e.empty()){
-				vector<matrix<Complex>> A_per(s.A_e.size()), B_per(s.B_e.size());
-				#pragma omp parallel for
-				for(size_t j = 0; j < s.A_e.size(); ++j){
-					A_per[j] = model->periodize(M.k, s.A_e[j]);
-					B_per[j] = model->periodize(M.k, s.B_e[j]);
-				}
-				matrix<Complex> W_per = model->periodize(M.k, s.W_e);
-				matrix_continued_fraction mcf_per(A_per, B_per, W_per);
-				auto Ge = mcf_per.evaluate(z);
-				Ge.transpose();
-				M.g.v += Ge.v;
-			}
-		}
+		// for(auto& s : mcf_data.states){
+		// 	QCM_ASSERT(!s.A_e.empty() && !s.A_h.empty());
+
+		// 	size_t M_A = min(s.A_e.size(), s.A_h.size());
+		// 	size_t M_B = min(s.B_e.size(), s.B_h.size());
+
+		// 	// Periodize electron and hole sector matrices
+		// 	// j=0: subtract M.V before periodizing
+		// 	vector<matrix<Complex>> A_per_e(M_A), A_per_h(M_A);
+		// 	vector<matrix<Complex>> B_per_e(M_B), B_per_h(M_B);
+		// 	{
+		// 		auto Ae0 = s.A_e[0]; Ae0.v -= M.V.v;
+		// 		auto Ah0 = s.A_h[0]; Ah0.v -= M.V.v;
+		// 		A_per_e[0] = model->periodize(M.k, Ae0);
+		// 		A_per_h[0] = model->periodize(M.k, Ah0);
+		// 	}
+		// 	#pragma omp parallel for
+		// 	for(size_t j = 1; j < M_A; ++j){
+		// 		A_per_e[j] = model->periodize(M.k, s.A_e[j]);
+		// 		A_per_h[j] = model->periodize(M.k, s.A_h[j]);
+		// 	}
+		// 	#pragma omp parallel for
+		// 	for(size_t j = 0; j < M_B; ++j){
+		// 		B_per_e[j] = model->periodize(M.k, s.B_e[j]);
+		// 		B_per_h[j] = model->periodize(M.k, s.B_h[j]);
+		// 	}
+		// 	matrix<Complex> W_per_e = model->periodize(M.k, s.W_e);
+		// 	matrix<Complex> W_per_h = model->periodize(M.k, s.W_h);
+
+		// 	// Build combined 2n×2n MCF matrices and evaluate
+		// 	vector<matrix<Complex>> A_combined(M_A), B_combined(M_B);
+		// 	for(size_t j = 0; j < M_A; ++j)
+		// 		A_combined[j] = make_block_matrix(A_per_e[j], A_per_h[j]);
+		// 	for(size_t j = 0; j < M_B; ++j)
+		// 		B_combined[j] = make_block_matrix(B_per_e[j], B_per_h[j]);
+		// 	matrix<Complex> W_combined = make_block_matrix(W_per_e, W_per_h);
+
+		// 	matrix_continued_fraction mcf_combined(A_combined, B_combined, W_combined);
+		// 	auto G_full = mcf_combined.evaluate(z);
+
+		// 	// Accumulate upper-left n×n block into M.g
+		// 	size_t n = G_full.r / 2;
+		// 	G_full.move_sub_matrix(n, n, 0, 0, 0, 0, M.g, 2.0);
+		// }
 	}
 	else{
 		qcm_throw("undefined periodization scheme");
 	}
 }
-
-
 
 
 
