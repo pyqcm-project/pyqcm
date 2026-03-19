@@ -286,6 +286,7 @@ void lattice_model::post_parameter_consolidate(size_t label)
   }
   model_consolidated = true;
 
+  
   for(auto& i: neighbor){
     vector3D<double> ne = superlattice.to(i);
     i.x = (int)floor(ne.x+0.5);
@@ -328,20 +329,20 @@ void lattice_model::post_parameter_consolidate(size_t label)
 		}
 		else ++it;
 	}
-	
+
   //..............................................................................
 	// filling the list of one-body or anomalous operators
 	one_body_ops.reserve(term.size());
 	for(auto& x : term){
 		if(x.second->is_interaction == false) one_body_ops.push_back(x.second);
 	}
-	
+
   //..............................................................................
 	// finds the common mixing
 	mixing = HS_mixing::normal;
-	for(size_t i=0; i<clusters.size(); i++){
-    clusters[i].mixing = ED::mixing(i+label*clusters.size());
-		mixing |= clusters[i].mixing;
+	for(size_t s=0; s<nsys; s++){
+    clusters[systems[s].clus].mixing |= ED::mixing(s+label*nsys);
+		mixing |= clusters[s].mixing;
 	}
 	if(mixing > 5) mixing = mixing & HS_mixing::full;
 	if(mixing == 5) mixing = HS_mixing::anomalous;
@@ -349,7 +350,6 @@ void lattice_model::post_parameter_consolidate(size_t label)
 	n_mixed = 1;
 	if(mixing & HS_mixing::anomalous) n_mixed *= 2;
 	if(mixing & HS_mixing::spin_flip) n_mixed *= 2;
-	
 	
   //..............................................................................
   // computes offsets and dimensions
@@ -422,7 +422,6 @@ void lattice_model::post_parameter_consolidate(size_t label)
 				break;
 		}
 	}
-
 
   //..............................................................................
 	// reading the external hybridization, if applicable

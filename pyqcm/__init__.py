@@ -286,6 +286,7 @@ class lattice_model:
             else:
                 ref = 0
             qcm.add_cluster(x.pos, x.sites, ref, x.conj)
+            if x.sys is None: continue
             for s in x.sys:
                 if s.n_bath > 0:
                     self.has_bath = True
