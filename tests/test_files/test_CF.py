@@ -3,7 +3,7 @@ pyqcm.set_global_parameter('nosym')
 
 L=4
 from model_1D import model1D
-model = model1D(4)
+model = model1D(4, sym=False)
 
 mixing = 0
 cluster = False

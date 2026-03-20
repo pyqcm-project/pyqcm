@@ -1,16 +1,16 @@
 import pyqcm
 from model_1D import model1D
-model = model1D(4)
+model = model1D(4, sym=False)
 
 sec = 'R0:S0'
-M.model.set_target_sectors([sec])
-M.model.set_parameters("""
+model.set_target_sectors([sec])
+model.set_parameters("""
 ti=1
 U = 4
 mu = 1
 D = 0.2
 """)
-I = pyqcm.model_instance(M.model)
+I = pyqcm.model_instance(model)
 
 print("\ntesting lattice averages (all operators, also with Potthoff functional and potential energy):\n")
 print('Potthoff functional = ', I.Potthoff_functional())
@@ -24,7 +24,7 @@ print("\ntesting cluster Green function averages:\n")
 ave = I.Green_function_average()
 print('\naverages of c^\dagger_i c_j :\n\n', ave)
 
-if M.model.mixing == 4:
+if model.mixing == 4:
     ave = I.Green_function_average(spin_down=True)
     print('\naverages of c^\dagger_i c_j (spin down):\n\n', ave)
 

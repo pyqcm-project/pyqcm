@@ -1,9 +1,7 @@
 import pyqcm
 import numpy as np
 from model_1D import model1D
-model = model1D(4)
-
-model.complex_pairs = {'t':('t', 'ti')}
+model = model1D(4, sym=False)
 
 pyqcm.set_global_parameter('accur_OP', 1e-8)
 sec = 'R0:S0'

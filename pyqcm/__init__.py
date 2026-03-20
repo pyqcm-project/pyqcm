@@ -377,6 +377,13 @@ class lattice_model:
                 'names of operators must not include the character "_" (underline)'
             )
 
+        for illegal in ("tau", "sigma"):
+            if illegal in kwargs:
+                raise ValueError(
+                    f'keyword "{illegal}" is not allowed in anomalous_operator(); '
+                    'use the "type" keyword instead (one of "singlet", "dx", "dy", "dz")'
+                )
+
         orb1, orb2 = orbital_pair_manager(orbitals)
 
         for orb_no1 in orb1:
@@ -2582,15 +2589,19 @@ def varia_table(var, val):
     nsys = 0
     # finds the number of systems
     for i, p in enumerate(var):
+        if '_' not in p: continue
         s = int(p.partition("_")[-1])
         if s > nsys: nsys = s
 
-    dic = [dict() for s in range(nsys)]
+    dic = [dict() for s in range(nsys+1)]
 
     for i, p in enumerate(var):
-        X = p.partition("_")
-        s = int(X[-1])
-        dic[s-1][X[0]] = val[i]
+        if '_' not in p:
+            dic[nsys][p] = val[i]
+        else:
+            X = p.partition("_")
+            s = int(X[-1])
+            dic[s-1][X[0]] = val[i]
 
     for s in range(nsys):
         S += "\nsystem {:d}:\n".format(s+1)
@@ -2601,6 +2612,15 @@ def varia_table(var, val):
             i += 1
             if i%5 == 0: S += '\n'
 
+    if len(dic[nsys]):
+        S += "\nlattice parameters:\n"
+        i = 0
+        sorted_dic = dict(sorted(dic[nsys].items()))
+        for x in sorted_dic:
+            S += "{:>8} = {: .5g}\t".format(x, sorted_dic[x])
+            i += 1
+            if i%5 == 0: S += '\n'
+        
     return S+'\n'
 
 # ---------------------------------------------------------------------------------------------------

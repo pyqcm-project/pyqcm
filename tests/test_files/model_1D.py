@@ -6,9 +6,12 @@ def model1D(L, sym=True):
         CM = pyqcm.cluster_model(L, n_bath=0, generators=[[L-i for i in range(L)]])
     else:
         CM = pyqcm.cluster_model(L, n_bath=0)
+
     pos = [(i,0,0) for i in range(L)]
     clus = pyqcm.cluster(CM, pos)
     model = pyqcm.lattice_model('1D_{:d}'.format(L), clus, ((L, 0, 0),))
+
+    if not sym: model.current_dir = 'x'
 
     model.interaction_operator('U')
     model.interaction_operator('V', link=( 1, 0, 0))
@@ -17,8 +20,13 @@ def model1D(L, sym=True):
     model.hopping_operator('hx', [0, 0, 0], 1, tau=0, sigma=1)
     model.hopping_operator('h', [0, 0, 0], 1, tau=0, sigma=3)
     model.anomalous_operator('D', ( 1, 0, 0), 1)
+    model.anomalous_operator('S', ( 0, 0, 0), 1)
+    model.hopping_operator('H', ( 0, 0, 0), 1, tau=0, sigma=3)
+    model.hopping_operator('Hx', ( 0, 0, 0), 1, tau=0, sigma=1)
 
     if (L%2 == 0) and sym == False:
+        model.hopping_operator('tsi', (1,0,0), -1, sigma=3, tau=2)
+        model.hopping_operator('ti', ( 1, 0, 0), -1, tau=2)
         model.density_wave('cdw', 'N', ( 1, 0, 0))
         e = np.sqrt(0.5)
         model.explicit_operator('V0m', (
