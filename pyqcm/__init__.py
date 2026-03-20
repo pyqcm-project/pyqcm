@@ -789,12 +789,12 @@ class model_instance:
     print_dependent = False
 
     def __init__(self, model):
+        if not isinstance(model, lattice_model): raise ValueError('The first argument of "model_instance()" should be a lattice_model object')
         self.label = model_instance.count
         model_instance.count += 1
         self.model = model
         qcm.new_model_instance(self.label)
-        if not self.model.is_closed:
-            self.model.finalize()
+        if not self.model.is_closed: self.model.finalize()
         self.is_complex = qcm.complex_HS(self.label)
 
         self.props = {}
@@ -893,8 +893,8 @@ class model_instance:
         :returns:None
 
         """
-        for s in range(self.model.nclus):
-            self.write(filename + "_{:d}.sol".format(i), sys=s)
+        for s in range(self.model.nsys):
+            self.write(filename + "_{:d}.sol".format(s), sys=s)
 
     # -----------------------------------------------------------------------------------------------
     def read_all(self, filename):
@@ -906,7 +906,7 @@ class model_instance:
 
         """
         for s in range(self.model.nsys):
-            self.read(filename + "_{:d}.sol".format(i), sys=s)
+            self.read(filename + "_{:d}.sol".format(s), sys=s)
 
     # -----------------------------------------------------------------------------------------------
     def parameters(self, param=None):
