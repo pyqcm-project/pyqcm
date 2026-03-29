@@ -60,47 +60,48 @@ mu = 1
 
 import matplotlib.pyplot as plt
 
+w = 0.5+0.01j
 # plt.gcf().set_size_inches(12/2.54, 12/2.54)
 
 pyqcm.set_global_parameter('GF_method', 'L')
 I = pyqcm.model_instance(model)
-print(I.cluster_Green_function(0.2+0.1j))
+print(I.cluster_Green_function(w))
 
 pyqcm.set_global_parameter('GF_method', 'F')
 I = pyqcm.model_instance(model)
-print(I.cluster_Green_function(0.2+0.1j))
+print(I.cluster_Green_function(w))
 
 pyqcm.set_global_parameter('GF_method', 'M')
 I = pyqcm.model_instance(model)
-print(I.cluster_Green_function(0.2+0.1j))
+print(I.cluster_Green_function(w))
 
-pyqcm.set_global_parameter('combine_mcf')
-pyqcm.set_global_parameter('GF_method', 'M')
+# pyqcm.set_global_parameter('combine_mcf')
+# pyqcm.set_global_parameter('GF_method', 'M')
+# I = pyqcm.model_instance(model)
+# print(I.cluster_Green_function(w))
+
+
+pyqcm.set_global_parameter('GF_method', 'L')
 I = pyqcm.model_instance(model)
-print(I.cluster_Green_function(0.2+0.1j))
-
-
-exit()
-
 if cluster:
     I.cluster_spectral_function(wmax = 6, plt_ax = plt.gca(), full=True, offset=14)
 else:
     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line')
 
-I = pyqcm.model_instance(model)
-pyqcm.set_global_parameter('continued_fraction')
-I = pyqcm.model_instance(model)
-if cluster:
-    I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='r')
-else:
-    I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='r')
+# pyqcm.set_global_parameter('GF_method', 'F')
+# I = pyqcm.model_instance(model)
+# if cluster:
+#     I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='r')
+# else:
+#     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='r')
 
-plt.savefig('test_CF.pdf')
 
 pyqcm.set_global_parameter('GF_method', 'M')
 I = pyqcm.model_instance(model)
 if cluster:
-    I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='r')
+    I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='g')
 else:
-    I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='r')
-plt.savefig('test_MCF.pdf')
+    I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='g')
+
+
+plt.savefig('test_CF.pdf')

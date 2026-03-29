@@ -60,36 +60,27 @@ struct mcf_set : Green_function_set
     //! Build combined MCFs from the electron and hole MCFs.
     /**
      Must be called after all e[r] and h[r] have been filled (e.g. at the end
-     of build_mcf).  For each irrep block r both sectors must be present; if
-     only one is non-empty the combined MCF defaults to that sector alone.
+     of build_mcf).
 
-     When the global option "combine_mcf" is true, the combined MCF is obtained
-     via a new block Lanczos run on the direct-sum operator T_e ⊕ T_h
-     (combine_via_lanczos).  Otherwise (default) the electron and hole MCFs are
-     combined analytically via a non-square weight matrix (combine_for_gf).
+     When the global option "combine_mcf" is true, the electron and hole MCFs
+     are combined into a single MCF via a new block Lanczos run on the
+     direct-sum operator T_e ⊕ T_h (combine_via_lanczos), and stored in
+     combined[r].  Green_function() then evaluates combined[r] alone.
+
+     Otherwise (default), combined[r] is left empty and Green_function()
+     evaluates e[r] and h[r] separately, adding G_h + G_e^T to G.block[r].
     */
     void build_combined()
     {
-        bool use_lanczos = global_bool("combine_mcf");
+        if(!global_bool("combine_mcf")) return;
         for(size_t r = 0; r < group->g; ++r){
             bool has_e = e[r].floors() > 0;
             bool has_h = h[r].floors() > 0;
             if(has_e && has_h){
-                if(use_lanczos){
-                    int M0 = max(e[r].floors(), h[r].floors());
-                    combined[r] = combine_via_lanczos(e[r], h[r], M0);
-                } else {
-                    combined[r] = combine_for_gf(e[r], h[r]);
-                }
-            } else if(has_h){
-                combined[r] = h[r];          // hole only: W is already correct
-            } else if(has_e){
-                // Electron only: conjugate W_e so evaluate() returns G_e^T
-                auto tmp = e[r];
-                for(size_t k = 0; k < tmp.W.v.size(); ++k)
-                    tmp.W.v[k] = conj(tmp.W.v[k]);
-                combined[r] = tmp;
+                int M0 = e[r].floors() + h[r].floors();
+                combined[r] = combine_via_lanczos(e[r], h[r], M0);
             }
+            // single-sector blocks: combined stays empty; Green_function handles them.
         }
     }
 
@@ -109,15 +100,26 @@ struct mcf_set : Green_function_set
  Evaluates the matrix continued fraction Green function at frequency z
  and adds the result to G.
 
- The hole part is added directly.  The electron part is TRANSPOSED before
- addition (see class-level convention note).
+ When "combine_mcf" is true, combined[r] holds a single MCF for G_h + G_e
+ and is evaluated directly.
+
+ Otherwise (default), the hole and electron MCFs are evaluated separately
+ and their contributions added directly to G.block[r].
 */
 template<typename T>
 inline void mcf_set<T>::Green_function(const Complex &z, block_matrix<Complex> &G)
 {
-    for(size_t r = 0; r < group->g; ++r) {
-        if(combined[r].floors() > 0)
-            G.block[r] += combined[r].evaluate(z);
+    if(global_bool("combine_mcf")){
+        for(size_t r = 0; r < group->g; ++r)
+            if(combined[r].floors() > 0)
+                G.block[r] += combined[r].evaluate(z);
+        return;
+    }
+    for(size_t r = 0; r < group->g; ++r){
+        if(h[r].floors() > 0)
+            G.block[r] += h[r].evaluate(z);
+        if(e[r].floors() > 0)
+            G.block[r] += e[r].evaluate(z);
     }
 }
 

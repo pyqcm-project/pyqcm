@@ -333,15 +333,16 @@ struct combined_sector_operator {
 /**
  Applies blockLanczos to the direct-sum operator T = T_e ⊕ T_h on a space of
  dimension N = (Me + Mh)*p, using p starting vectors whose level-0 components
- are conj(W_e) (e-sector) and W_h (h-sector).  The resulting MCF has the same
- block size p as the individual electron and hole MCFs.
+ are W_e (e-sector) and W_h (h-sector).  The resulting MCF has the same block
+ size p as the individual electron and hole MCFs.
 
  The Green function of the result satisfies:
    G_combined(z) = W_new^H F_new(z) W_new
-                 = conj(W_e)^H F_e(z) conj(W_e) + W_h^H F_h(z) W_h
+                 = W_e^H F_e(z) W_e + W_h^H F_h(z) W_h
+                 = G_e(z) + G_h(z)
 
- For a real Hamiltonian (T=double) this equals G_e(z)^T + G_h(z), matching the
- convention of combine_for_gf.
+ M0 must be at least Me + Mh to capture the full Krylov space of the
+ combined operator (each sector independently contributes Me and Mh steps).
 
  @param e   Electron MCF (block size p, Me floors).
  @param h   Hole MCF (block size p, Mh floors).
@@ -359,13 +360,13 @@ matrix_continued_fraction<T> combine_via_lanczos(
     const int N  = (Me + Mh) * p;  // total dimension of the combined space
 
     // Build starting block: p vectors of length N.
-    // phi[i]: conj(W_e[:,i]) at e-sector level 0 (positions 0..p-1),
-    //         W_h[:,i]       at h-sector level 0 (positions Me*p .. Me*p+p-1).
+    // phi[i]: W_e[:,i] at e-sector level 0 (positions 0..p-1),
+    //         W_h[:,i] at h-sector level 0 (positions Me*p .. Me*p+p-1).
     vector<vector<T>> phi(p, vector<T>(N, T(0)));
     for(int i = 0; i < p; ++i){
         for(int k = 0; k < p; ++k){
-            phi[i][k]          = mcf_to_T(conj(e.W(k, i)), T(0));  // conj(W_e)
-            phi[i][Me * p + k] = mcf_to_T(h.W(k, i),       T(0));  // W_h
+            phi[i][k]          = mcf_to_T(e.W(k, i), T(0));  // W_e
+            phi[i][Me * p + k] = mcf_to_T(h.W(k, i), T(0));  // W_h
         }
     }
 
