@@ -17,22 +17,23 @@
 
  ### Conventions (matching Q_matrix_set / continued_fraction_set)
 
- The Q_matrix_set applies v.cconjugate() to the electron eigenvectors after
- the band Lanczos, which effectively transposes the electron contribution to
- the Green function:
-   G_Q^+(a,b) = sum_n conj(<phi_a|n>) <phi_b|n> / (z - e_n)
-              = [W^H F_0(z) W]^T_{a,b}        (where F_0 is the block resolvent)
+ Both the Q_matrix_set (VDVH kernel, with v.cconjugate() on the electron
+ eigenvectors) and the continued_fraction_set produce the same output:
 
- The hole contribution is NOT conjugated, so:
-   G_Q^-(a,b) = sum_n <phi_a|n> conj(<phi_b|n>) / (z - e_n)
-              = [W^H F_0(z) W]_{a,b}
+   G_output(a,b) = G⁺(a,b) + G⁻(b,a) = G⁺(a,b) + (G⁻)ᵀ(a,b)
+
+ where G⁺ and G⁻ are the physical electron and hole Green functions.
+
+ The MCF evaluate() gives directly:
+   e[r].evaluate(z)(a,b) = G⁺(a,b)   (no transformation needed)
+   h[r].evaluate(z)(a,b) = G⁻(a,b)   (must be transposed before adding)
 
  Consequently:
- - Hole part:     G.block[r] +=      h[r].evaluate(z)
- - Electron part: G.block[r] += TRANSPOSE(e[r].evaluate(z))
+ - Electron part: G.block[r] +=           e[r].evaluate(z)
+ - Hole part:     G.block[r] += TRANSPOSE(h[r].evaluate(z))
 
- For real Hamiltonians (T = double) the GF is symmetric, so the
- transpose is a no-op.
+ For real Hamiltonians (T = double) both G⁺ and G⁻ are symmetric, so the
+ transpose is a no-op and the distinction does not matter.
 
  ### Integrated Green function
 
@@ -103,8 +104,10 @@ struct mcf_set : Green_function_set
  When "combine_mcf" is true, combined[r] holds a single MCF for G_h + G_e
  and is evaluated directly.
 
- Otherwise (default), the hole and electron MCFs are evaluated separately
- and their contributions added directly to G.block[r].
+ Otherwise (default), the electron and hole MCFs are evaluated separately:
+ the electron part is added directly (e[r].evaluate(z) = G⁺);
+ the hole part is transposed before addition (h[r].evaluate(z) = G⁻,
+ and the output convention requires G⁻ transposed = (G⁻)ᵀ).
 */
 template<typename T>
 inline void mcf_set<T>::Green_function(const Complex &z, block_matrix<Complex> &G)
@@ -116,10 +119,13 @@ inline void mcf_set<T>::Green_function(const Complex &z, block_matrix<Complex> &
         return;
     }
     for(size_t r = 0; r < group->g; ++r){
-        if(h[r].floors() > 0)
-            G.block[r] += h[r].evaluate(z);
         if(e[r].floors() > 0)
             G.block[r] += e[r].evaluate(z);
+        if(h[r].floors() > 0){
+            matrix<Complex> Gh = h[r].evaluate(z);
+            Gh.transpose();
+            G.block[r] += Gh;
+        }
     }
 }
 

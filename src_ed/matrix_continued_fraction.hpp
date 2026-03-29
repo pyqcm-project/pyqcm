@@ -295,14 +295,20 @@ matrix_continued_fraction<T> combine_for_gf(
 }
 
 
-//! Operator wrapper for the direct-sum T_e ⊕ T_h acting on the concatenated space.
+//! Operator wrapper for the direct-sum T_e ⊕ T_h* acting on the concatenated space.
 /**
  The combined space has dimension (Me + Mh)*p with the e-sector occupying the
  first Me*p components and the h-sector occupying the last Mh*p components.
  Both sectors share the same block size p.
 
+ The e-sector applies T_e normally.  The h-sector applies T_h* (element-wise
+ complex conjugate of T_h), i.e. T_h* x = conj(T_h conj(x)).  This is needed
+ so that the combined MCF (with conj(W_h) starting vectors for the h-sector)
+ reproduces G_mcf_h^T rather than G_mcf_h.  For T=double, T_h* = T_h and
+ conj is a no-op, so the real case is unaffected.
+
  Satisfies the TYPE concept expected by blockLanczos:
-   void mult_add(const vector<T>& x, vector<T>& y)  — computes y += (T_e⊕T_h)*x.
+   void mult_add(const vector<T>& x, vector<T>& y)
 */
 template<typename T>
 struct combined_sector_operator {
@@ -316,15 +322,16 @@ struct combined_sector_operator {
     { QCM_ASSERT(_e.p == _h.p); }
 
     void mult_add(const vector<T>& x, vector<T>& y) const {
-        // Split x into e-sector and h-sector
-        vector<T> xe(x.begin(),           x.begin() + Me * p);
-        vector<T> xh(x.begin() + Me * p,  x.end());
-        // Apply each sector's block-tridiagonal independently
+        // e-sector: y_e += T_e * x_e
+        vector<T> xe(x.begin(), x.begin() + Me * p);
         vector<T> ye = e.apply(xe);
-        vector<T> yh = h.apply(xh);
-        // Accumulate into y
-        for(int i = 0; i < Me * p; ++i) y[i]          += ye[i];
-        for(int i = 0; i < Mh * p; ++i) y[Me * p + i] += yh[i];
+        for(int i = 0; i < Me * p; ++i) y[i] += ye[i];
+
+        // h-sector: y_h += T_h* x_h = conj(T_h conj(x_h))
+        vector<T> xh(x.begin() + Me * p, x.end());
+        for(auto& v : xh) v = conjugate(v);          // conjugate x_h
+        vector<T> yh = h.apply(xh);                  // T_h * conj(x_h)
+        for(int i = 0; i < Mh * p; ++i) y[Me * p + i] += conjugate(yh[i]);
     }
 };
 
@@ -337,9 +344,13 @@ struct combined_sector_operator {
  size p as the individual electron and hole MCFs.
 
  The Green function of the result satisfies:
-   G_combined(z) = W_new^H F_new(z) W_new
-                 = W_e^H F_e(z) W_e + W_h^H F_h(z) W_h
-                 = G_e(z) + G_h(z)
+   G_combined(z) = W_new^H F_new(z) W_new = G⁺(z) + (G⁻)ᵀ(z)
+
+ matching the convention of the default (non-combined) path.  This is achieved
+ by running blockLanczos on T_e ⊕ T_h* (T_h* = conj of T_h) and using
+ conj(W_h) as h-sector starting vectors, so that the h contribution becomes
+   conj(W_h)^H F_{T_h*} conj(W_h) = G_mcf_h^T = (G⁻)ᵀ
+ For T=double (real Hamiltonian), T_h* = T_h and the modification is a no-op.
 
  M0 must be at least Me + Mh to capture the full Krylov space of the
  combined operator (each sector independently contributes Me and Mh steps).
@@ -360,13 +371,15 @@ matrix_continued_fraction<T> combine_via_lanczos(
     const int N  = (Me + Mh) * p;  // total dimension of the combined space
 
     // Build starting block: p vectors of length N.
-    // phi[i]: W_e[:,i] at e-sector level 0 (positions 0..p-1),
-    //         W_h[:,i] at h-sector level 0 (positions Me*p .. Me*p+p-1).
+    // phi[i]: W_e[:,i]       at e-sector level 0 (positions 0..p-1)
+    // phi[i]: conj(W_h[:,i]) at h-sector level 0 (positions Me*p .. Me*p+p-1)
+    // The conjugate on the h-sector, combined with the T_h* operator, ensures
+    // the h contribution to evaluate() gives (G⁻)ᵀ instead of G⁻.
     vector<vector<T>> phi(p, vector<T>(N, T(0)));
     for(int i = 0; i < p; ++i){
         for(int k = 0; k < p; ++k){
-            phi[i][k]          = mcf_to_T(e.W(k, i), T(0));  // W_e
-            phi[i][Me * p + k] = mcf_to_T(h.W(k, i), T(0));  // W_h
+            phi[i][k]          = mcf_to_T(e.W(k, i),       T(0));  // W_e
+            phi[i][Me * p + k] = mcf_to_T(conj(h.W(k, i)), T(0));  // conj(W_h)
         }
     }
 
@@ -394,6 +407,22 @@ matrix_continued_fraction<T> combine_via_lanczos(
     blockLanczos(op, phi, A_new, B_new, M0);
 
     return matrix_continued_fraction<T>(A_new, B_new, to_complex_matrix(W_new));
+}
+
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const matrix_continued_fraction<T>& F)
+{
+    int M = F.floors();
+    os << "matrix_continued_fraction: p=" << F.p << "  floors=" << M << '\n';
+    for(int j = 0; j < M; ++j){
+        os << "A[" << j << "]:\n" << F.A[j];
+    }
+    for(int j = 0; j < (int)F.B.size(); ++j){
+        os << "B[" << j << "]:\n" << F.B[j];
+    }
+    os << "W:\n" << F.W;
+    return os;
 }
 
 
