@@ -880,6 +880,28 @@ class model_instance:
         return qcm.qmatrix(self.label * self.model.nsys + sys)
 
     # -----------------------------------------------------------------------------------------------
+    def combined_mcf(self, sys=0):
+        """
+        Returns the combined matrix continued fraction (MCF) for the cluster Green function.
+
+        The combined MCF encodes G = G⁺ + (G⁻)ᵀ in a single object whose evaluate()
+        gives the full Green function directly.
+
+        Only available when ``GF_method`` has been set to ``'M'`` and the global
+        parameter ``combine_mcf`` is ``True``.  Raises an exception otherwise.
+
+        :param int sys: label of the system (0-based)
+        :returns: 3-tuple ``(W, A, B)`` where
+
+            * ``W``  -- ``(L, L)`` complex ndarray, weight matrix
+            * ``A``  -- list of M ``(L, L)`` complex ndarrays, diagonal blocks
+            * ``B``  -- list of M ``(L, L)`` complex ndarrays, off-diagonal QR blocks
+
+            L is the dimension of the Green function, M is the number of floors.
+        """
+        return qcm.combined_mcf(self.label * self.model.nsys + sys)
+
+    # -----------------------------------------------------------------------------------------------
     def write_hdf5(self, filename, sys=0):
         """
         Writes the solved cluster model instance to an HDF5 file.

@@ -352,6 +352,29 @@ namespace ED{
    label     : label of the model instance
   */
   MCF_periodization_data get_mcf_for_periodization(bool spin_down, size_t label);
+
+  /**
+   Combined MCF data returned by get_combined_mcf().
+   Holds the A, B and W matrices of the combined MCF (G⁺ + (G⁻)ᵀ) in the
+   full cluster site-orbital basis.
+  */
+  struct CombinedMCF_data {
+    vector<matrix<Complex>> A; //!< diagonal blocks in site basis [j]
+    vector<matrix<Complex>> B; //!< off-diagonal QR blocks in site basis [j]
+    matrix<Complex>         W; //!< weight matrix in site basis (may be non-square)
+  };
+
+  /**
+   Returns the combined MCF (W, A[j], B[j]) for the first ground state, in
+   the full cluster site-orbital basis.
+
+   Only valid when GF_method = 'M' and combine_mcf = True.
+   Throws if the instance does not use the MCF format or combine_mcf is false.
+
+   spin_down : true to access the spin-down sector (mixing = 4)
+   label     : label of the model instance
+  */
+  CombinedMCF_data get_combined_mcf(bool spin_down, size_t label);
 };
 
 #endif

@@ -45,6 +45,7 @@ static PyMethodDef methods[] = {
     {"print_models", print_models_python, METH_VARARGS, print_models_help},
     {"print_wavefunction", print_wavefunction_python, METH_VARARGS, print_wavefunction_help},
     {"qmatrix", qmatrix_python, METH_VARARGS, qmatrix_help},
+    {"combined_mcf", combined_mcf_python, METH_VARARGS, combined_mcf_help},
     {"self_energyC", self_energyC_python, METH_VARARGS, self_energyC_help},
     {"set_global_parameterC", set_global_parameterC_python, METH_VARARGS, set_global_parameterC_help},
     {"susceptibility_poles", susceptibility_poles_python, METH_VARARGS, susceptibility_poles_help},

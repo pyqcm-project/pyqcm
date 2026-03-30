@@ -567,5 +567,87 @@ namespace ED{
         dynamic_pointer_cast<model_instance<double>>(inst_base), spin_down);
     }
   }
+
+
+  template<typename HilbertField>
+  static CombinedMCF_data assemble_combined_mcf_site_data(
+      shared_ptr<model_instance<HilbertField>> inst, bool spin_down)
+  {
+    auto& group   = inst->the_model->group;
+    int   n_mixed = inst->n_mixed;
+    int   dim_GF  = inst->dim_GF;
+
+    // Use the first ground state only (same convention as qmatrix())
+    for(auto& x : inst->states){
+      shared_ptr<mcf_set<HilbertField>> mcf =
+        dynamic_pointer_cast<mcf_set<HilbertField>>(spin_down ? x->gf_down : x->gf);
+      if(!mcf) continue;
+
+      // Find the first irrep block that has a combined MCF
+      int M = 0;
+      for(size_t r = 0; r < group->g; ++r)
+        M = max(M, mcf->combined[r].floors());
+      if(M == 0)
+        qcm_ED_throw("get_combined_mcf: combined MCF is empty. "
+                     "Set combine_mcf=True before solving.");
+
+      CombinedMCF_data result;
+      result.A.resize(M);
+      result.B.resize(M);
+
+      for(int j = 0; j < M; ++j){
+        block_matrix<Complex> A_blk(group->site_irrep_dim * n_mixed);
+        block_matrix<Complex> B_blk(group->site_irrep_dim * n_mixed);
+        for(size_t r = 0; r < group->g; ++r){
+          if(j < mcf->combined[r].floors()){
+            A_blk.block[r] = to_complex_matrix(mcf->combined[r].A[j]);
+            B_blk.block[r] = to_complex_matrix(mcf->combined[r].B[j]);
+          }
+        }
+        result.A[j] = matrix<Complex>(dim_GF);
+        result.B[j] = matrix<Complex>(dim_GF);
+        group->to_site_basis(A_blk, result.A[j], n_mixed);
+        group->to_site_basis(B_blk, result.B[j], n_mixed);
+      }
+
+      // Weight matrix W (may be non-square: p_actual rows × p columns per block)
+      // Use the first non-empty block to determine the column count of W
+      size_t W_cols = 0;
+      for(size_t r = 0; r < group->g; ++r)
+        if(mcf->combined[r].floors() > 0){ W_cols = mcf->combined[r].W.c; break; }
+
+      block_matrix<Complex> W_blk(group->site_irrep_dim * n_mixed);
+      for(size_t r = 0; r < group->g; ++r)
+        if(mcf->combined[r].floors() > 0) W_blk.block[r] = mcf->combined[r].W;
+      result.W = matrix<Complex>(dim_GF);
+      group->to_site_basis(W_blk, result.W, n_mixed);
+
+      return result;
+    }
+    qcm_ED_throw("get_combined_mcf: no valid ground state found.");
+    return {};  // unreachable
+  }
+
+
+  CombinedMCF_data get_combined_mcf(bool spin_down, size_t label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    auto& inst_base = model_instances.at(label);
+    if(inst_base->GF_solver != GF_format_MCF)
+      qcm_ED_throw("get_combined_mcf: the instance at label "
+                   + to_string(label) + " does not use the MCF format (GF_method != 'M').");
+    if(!global_bool("combine_mcf"))
+      qcm_ED_throw("get_combined_mcf: the combined MCF is not built unless "
+                   "the global parameter 'combine_mcf' is set to True.");
+    if(!inst_base->gf_solved) inst_base->Green_function_solve();
+
+    if(inst_base->complex_Hilbert)
+      return assemble_combined_mcf_site_data(
+        dynamic_pointer_cast<model_instance<Complex>>(inst_base), spin_down);
+    return assemble_combined_mcf_site_data(
+      dynamic_pointer_cast<model_instance<double>>(inst_base), spin_down);
+  }
 }
 

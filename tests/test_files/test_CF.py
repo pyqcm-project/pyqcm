@@ -1,9 +1,9 @@
 import pyqcm
 pyqcm.set_global_parameter('nosym')
 
-L=4
+L=2
 from model_1D import model1D
-model = model1D(4, sym=False)
+model = model1D(L, sym=False)
 
 mixing = 0
 cluster = False
@@ -24,8 +24,8 @@ elif mixing == 3:
     U = 4
     t=1
     tsi=1
-    S = 1e-9
-    Hx = 1e-9
+    S = 0.1
+    Hx = 0.2
     mu = 1
     """)
 
@@ -34,9 +34,8 @@ elif mixing == 2:
     model.set_parameters("""
     U = 4
     t=1
-    tsi=1
-    H = -1
-    Hx = 1e-8 
+    H = 0
+    Hx = 0.1 
     mu = 1
     """)
 
@@ -44,9 +43,8 @@ elif mixing == 1:
     model.set_target_sectors(['R0:S0'])
     model.set_parameters("""
     U = 4
-    t=1
-    tsi=1
-    S = 1e-9
+    ti=1
+    S = 0.2
     mu = 1
     """)
 
@@ -81,13 +79,23 @@ pyqcm.set_global_parameter('GF_method', 'M')
 I = pyqcm.model_instance(model)
 print(I.cluster_Green_function(w))
 
+W, A, B = I.combined_mcf()
+print('W = \n' + str(W))
+for i,x in enumerate(A):
+    print('A[' + str(i) + '] = \n' + str(x))
+for i,x in enumerate(B):
+    print('B[' + str(i) + '] = \n' + str(x))    
 
-pyqcm.set_global_parameter('GF_method', 'L')
-I = pyqcm.model_instance(model)
-if cluster:
-    I.cluster_spectral_function(wmax = 6, plt_ax = plt.gca(), full=True, offset=14)
-else:
-    I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line')
+
+#-------------------------------------------------------------------------------
+
+# pyqcm.set_global_parameter('GF_method', 'L')
+# I = pyqcm.model_instance(model)
+# if cluster:
+#     I.cluster_spectral_function(wmax = 6, plt_ax = plt.gca(), full=True, offset=14)
+# else:
+#     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line')
+
 
 # pyqcm.set_global_parameter('GF_method', 'F')
 # I = pyqcm.model_instance(model)
@@ -97,13 +105,13 @@ else:
 #     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='r')
 
 
-pyqcm.set_global_parameter('combine_mcf')
-pyqcm.set_global_parameter('GF_method', 'M')
-I = pyqcm.model_instance(model)
-if cluster:
-    I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='g')
-else:
-    I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='g')
+# pyqcm.set_global_parameter('combine_mcf')
+# pyqcm.set_global_parameter('GF_method', 'M')
+# I = pyqcm.model_instance(model)
+# if cluster:
+#     I.cluster_spectral_function(wmax = 6, full=True, offset=14, plt_ax = plt.gca(), color='g')
+# else:
+#     I.spectral_function(wmax = 6, plt_ax = plt.gca(), path='line', color='g')
 
 
-plt.savefig('test_CF.pdf')
+# plt.savefig('test_CF.pdf')

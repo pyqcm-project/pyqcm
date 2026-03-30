@@ -871,46 +871,56 @@ void model_instance<HilbertField>::build_mcf(state<HilbertField> &Omega, bool sp
     }
     if(skip_sector) continue;
 
-    // Extract the upper-triangular QR factor W of the phi block.
-    // Working copies q[] are orthonormalized; W captures the norms and
-    // overlaps so that phi[l] = sum_{k<=l} q[k] * W(k,l).
-    matrix<HilbertField> W(p);
-    {
-      vector<vector<HilbertField>> q(phi);   // working copies (phi not modified)
-      bool rank_deficient = false;
-      for(int l = 0; l < p; ++l){
-        for(int k = 0; k < l; ++k){
-          HilbertField z = q[k] * q[l];      // <q[k] | q[l]>
-          W(k, l) = z;
-          mult_add(-z, q[k], q[l]);
-        }
-        double nrm = norm(q[l]);
-        if(nrm < accur_deflation){ rank_deficient = true; break; }
-        W(l, l) = HilbertField(nrm);
-        q[l] *= 1.0 / nrm;
+    // Extract the upper-triangular QR factor W of the phi block via modified
+    // Gram-Schmidt.  phi[l] = sum_{k<=l} q[k] * W(k,l).
+    // If some phi[l] deflates (norm < accur_deflation) we stop at that column
+    // and proceed with p_actual < p non-deflated vectors.  The non-square weight
+    // W_mcf (p_actual × p) maps the reduced Lanczos block back to the full
+    // p-dimensional orbital space so that evaluate() still returns a p×p matrix.
+    matrix<HilbertField> W(p, p);   // full QR factor (upper-triangular, p×p)
+    int p_actual = p;
+    vector<vector<HilbertField>> q(phi);   // orthonormalized starting block
+    for(int l = 0; l < p; ++l){
+      for(int k = 0; k < l; ++k){
+        HilbertField z = q[k] * q[l];    // <q[k] | q[l]>
+        W(k, l) = z;
+        mult_add(-z, q[k], q[l]);
       }
-      if(rank_deficient) continue;
+      double nrm = norm(q[l]);
+      if(nrm < accur_deflation){ p_actual = l; break; }  // deflation: stop here
+      W(l, l) = HilbertField(nrm);
+      q[l] *= 1.0 / nrm;
     }
+    if(p_actual == 0) continue;
+
     // Fold in the state weight so that the spectral weight is Omega.weight.
     W.v *= sqrt(Omega.weight);
+
+    // Build the (possibly non-square) p_actual × p weight matrix for the MCF.
+    // If p_actual == p this is just the upper-left p×p block (= W itself).
+    matrix<HilbertField> W_mcf(p_actual, p);
+    for(int k = 0; k < p_actual; ++k)
+      for(int l = 0; l < p; ++l)
+        W_mcf(k, l) = W(k, l);
+
+    // Trim the starting block to the p_actual non-deflated vectors.
+    q.resize(p_actual);
 
     // Assemble the Hamiltonian in the target sector
     Hamiltonian<HilbertField> *H = create_hamiltonian(the_model, value, target_sec);
     if(H->dim == 0){ delete H; continue; }
 
-    // Block Lanczos: produces diagonal blocks A[j] and off-diagonal QR blocks B[j].
-    // blockLanczos orthonormalises phi internally (consistent with the W extracted above).
+    // Block Lanczos on the p_actual orthonormal starting vectors.
     vector<matrix<HilbertField>> A, B;
-    int M0 = (int)(14 * p * log(1.0 * H->dim));
-    blockLanczos(*H, phi, A, B, M0, global_bool("verb_ED"));
+    int M0 = (int)(14 * p_actual * log(1.0 * H->dim));
+    blockLanczos(*H, q, A, B, M0, global_bool("verb_ED"));
 
     delete H; H = nullptr;
 
     if(A.empty()) continue;
 
-    // Build the matrix continued fraction with energy shift.
-    // The constructor shifts A[j] by ±Omega.energy (create flag) and stores W.
-    matrix_continued_fraction<HilbertField> frac(A, B, Omega.energy, W, pm == 1);
+    // Build the matrix continued fraction with energy shift and non-square W_mcf.
+    matrix_continued_fraction<HilbertField> frac(A, B, Omega.energy, W_mcf, pm == 1);
 
     if(pm == -1) mcf->h[r] = frac;
     else         mcf->e[r] = frac;

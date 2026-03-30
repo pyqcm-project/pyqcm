@@ -1071,6 +1071,71 @@ static PyObject *qmatrix_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *combined_mcf_help =
+    R"{(
+Returns the combined matrix continued fraction (W, A, B) for the cluster Green
+function G = G⁺ + (G⁻)ᵀ in the full site-orbital basis.
+
+Only available when GF_method = 'M' and combine_mcf = True.
+Raises an exception otherwise.
+
+Returns a 3-tuple:
+  1. W  -- (L x L) complex weight matrix (may be non-square in degenerate cases)
+  2. A  -- list of M (L x L) complex diagonal blocks
+  3. B  -- list of M (L x L) complex off-diagonal QR blocks
+where L is the dimension of the Green function and M is the number of floors.
+){";
+//------------------------------------------------------------------------------
+static PyObject *combined_mcf_python(PyObject *self, PyObject *args) {
+  int label = 0;
+
+  try {
+    if (!PyArg_ParseTuple(args, "|i", &label))
+      qcm_ED_throw("failed to read parameters in call to combined_mcf (python)");
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
+  }
+
+  try {
+    auto D = ED::get_combined_mcf(false, label);
+    int L = D.W.r;
+    int Lc = D.W.c;
+    int M = (int)D.A.size();
+    npy_intp dims2[2];
+
+    // W matrix
+    dims2[0] = L; dims2[1] = Lc;
+    PyObject *outW = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+    memcpy(PyArray_DATA((PyArrayObject *)outW), D.W.v.data(), L * Lc * sizeof(complex<double>));
+    PyArray_ENABLEFLAGS((PyArrayObject *)outW, NPY_ARRAY_OWNDATA);
+
+    // A list
+    PyObject *listA = PyList_New(M);
+    dims2[0] = L; dims2[1] = L;
+    for(int j = 0; j < M; ++j){
+      PyObject *arr = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+      memcpy(PyArray_DATA((PyArrayObject *)arr), D.A[j].v.data(), L * L * sizeof(complex<double>));
+      PyArray_ENABLEFLAGS((PyArrayObject *)arr, NPY_ARRAY_OWNDATA);
+      PyList_SET_ITEM(listA, j, arr);
+    }
+
+    // B list
+    PyObject *listB = PyList_New(M);
+    for(int j = 0; j < M; ++j){
+      PyObject *arr = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+      memcpy(PyArray_DATA((PyArrayObject *)arr), D.B[j].v.data(), L * L * sizeof(complex<double>));
+      PyArray_ENABLEFLAGS((PyArrayObject *)arr, NPY_ARRAY_OWNDATA);
+      PyList_SET_ITEM(listB, j, arr);
+    }
+
+    return Py_BuildValue("OOO", outW, listA, listB);
+  } catch (const std::exception &e) {
+    qcm_ED_catch(e);
+  }
+  Py_RETURN_NONE;
+}
+
+//==============================================================================
 const char *hybridization_help =
     R"{(
 Returns the Lehmann representation of the hybridization function
