@@ -1,7 +1,7 @@
 import pyqcm
 pyqcm.set_global_parameter('nosym')
 
-L=2
+L=4
 from model_1D import model1D
 model = model1D(L, sym=False)
 
@@ -66,6 +66,18 @@ pyqcm.set_global_parameter('GF_method', 'L')
 I = pyqcm.model_instance(model)
 print(I.cluster_Green_function(w))
 
+pyqcm.set_global_parameter('GF_method', 'L')
+pyqcm.set_global_parameter('combine_mcf')
+I = pyqcm.model_instance(model)
+print(I.cluster_Green_function(w))
+W, A, B = I.combined_mcf()
+print('W = \n' + str(W))
+for i,x in enumerate(A):
+    print('A[' + str(i) + '] = \n' + str(x))
+for i,x in enumerate(B):
+    print('B[' + str(i) + '] = \n' + str(x))    
+pyqcm.set_global_parameter('combine_mcf', False)
+
 pyqcm.set_global_parameter('GF_method', 'F')
 I = pyqcm.model_instance(model)
 print(I.cluster_Green_function(w))
@@ -86,6 +98,7 @@ for i,x in enumerate(A):
 for i,x in enumerate(B):
     print('B[' + str(i) + '] = \n' + str(x))    
 
+pyqcm.set_global_parameter('combine_mcf', False)
 
 #-------------------------------------------------------------------------------
 

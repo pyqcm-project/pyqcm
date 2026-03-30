@@ -766,6 +766,26 @@ class lattice_model:
         self.is_closed = True
 
     # -----------------------------------------------------------------------------------------------
+    def compact_tiling(self, A, k):
+        r"""
+        Symmetrizes a ``dim_GF`` matrix with respect to cluster translations at wavevector **k**.
+
+        For each element :math:`A[s(x), s(x')]` with link :math:`\mathbf{d} = x' - x`, the result is:
+
+        .. math::
+            A_{\rm ct}[s(x), s(x')] = \frac{1}{L_c} \sum_y A[s(y),\, s(f(y+d))]\, e^{i\mathbf{k}\cdot\boldsymbol{\delta}}
+
+        where :math:`f(y+d)` folds :math:`y+d` back into the super unit cell and
+        :math:`\boldsymbol{\delta}` is the wrapping superlattice vector.
+
+        :param A: input matrix (ndarray of shape ``(d, d)``, complex, ``d`` = ``dim_GF``)
+        :param k: wavevector (ndarray(3)) in units of :math:`2\pi`
+        :returns: symmetrized matrix (ndarray of shape ``(d, d)``, complex)
+
+        """
+        return qcm.compact_tiling(A, k)
+
+    # -----------------------------------------------------------------------------------------------
     # imports further functions from other source files
 
     from ._draw import draw_cluster_operator, draw_operator
@@ -2832,6 +2852,7 @@ def is_sequence(obj):
         return False
 
 
+# ---------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------
 def reset_model():
     """

@@ -675,18 +675,19 @@ class CDMFT:
                 for c in range(self.model.nclus):
                     delta = X[0][c][i, :, :] - Y[0][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i] * norm * norm
+                    diff += g.weight[i] * norm * norm /X[0][c].shape[1]**2
             for i in range(g.nw):
                 for c in range(self.model.nclus):
                     delta = X[1][c][i, :, :] - Y[1][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i] * norm * norm
+                    diff += g.weight[i] * norm * norm /X[1][c].shape[1]**2
 
         if self.model.mixing == 0:
             diff *= 2
         elif self.model.mixing == 3:
             diff /= 2
-        diff /= g.nw
+        # diff /= g.nw
+        diff /= self.model.nclus
         return np.sqrt(diff)
 
     # -----------------------------------------------------------------------------------------------

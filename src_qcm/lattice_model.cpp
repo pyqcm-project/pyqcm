@@ -101,6 +101,7 @@ void lattice_model::pre_operator_consolidate()
   Lc = sites.size()/n_band;
   
   neighbor.push_back(vector3D<int64_t>(0,0,0)); //! adding self to list of neighbors
+  neighbor_census(); //! populate all possible inter-cluster neighbor vectors from site-position differences
   spatial_dimension = (int)superlattice.D;
   
   //..............................................................................
@@ -162,6 +163,114 @@ void lattice_model::find_second_site(int s1, const vector3D<int64_t>& link, int&
   ni_opp = neighbor_index(R2);
 
 }
+
+//===============================================================================
+/**
+ Adds all possible neighbor vectors to the neighbor list by examining every
+ position difference r2-r1 between sites of the super unit cell and applying
+ that displacement to every site in the super unit cell.
+
+ Algorithm:
+   (1) Loop over sites i1 (position r1) of the super unit cell.
+   (2) Loop over sites i2 (position r2) of the super unit cell.
+   (3) For each site s of the super unit cell, call find_second_site with
+       link = r2-r1: this folds the displaced position back into the SUC,
+       computes the neighbor vector, and registers it via neighbor_index if new.
+ */
+void lattice_model::neighbor_census()
+{
+  size_t Ns = sites.size();
+  for(size_t i1 = 0; i1 < Ns; ++i1){
+    for(size_t i2 = 0; i2 < Ns; ++i2){
+      vector3D<int64_t> delta = sites[i2].position - sites[i1].position;
+      for(size_t s = 0; s < Ns; ++s){
+        int s2, ni, ni_opp;
+        find_second_site((int)s, delta, s2, ni, ni_opp);
+        // neighbor_index (called inside find_second_site) handles deduplication
+      }
+    }
+  }
+}
+
+
+//===============================================================================
+/**
+ Symmetrizes a dim_GF matrix with respect to cluster translations at wavevector k
+ (compact tiling).
+
+ For each element A[s(x), s(x')] with spatial link d = pos(x') - pos(x):
+   Act[s(x), s(x')] = (1/Lc) * sum_{y in cluster} A[s(y), s(f(y+d))] * exp(i*k*delta)
+ where f(y+d) is the site obtained by folding y+d into the super unit cell and
+ delta is the wrapping superlattice vector (0 when y+d stays inside).
+
+ @param A [in] matrix to symmetrize, of size dim_GF x dim_GF
+ @param k [in] wavevector in the superdual basis (same convention as M.k and periodize())
+ @returns the symmetrized matrix Act of size dim_GF x dim_GF
+ */
+matrix<Complex> lattice_model::compact_tiling(const matrix<Complex>& A, const vector3D<double>& k)
+{
+  QCM_ASSERT(clusters.size() == 1);
+
+  size_t ns = clusters[0].n_sites;   // sites per spin/Nambu block
+
+  // compute neighbor phase factors: phase[n] = exp(i*k*neighbor[n]*2pi)
+  // neighbor[n] is in superlattice fractional integer coords (same basis as k)
+  size_t nv = neighbor.size();
+  vector<Complex> phase(nv);
+  for(size_t n = 0; n < nv; ++n){
+    double z = k * neighbor[n] * 2 * M_PI;
+    phase[n] = Complex(cos(z), sin(z));
+  }
+
+  // build lookup: superlattice-fractional integer vector -> neighbor index
+  map<vector3D<int64_t>, size_t> neighbor_map;
+  for(size_t n = 0; n < nv; ++n)
+    neighbor_map[neighbor[n]] = n;
+
+  matrix<Complex> Act(dim_GF);
+
+  for(size_t i1 = 0; i1 < dim_GF; i1++){
+    size_t s1 = i1 % ns;   // site index within block
+    size_t b1 = i1 / ns;   // spin/Nambu block
+
+    for(size_t i2 = 0; i2 < dim_GF; i2++){
+      size_t s2 = i2 % ns;
+      size_t b2 = i2 / ns;
+
+      // spatial link from s1 to s2 in physical integer coordinates
+      vector3D<int64_t> d = sites[s2].position - sites[s1].position;
+
+      // sum over all sites y (same block b1)
+      Complex sum = 0.0;
+      for(size_t s = 0; s < ns; s++){
+        vector3D<int64_t> R, S;
+        superlattice.fold(sites[s].position + d, R, S);
+
+        auto sit = folded_position_map.find(S);
+        if(sit == folded_position_map.end()) continue; // no site here (e.g. non-Bravais cluster)
+        size_t s_dest = sit->second;
+
+        // convert R to superlattice fractional integer coords
+        vector3D<double> R_sup = superlattice.to(R);
+        vector3D<int64_t> R_int = {
+          (int64_t)round(R_sup.x),
+          (int64_t)round(R_sup.y),
+          (int64_t)round(R_sup.z)
+        };
+
+        auto nit = neighbor_map.find(R_int);
+        if(nit == neighbor_map.end()) continue;
+
+        sum += A(s + b1*ns, s_dest + b2*ns) * phase[nit->second];
+      }
+
+      Act(i1, i2) = sum / (double)Lc;
+    }
+  }
+
+  return Act;
+}
+
 
 /**
  Adds the chemical potential to the model (this operator is always present)

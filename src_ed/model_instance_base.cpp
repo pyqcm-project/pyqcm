@@ -22,10 +22,16 @@ model_instance_base::model_instance_base(size_t _label, shared_ptr<model> _the_m
     char gf = global_char("GF_method");
     // backward compatibility: continued_fraction=true maps to 'F'
     if(gf == 'L' && global_bool("continued_fraction")) gf = 'F';
-    switch(gf){
-      case 'F': GF_solver = GF_format_CF;  break;
-      case 'M': GF_solver = GF_format_MCF; break;
-      default:  GF_solver = GF_format_BL;  break;
+    // When GF_method='L' and combine_mcf=true, convert the Q_matrix to an MCF
+    // via block Lanczos on the diagonal Hamiltonian diag(Q.e).
+    if(gf == 'L' && global_bool("combine_mcf")){
+      GF_solver = GF_format_Q_to_MCF;
+    } else {
+      switch(gf){
+        case 'F': GF_solver = GF_format_CF;  break;
+        case 'M': GF_solver = GF_format_MCF; break;
+        default:  GF_solver = GF_format_BL;  break;
+      }
     }
   }
   

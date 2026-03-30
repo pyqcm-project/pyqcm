@@ -103,7 +103,9 @@ struct lattice_model{
 	void close_model(bool force=false);
 	void density_wave(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type);
 	void explicit_operator(const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau, int sigma);
+	matrix<Complex> compact_tiling(const matrix<Complex>& A, const vector3D<double>& k);
 	void find_second_site(int s1, const vector3D<int64_t>& link, int& s2, int& ni, int& ni_opp);
+	void neighbor_census();
 	void hopping_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma);
 	void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int b1, int b2, int dir, bool pau=true);
 	void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);

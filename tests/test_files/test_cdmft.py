@@ -21,7 +21,7 @@ M.model.set_parameters("""
 varia = ['eb1_1', 'eb2_1', 'tb1_1', 'tb2_1']
 
 # convergence = 'GS energy'; accur = 1e-3
-# convergence='self-energy'; accur = 1e-4
+convergence='self-energy'; accur = 1e-4
 # convergence='t'; accur = 1e-4
 # convergence='parameters'; accur = 1e-4
 # convergence=('parameters', 'hybridization', 'self-energy'); accur = (5e-4, 1e-4, 1e-4)
@@ -30,11 +30,11 @@ varia = ['eb1_1', 'eb2_1', 'tb1_1', 'tb2_1']
 # convergence=('t',); accur=(1e-3,)
 # convergence=['distance', 'self-energy', 'E0']; accur=[1e-3, 1e-4, 1e-7]
 # convergence=['self-energy', 'E0']; accur=[1e-4, 1e-7]
-convergence=['self-energy', 'distance']; accur=[1e-4, 1e-7]
+# convergence=['self-energy', 'distance']; accur=[1e-4, 1e-7]
 
 
 
-X = CDMFT(M.model, varia=varia, wc=[0.5,5,5], grid_type='legendre', accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
+# X = CDMFT(M.model, varia=varia, wc=[0.5,5,5], grid_type='legendre', accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
 # X.I.plot_host_hybrid(np.linspace(0.01, 10, 100), (0,0)); exit()
 
 # Defining a function that will run a cdmft procedure within controlled_loop()
@@ -43,7 +43,18 @@ def run_cdmft():
         alpha = X.alpha
     except:
         alpha = 0.0
-    X = CDMFT(M.model, varia=varia, wc=10, selfnorm=True, accur=accur, convergence=convergence, converge_with_stdev=False, miniter=1, maxiter=64, depth=1, iteration='fixed_point', alpha=alpha)
+    X = CDMFT(M.model, 
+              varia=varia,
+              grid_type='legendre',
+              wc=(1,10,10), 
+              selfnorm=True, 
+              accur=accur, 
+              convergence=convergence, 
+              converge_with_stdev=False, 
+              miniter=1, maxiter=64, 
+              depth=1, 
+              iteration='fixed_point', 
+              alpha=alpha)
     return X.I
 
 # pyqcm.json_output = True
@@ -52,5 +63,5 @@ M.model.controlled_loop(
     task=run_cdmft,
     varia=["tb1_1", "eb1_1"], 
     loop_param="U", 
-    loop_range=(2, 4.1, 0.5)
+    loop_range=(2, 10.1, 0.5)
 )

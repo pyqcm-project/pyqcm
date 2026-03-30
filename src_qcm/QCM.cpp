@@ -558,6 +558,24 @@ check_instance(label);
   
   
   /**
+   Applies compact_tiling to an arbitrary dim_GF matrix at wavevector k.
+   Converts k from physical dual to superdual basis, computes the neighbor
+   phase factors, and delegates to Green_function_k::compact_tiling.
+   @param A         input matrix (dim_GF x dim_GF)
+   @param k         wavevector in units of 2pi (physical dual basis)
+   @param spin_down true for the spin-down sector (mixing = 4)
+   @param label     model instance label
+   */
+  matrix<complex<double>> compact_tiling(const matrix<complex<double>>& A, const vector3D<double>& k)
+  {
+    lattice_model& mod = *qcm_model;
+    // convert k from physical-dual to superdual basis (same convention as periodize() and M.k)
+    vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
+    return mod.compact_tiling(A, K);
+  }
+
+
+  /**
    returns the dispersion relation for an array of wavevectors
  * @param spin_down true if the spin-down sector is covered (mixing = 4)
    */

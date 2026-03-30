@@ -8,7 +8,7 @@
 #include "Q_matrix.hpp"
 #include "hdf5_io.hpp"
 
-enum GF_FORMAT {GF_format_BL, GF_format_CF, GF_format_MCF};
+enum GF_FORMAT {GF_format_BL, GF_format_CF, GF_format_MCF, GF_format_Q_to_MCF};
 
 //! Abstract class for a Green function solution that can provide the Green function at any complex frequency
 struct Green_function_set

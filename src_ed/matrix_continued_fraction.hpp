@@ -37,6 +37,7 @@
 
 #include "continued_fraction.hpp"   // pulls in block_matrix.hpp → matrix.hpp
 // hdf5_io.hpp is already pulled in by continued_fraction.hpp
+#include "Q_matrix.hpp"
 
 //! Matrix-valued Jacobi continued fraction.
 /**
@@ -233,6 +234,76 @@ struct matrix_continued_fraction
 // C++14-compatible helpers: convert a Complex scalar to field T.
 inline double      mcf_to_T(Complex z, double)  { return z.real(); }
 inline Complex     mcf_to_T(Complex z, Complex) { return z; }
+
+
+//! Diagonal-matrix operator for block Lanczos.
+/**
+ Implements the Hamiltonian H = diag(e[0], ..., e[M-1]) used in Q_matrix_to_mcf.
+ Satisfies the TYPE concept expected by blockLanczos via mult_add().
+*/
+template<typename T>
+struct diagonal_hamiltonian {
+    const vector<double>& evals;
+    explicit diagonal_hamiltonian(const vector<double>& _e) : evals(_e) {}
+    void mult_add(const vector<T>& x, vector<T>& y) const {
+        for(size_t i = 0; i < evals.size(); ++i)
+            y[i] += T(evals[i]) * x[i];
+    }
+};
+
+
+//! Convert a Q_matrix into a matrix_continued_fraction via block Lanczos.
+/**
+ The Hamiltonian used is the diagonal matrix H = diag(Q.e[0], ..., Q.e[M-1]).
+ The L starting vectors are the L rows of Q.v.  The resulting MCF is equivalent
+ to the Lehmann sum G(z)(a,b) = sum_k Q.v(a,k) * conj(Q.v(b,k)) / (z - Q.e[k]).
+
+ The weight matrix W is extracted from Q.v via modified Gram-Schmidt (as in
+ combine_via_lanczos), so that G(z) = W^H F_0(z) W.
+
+ M0 is set to Q.M (the Krylov space cannot exceed the eigenvalue count M),
+ capped by the global parameter max_iter_BL.
+
+ @param Q  Combined Q_matrix (electron + hole poles, already energy-shifted).
+ @return   matrix_continued_fraction equivalent to Q.
+*/
+template<typename HilbertField>
+matrix_continued_fraction<HilbertField> Q_matrix_to_mcf(const Q_matrix<HilbertField>& Q)
+{
+    const int L = (int)Q.L;
+    const int M = (int)Q.M;
+    if(M == 0 || L == 0) return matrix_continued_fraction<HilbertField>();
+
+    // Build starting block: phi[a] = row a of Q.v  (length-M vectors)
+    vector<vector<HilbertField>> phi(L, vector<HilbertField>(M));
+    for(int a = 0; a < L; ++a)
+        for(int k = 0; k < M; ++k)
+            phi[a][k] = Q.v(a, k);
+
+    // Extract the upper-triangular QR factor W from phi via modified Gram-Schmidt.
+    // The working copy q is discarded; blockLanczos re-orthonormalises phi internally.
+    matrix<HilbertField> W(L);
+    {
+        vector<vector<HilbertField>> q(phi);
+        for(int l = 0; l < L; ++l){
+            for(int k = 0; k < l; ++k){
+                HilbertField z = q[k] * q[l];
+                W(k, l) = z;
+                mult_add(-z, q[k], q[l]);
+            }
+            double nrm = norm(q[l]);
+            W(l, l) = HilbertField(nrm);
+            q[l] *= 1.0 / nrm;
+        }
+    }
+
+    diagonal_hamiltonian<HilbertField> H(Q.e);
+    vector<matrix<HilbertField>> A, B;
+    int M0 = M;
+    blockLanczos(H, phi, A, B, M0);
+
+    return matrix_continued_fraction<HilbertField>(A, B, to_complex_matrix(W));
+}
 
 
 //! Combine two MCFs into a single one whose evaluate() gives G_h(z) + G_e(z)^T directly.

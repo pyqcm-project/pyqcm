@@ -71,6 +71,7 @@ struct model_instance : model_instance_base
   void build_cf(state<HilbertField> &Omega, bool spin_down);
   void build_qmatrix(state<HilbertField> &Omega, bool spin_down);
   void build_mcf(state<HilbertField> &Omega, bool spin_down);
+  void build_mcf_from_qmatrix(state<HilbertField> &Omega, bool spin_down);
   void clear_states();
   void compute_weights();
   void insert_state(shared_ptr<state<HilbertField>> S);
@@ -520,11 +521,13 @@ void model_instance<HilbertField>::Green_function_solve()
 
     if(GF_solver == GF_format_CF) build_cf(*x, false);
     else if(GF_solver == GF_format_MCF) build_mcf(*x, false);
+    else if(GF_solver == GF_format_Q_to_MCF) build_mcf_from_qmatrix(*x, false);
     else build_qmatrix(*x,false);
 
     if(mixing&HS_mixing::up_down){
       if(GF_solver == GF_format_CF) build_cf(*x,true);
       else if(GF_solver == GF_format_MCF) build_mcf(*x,true);
+      else if(GF_solver == GF_format_Q_to_MCF) build_mcf_from_qmatrix(*x,true);
       else build_qmatrix(*x,true);
     }
   }
@@ -929,6 +932,50 @@ void model_instance<HilbertField>::build_mcf(state<HilbertField> &Omega, bool sp
 }
 
 
+/**
+ Constructs the MCF representation of the Green function from the Q_matrix
+ Lehmann representation, using block Lanczos on the diagonal Hamiltonian
+ H = diag(Q.e).
+
+ Calls build_qmatrix() to obtain the combined (electron + hole) Q_matrix per
+ irrep block, then converts each block via Q_matrix_to_mcf() and stores the
+ result in mcf_set::combined[r].  The mcf_set replaces the Q_matrix_set in
+ Omega.gf (or Omega.gf_down).
+
+ This path is used when GF_method = 'L' and combine_mcf = true.  It preserves
+ the Lehmann accuracy of build_qmatrix while producing a combined MCF output
+ compatible with get_combined_mcf().
+
+ @param Omega      State on which the GF is built.
+ @param spin_down  True when building the spin-down component (up-down mixing).
+*/
+template<typename HilbertField>
+void model_instance<HilbertField>::build_mcf_from_qmatrix(state<HilbertField> &Omega, bool spin_down)
+{
+  // Step 1: build the Q_matrix_set using the standard Lehmann path
+  build_qmatrix(Omega, spin_down);
+
+  auto Qset = dynamic_pointer_cast<Q_matrix_set<HilbertField>>(
+      spin_down ? Omega.gf_down : Omega.gf);
+  if(!Qset) return;
+
+  // Step 2: create mcf_set; convert each Q_matrix block to a combined MCF.
+  // The Q_matrix already merges electron and hole poles, so each block maps
+  // directly to a single combined MCF stored in combined[r].
+  auto mcf = make_shared<mcf_set<HilbertField>>(the_model->group, mixing);
+
+  auto& sym_orb = the_model->sym_orb[mixing];
+  for(size_t r = 0; r < sym_orb.size(); ++r){
+    if(Qset->q[r].M == 0) continue;
+    mcf->combined[r] = Q_matrix_to_mcf(Qset->q[r]);
+  }
+
+  // Step 3: replace the Q_matrix_set with the new mcf_set
+  if(spin_down) Omega.gf_down = mcf;
+  else          Omega.gf      = mcf;
+}
+
+
 
 
 
@@ -1284,9 +1331,10 @@ void model_instance<HilbertField>::write_hdf5(H5::Group& grp)
   h5_write_attr(grp, "GS_energy",  GS_energy);
   h5_write_attr(grp, "GS_sectors", GS_string());
   string fmt;
-  if(GF_solver == GF_format_CF)        fmt = "cf";
-  else if(GF_solver == GF_format_MCF)  fmt = "mcf";
-  else                                  fmt = "bl";
+  if(GF_solver == GF_format_CF)                                   fmt = "cf";
+  else if(GF_solver == GF_format_MCF ||
+          GF_solver == GF_format_Q_to_MCF)                       fmt = "mcf";
+  else                                                            fmt = "bl";
   h5_write_attr(grp, "GF_format",  fmt);
   h5_write_attr(grp, "mixing",     mixing);
   h5_write_attr(grp, "complex_HS", (int)complex_Hilbert);

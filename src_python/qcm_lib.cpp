@@ -69,6 +69,7 @@ static PyMethodDef methods[] = {
     {"cluster_hopping_matrix", cluster_hopping_matrix_python, METH_VARARGS, cluster_hopping_matrix_help},
     {"cluster_info", cluster_info_python, METH_VARARGS, cluster_info_help},
     {"cluster_self_energy", cluster_self_energy_python, METH_VARARGS, cluster_self_energy_help},
+    {"compact_tiling", compact_tiling_python, METH_VARARGS, compact_tiling_help},
     {"complex_HS", complex_HS_python, METH_VARARGS, complex_HS_help},
     {"CPT_Green_function_inverse", CPT_Green_function_inverse_python, METH_VARARGS, CPT_Green_function_inverse_help},
     {"CPT_Green_function", CPT_Green_function_python, METH_VARARGS, CPT_Green_function_help},

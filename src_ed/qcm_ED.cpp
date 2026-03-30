@@ -635,9 +635,11 @@ namespace ED{
     check_instance(label);
     #endif
     auto& inst_base = model_instances.at(label);
-    if(inst_base->GF_solver != GF_format_MCF)
+    if(inst_base->GF_solver != GF_format_MCF &&
+       inst_base->GF_solver != GF_format_Q_to_MCF)
       qcm_ED_throw("get_combined_mcf: the instance at label "
-                   + to_string(label) + " does not use the MCF format (GF_method != 'M').");
+                   + to_string(label) + " does not use the MCF format "
+                   "(GF_method must be 'M', or 'L' with combine_mcf=True).");
     if(!global_bool("combine_mcf"))
       qcm_ED_throw("get_combined_mcf: the combined MCF is not built unless "
                    "the global parameter 'combine_mcf' is set to True.");

@@ -5,6 +5,7 @@
 #include "block_matrix.hpp"
 
 
+
 //! structure defining the cluster Green function and related quantities (self-energy, hybridization function)
 struct Green_function
 {
@@ -41,6 +42,7 @@ struct Green_function_k
 		g.set_size(dim_reduced_GF);
 		sigma.set_size(dim_reduced_GF);
 	}
+
 };
 
 

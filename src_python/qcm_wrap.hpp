@@ -303,6 +303,55 @@ static PyObject *cluster_self_energy_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *compact_tiling_help =
+    R"{(
+Symmetrizes a dim_GF matrix with respect to cluster translations at wavevector k.
+
+For each element A[s(x), s(x')] with link d = x' - x, the result is:
+  Act[s(x), s(x')] = (1/Lc) * sum_y  A[s(y), s(f(y+d))] * exp(i*k*delta)
+where f(y+d) is the site obtained by folding y+d into the super unit cell,
+and delta is the wrapping superlattice vector (0 when y+d stays inside).
+
+This depends only on the lattice model structure (sites, neighbors) and k,
+not on any model instance or solved Green function.
+
+arguments:
+1. A : input matrix (ndarray of shape (d,d), complex, d = dim_GF)
+2. k : wavevector (ndarray(3)) in units of 2*pi
+returns: symmetrized matrix (ndarray of shape (d,d), complex)
+){";
+//------------------------------------------------------------------------------
+static PyObject *compact_tiling_python(PyObject *self, PyObject *args) {
+  PyArrayObject *A_pyobj = nullptr;
+  PyArrayObject *k_pyobj = nullptr;
+
+  try {
+    if (!PyArg_ParseTuple(args, "OO", &A_pyobj, &k_pyobj))
+      qcm_throw("failed to read parameters in call to compact_tiling (python)");
+
+    size_t d = QCM::Green_function_dimension();
+    if (PyArray_NDIM(A_pyobj) != 2 || (size_t)PyArray_DIM(A_pyobj, 0) != d || (size_t)PyArray_DIM(A_pyobj, 1) != d)
+      qcm_throw("argument A of compact_tiling must be a square complex array of size dim_GF");
+
+    matrix<complex<double>> A(d);
+    memcpy(A.v.data(), PyArray_DATA((PyArrayObject *)A_pyobj), d * d * sizeof(complex<double>));
+
+    vector3D<double> k = vector_from_Py(k_pyobj);
+    auto Act = QCM::compact_tiling(A, k);
+
+    npy_intp dims[2];
+    dims[0] = dims[1] = (npy_intp)d;
+    PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
+    memcpy(PyArray_DATA((PyArrayObject *)out), Act.data(), d * d * sizeof(complex<double>));
+    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
+    return out;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+}
+
+//==============================================================================
 const char *cluster_hopping_matrix_help =
     R"{(
 returns the one-body matrix of cluster no i for instance 'label'
