@@ -102,6 +102,7 @@ void lattice_model::pre_operator_consolidate()
   
   neighbor.push_back(vector3D<int64_t>(0,0,0)); //! adding self to list of neighbors
   neighbor_census(); //! populate all possible inter-cluster neighbor vectors from site-position differences
+  if(clusters.size() == 1) prepare_tiling_data(); //! build tiling connectivity for compact_tiling()
   spatial_dimension = (int)superlattice.D;
   
   //..............................................................................
@@ -195,76 +196,86 @@ void lattice_model::neighbor_census()
 
 //===============================================================================
 /**
- Symmetrizes a dim_GF matrix with respect to cluster translations at wavevector k
- (compact tiling).
+ Builds tiling_data: for each distinct spatial displacement d between intra-cluster
+ site pairs, stores the list of (s1, s2, n) triplets where s1, s2 are site indices
+ and n is the neighbor label (n=0 for intra-cluster, n>0 for inter-cluster wrapping).
+ The intra entries (n=0) are placed first; n_intra records their count.
+ */
+void lattice_model::prepare_tiling_data()
+{
+  size_t ns = clusters[0].n_sites;
 
- For each element A[s(x), s(x')] with spatial link d = pos(x') - pos(x):
-   Act[s(x), s(x')] = (1/Lc) * sum_{y in cluster} A[s(y), s(f(y+d))] * exp(i*k*delta)
- where f(y+d) is the site obtained by folding y+d into the super unit cell and
- delta is the wrapping superlattice vector (0 when y+d stays inside).
+  // Build one group per distinct displacement d, seeding with intra-cluster pairs
+  map<vector3D<int64_t>, tile_group> grp_map;
+  for(size_t s1 = 0; s1 < ns; ++s1)
+    for(size_t s2 = 0; s2 < ns; ++s2)
+      grp_map[sites[s2].position - sites[s1].position].entries.push_back({s1, s2, 0});
 
- @param A [in] matrix to symmetrize, of size dim_GF x dim_GF
+  // For each displacement, add inter-cluster entries (n>0) from all sites
+  for(auto& kv : grp_map){
+    const vector3D<int64_t>& d = kv.first;
+    auto& grp = kv.second;
+    grp.n_intra = grp.entries.size();  // all entries so far are intra (n=0)
+
+    for(size_t s = 0; s < ns; ++s){
+      int s2, ni, ni_opp;
+      find_second_site((int)s, d, s2, ni, ni_opp);
+      if(s2 < 0) continue;   // no site at that position (non-Bravais cluster)
+      if(ni == 0) continue;  // intra-cluster, already in the list
+      grp.entries.push_back({s, (size_t)s2, (size_t)ni});
+    }
+  }
+
+  tiling_data.reserve(grp_map.size());
+  for(auto& kv : grp_map)
+    tiling_data.push_back(std::move(kv.second));
+}
+
+
+//===============================================================================
+/**
+ Compact-tiling of a dim_GF x dim_GF matrix at wavevector k.
+
+ For each displacement d, all intra-cluster elements A[s,s'] with the same d are
+ averaged (step 1), then inter-cluster elements A[s, f(s+d)] are added with the
+ Bloch phase exp(i*k*R*2*pi) for the wrapping vector R (step 2). Uses tiling_data
+ pre-computed by prepare_tiling_data().
+
+ @param A [in] matrix to compact-tile, of size dim_GF x dim_GF
  @param k [in] wavevector in the superdual basis (same convention as M.k and periodize())
- @returns the symmetrized matrix Act of size dim_GF x dim_GF
+ @returns the compact-tiled matrix Act of size dim_GF x dim_GF
  */
 matrix<Complex> lattice_model::compact_tiling(const matrix<Complex>& A, const vector3D<double>& k)
 {
   QCM_ASSERT(clusters.size() == 1);
 
-  size_t ns = clusters[0].n_sites;   // sites per spin/Nambu block
+  size_t ns = clusters[0].n_sites;
+  size_t nb = dim_GF / ns;           // number of spin/Nambu blocks
 
-  // compute neighbor phase factors: phase[n] = exp(i*k*neighbor[n]*2pi)
-  // neighbor[n] is in superlattice fractional integer coords (same basis as k)
-  size_t nv = neighbor.size();
-  vector<Complex> phase(nv);
-  for(size_t n = 0; n < nv; ++n){
+  // phase[n] = exp(i * k * neighbor[n] * 2*pi)
+  vector<Complex> phase(neighbor.size());
+  for(size_t n = 0; n < neighbor.size(); ++n){
     double z = k * neighbor[n] * 2 * M_PI;
     phase[n] = Complex(cos(z), sin(z));
   }
 
-  // build lookup: superlattice-fractional integer vector -> neighbor index
-  map<vector3D<int64_t>, size_t> neighbor_map;
-  for(size_t n = 0; n < nv; ++n)
-    neighbor_map[neighbor[n]] = n;
-
   matrix<Complex> Act(dim_GF);
 
-  for(size_t i1 = 0; i1 < dim_GF; i1++){
-    size_t s1 = i1 % ns;   // site index within block
-    size_t b1 = i1 / ns;   // spin/Nambu block
+  for(size_t b1 = 0; b1 < nb; ++b1){
+    for(size_t b2 = 0; b2 < nb; ++b2){
+      for(auto& grp : tiling_data){
+        // Step 1: average A over intra-cluster (n=0) entries for this displacement
+        Complex avg = 0.0;
+        for(size_t i = 0; i < grp.n_intra; ++i){
+          auto& e = grp.entries[i];
+          avg += A(e[0] + b1*ns, e[1] + b2*ns);
+        }
+        avg /= (double)grp.n_intra;
 
-    for(size_t i2 = 0; i2 < dim_GF; i2++){
-      size_t s2 = i2 % ns;
-      size_t b2 = i2 / ns;
-
-      // spatial link from s1 to s2 in physical integer coordinates
-      vector3D<int64_t> d = sites[s2].position - sites[s1].position;
-
-      // sum over all sites y (same block b1)
-      Complex sum = 0.0;
-      for(size_t s = 0; s < ns; s++){
-        vector3D<int64_t> R, S;
-        superlattice.fold(sites[s].position + d, R, S);
-
-        auto sit = folded_position_map.find(S);
-        if(sit == folded_position_map.end()) continue; // no site here (e.g. non-Bravais cluster)
-        size_t s_dest = sit->second;
-
-        // convert R to superlattice fractional integer coords
-        vector3D<double> R_sup = superlattice.to(R);
-        vector3D<int64_t> R_int = {
-          (int64_t)round(R_sup.x),
-          (int64_t)round(R_sup.y),
-          (int64_t)round(R_sup.z)
-        };
-
-        auto nit = neighbor_map.find(R_int);
-        if(nit == neighbor_map.end()) continue;
-
-        sum += A(s + b1*ns, s_dest + b2*ns) * phase[nit->second];
+        // Step 2: add avg*phase[n] for all entries (intra: phase=1, inter: Bloch factor)
+        for(auto& e : grp.entries)
+          Act(e[0] + b1*ns, e[1] + b2*ns) += avg * phase[e[2]];
       }
-
-      Act(i1, i2) = sum / (double)Lc;
     }
   }
 

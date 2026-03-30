@@ -81,6 +81,13 @@ struct lattice_model{
 	vector<vector<vector<Complex>>> pauli; //!< Pauli matrices
 	vector<vector3D<double>> Green_to_position; // position associated (in superlattice basis) with each Green function index
 	vector<vector3D<int64_t>> neighbor; //!< list of neighboring superclusters
+
+	//! pre-computed connectivity for compact_tiling(): one group per distinct spatial displacement
+	struct tile_group {
+		size_t n_intra;                    //!< number of intra-cluster (n=0) entries at start of entries
+		vector<array<size_t,3>> entries;   //!< {s1, s2, n}: spatial site indices and neighbor label
+	};
+	vector<tile_group> tiling_data;        //!< tiling groups, built once by prepare_tiling_data()
 	shared_ptr<parameter_set> param_set; //!< parameter set structure
 	vector<string> sector_strings; //!< Hilbert space sectors to explore in the different systems
 	string hybrid_file; //!< name of HDF5 file containing the external hybridization
@@ -106,6 +113,7 @@ struct lattice_model{
 	matrix<Complex> compact_tiling(const matrix<Complex>& A, const vector3D<double>& k);
 	void find_second_site(int s1, const vector3D<int64_t>& link, int& s2, int& ni, int& ni_opp);
 	void neighbor_census();
+	void prepare_tiling_data();
 	void hopping_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma);
 	void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int b1, int b2, int dir, bool pau=true);
 	void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);
