@@ -473,9 +473,13 @@ matrix_continued_fraction<T> combine_via_lanczos(
 
     // Run block Lanczos on T_e ⊕ T_h with the p starting vectors.
     // blockLanczos orthonormalises phi internally.
+    // GF_method='H' uses the polar-decomposition variant with Hermitian B blocks.
     combined_sector_operator<T> op(e, h);
     vector<matrix<T>> A_new, B_new;
-    blockLanczos(op, phi, A_new, B_new, M0);
+    if(global_char("GF_method") == 'H')
+        blockLanczosSVD(op, phi, A_new, B_new, M0);
+    else
+        blockLanczos(op, phi, A_new, B_new, M0);
 
     return matrix_continued_fraction<T>(A_new, B_new, to_complex_matrix(W_new));
 }

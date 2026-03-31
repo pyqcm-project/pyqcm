@@ -368,7 +368,7 @@ namespace ED{
    Returns the combined MCF (W, A[j], B[j]) for the first ground state, in
    the full cluster site-orbital basis.
 
-   Only valid when GF_method = 'M' and combine_mcf = True.
+   Only valid when GF_method = 'M' or 'H', and combine_mcf = True.
    Throws if the instance does not use the MCF format or combine_mcf is false.
 
    spin_down : true to access the spin-down sector (mixing = 4)

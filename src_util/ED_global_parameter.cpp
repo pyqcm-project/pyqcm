@@ -272,7 +272,7 @@ namespace ED {
     new_global_int(0,"seed","seed of the random number generator");
 
     new_global_char('E', "Hamiltonian_format", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly)");
-    new_global_char('L', "GF_method", "Representation of the Green function: L (Lehmann/band-Lanczos - default), F (continued fraction), M (matrix continued fraction)");
+    new_global_char('L', "GF_method", "Representation of the Green function: L (Lehmann/band-Lanczos - default), F (continued fraction), M (matrix continued fraction), H (matrix continued fraction with Hermitian off-diagonal blocks via polar decomposition)");
   }
 }
 

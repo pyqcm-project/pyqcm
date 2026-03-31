@@ -900,7 +900,7 @@ class model_instance:
         return qcm.qmatrix(self.label * self.model.nsys + sys)
 
     # -----------------------------------------------------------------------------------------------
-    def combined_mcf(self, sys=0):
+    def combined_mcf(self, sys=0, pr=False):
         """
         Returns the combined matrix continued fraction (MCF) for the cluster Green function.
 
@@ -911,6 +911,7 @@ class model_instance:
         parameter ``combine_mcf`` is ``True``.  Raises an exception otherwise.
 
         :param int sys: label of the system (0-based)
+        :param bool pr: if True, prints the MCF blocks in addition to returning them
         :returns: 3-tuple ``(W, A, B)`` where
 
             * ``W``  -- ``(L, L)`` complex ndarray, weight matrix
@@ -919,7 +920,19 @@ class model_instance:
 
             L is the dimension of the Green function, M is the number of floors.
         """
-        return qcm.combined_mcf(self.label * self.model.nsys + sys)
+
+        if pr is False: 
+            return qcm.combined_mcf(self.label * self.model.nsys + sys)
+        else:
+            W, A, B = qcm.combined_mcf(self.label * self.model.nsys + sys)
+            print('W = \n' + str(W))
+            for i,x in enumerate(A):
+                print('A[' + str(i) + '] = \n' + str(x))
+            for i,x in enumerate(B):
+                print('B[' + str(i) + '] = \n' + str(x)) 
+            return W, A, B   
+
+        
 
     # -----------------------------------------------------------------------------------------------
     def write_hdf5(self, filename, sys=0):

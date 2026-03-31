@@ -572,6 +572,213 @@ bool blockLanczos(
 }
 
 
+//! Block Lanczos method with Hermitian (polar-decomposition) off-diagonal blocks
+/**
+ Variant of blockLanczos() in which the off-diagonal coupling blocks B[j] are
+ Hermitian positive semi-definite instead of upper-triangular.
+
+ The block three-term recurrence is identical:
+   H Q_j = Q_{j-1} B_{j-1}^H + Q_j A_j + Q_{j+1} B_j
+
+ but now B_j = B_j^H (Hermitian PSD), so the projected block-tridiagonal matrix
+ has equal sub- and super-diagonal blocks: T[j,j+1] = B_j = T[j+1,j]^H.
+
+ This is achieved by replacing the QR factorisation of the residual block Z with
+ a polar decomposition:
+   1. Compute the p×p Gram matrix  G_{kl} = <Z[k]|Z[l]>
+   2. Eigendecompose  G = V D V^H  (D real non-negative)
+   3. B_j = V sqrt(D) V^H        (Hermitian square root of G)
+   4. Q_{j+1}[:,l] = sum_k (V D^{-1/2} V^H)_{kl} Z[k]
+
+ Deflation is triggered when a singular value sqrt(D[m]) < accur_deflation.
+
+ @param H     Object with a mult_add(x, y) method: y += H*x
+ @param phi   Starting block of p vectors (each of size dim). Orthonormalized internally.
+ @param A     Diagonal blocks A[j] (p×p Hermitian matrices, output).
+ @param B     Off-diagonal blocks B[j] (p×p Hermitian PSD matrices, output).
+ @param M0    Maximum number of block Lanczos steps on input; actual number on output.
+ @param verb  Verbose flag.
+ @returns true if the lowest eigenvalue converged within M0 steps, false otherwise.
+ */
+template<typename TYPE, typename HilbertField>
+bool blockLanczosSVD(
+    TYPE &H,
+    vector<vector<HilbertField>> &phi,
+    vector<matrix<HilbertField>> &A,
+    vector<matrix<HilbertField>> &B,
+    int &M0,
+    bool verb=false
+)
+{
+    int p = (int)phi.size();
+    size_t dim = phi[0].size();
+
+    double accur_deflation    = global_double("accur_deflation");
+    double accur_band_lanczos = global_double("accur_band_lanczos");
+    if(accur_band_lanczos < 0.0) accur_band_lanczos = 0.0;
+    size_t max_iter_BL = global_int("max_iter_BL");
+    if(M0 > (int)max_iter_BL) M0 = (int)max_iter_BL;
+
+    if(verb) cout << "\nblock Lanczos (polar/SVD): block size p=" << p << ", dim=" << dim << endl;
+
+    A.clear();
+    B.clear();
+
+    // Three rolling blocks of p Hilbert-space vectors
+    vector<vector<HilbertField>> Q_prev;
+    vector<vector<HilbertField>> Q_cur(p, vector<HilbertField>(dim));
+    vector<vector<HilbertField>> Z(p, vector<HilbertField>(dim));
+
+    // --- Initialisation: orthonormalize the starting block into Q_cur ---
+    for(int k = 0; k < p; ++k) Q_cur[k] = phi[k];
+    for(int l = 0; l < p; ++l){
+        for(int k = 0; k < l; ++k){
+            HilbertField z = Q_cur[k] * Q_cur[l];
+            mult_add(-z, Q_cur[k], Q_cur[l]);
+        }
+        double nrm = norm(Q_cur[l]);
+        if(nrm < accur_deflation)
+            qcm_ED_throw("blockLanczosSVD: starting block is rank-deficient at column " + to_string(l));
+        Q_cur[l] *= 1.0/nrm;
+    }
+
+    bool converged = false;
+    double ev_old = 1e12;
+    int j = 0;
+
+    for(j = 0; j < M0; ++j){
+        check_signals();
+
+        // Step 1 — Z[k] = H * Q_cur[k]
+        for(int k = 0; k < p; ++k){
+            to_zero(Z[k]);
+            H.mult_add(Q_cur[k], Z[k]);
+        }
+
+        // Step 2 — A_j(k,l) = <Q_cur[k] | Z[l]>   (Hermitian block)
+        matrix<HilbertField> Aj(p);
+        for(int l = 0; l < p; ++l){
+            for(int k = 0; k <= l; ++k){
+                HilbertField z = Q_cur[k] * Z[l];
+                Aj(k,l) = z;
+                Aj(l,k) = conjugate(z);
+            }
+        }
+        A.push_back(Aj);
+
+        // Step 3 — Z[l] -= sum_k A_j(k,l) * Q_cur[k]
+        for(int l = 0; l < p; ++l)
+            for(int k = 0; k < p; ++k)
+                mult_add(-Aj(k,l), Q_cur[k], Z[l]);
+
+        // Step 4 — Z[l] -= sum_k (B_{j-1}^H)_{k,l} * Q_prev[k]   (j > 0 only)
+        //   Note: with Hermitian B_{j-1}, conj(B_{j-1}(l,k)) = B_{j-1}(k,l),
+        //   so the formula is identical to the upper-triangular case.
+        if(j > 0){
+            const matrix<HilbertField> &Bprev = B.back();
+            for(int l = 0; l < p; ++l)
+                for(int k = 0; k < p; ++k)
+                    mult_add(-conjugate(Bprev(l,k)), Q_prev[k], Z[l]);
+        }
+
+        // Step 5 — Polar decomposition of the residual block Z:
+        //   Gram matrix  G_{kl} = <Z[k]|Z[l]>
+        //   G = V D V^H  (eigendecomposition, D real non-negative)
+        //   B_j = V diag(sqrt(D)) V^H    (Hermitian PSD square root)
+        //   Q_{j+1}[:,l] = sum_k (V diag(D^{-1/2}) V^H)_{kl} Z[k]
+        matrix<HilbertField> G(p);
+        for(int l = 0; l < p; ++l)
+            for(int k = 0; k <= l; ++k){
+                HilbertField z = Z[k] * Z[l];
+                G(k,l) = z;
+                G(l,k) = conjugate(z);
+            }
+
+        vector<double> D(p);
+        matrix<HilbertField> V(p);
+        G.eigensystem(D, V);  // G = V diag(D) V^H, eigenvalues in D (ascending)
+
+        // Check for deflation: singular value sqrt(D[m]) < accur_deflation
+        bool singular_block = false;
+        for(int m = 0; m < p; ++m){
+            if(D[m] < accur_deflation * accur_deflation){
+                if(verb) cout << "block Lanczos SVD: deflation at singular value " << m
+                              << " (sigma=" << sqrt(max(D[m],0.0)) << ") at step " << j << endl;
+                singular_block = true;
+                break;
+            }
+        }
+
+        // Build B_j = V diag(sqrt(D)) V^H  (Hermitian PSD)
+        matrix<HilbertField> Bj(p);
+        for(int r = 0; r < p; ++r)
+            for(int c = 0; c < p; ++c){
+                HilbertField s = HilbertField(0);
+                for(int m = 0; m < p; ++m)
+                    s += V(r,m) * HilbertField(sqrt(max(D[m],0.0))) * conjugate(V(c,m));
+                Bj(r,c) = s;
+            }
+        B.push_back(Bj);
+
+        if(singular_block) break;
+
+        // Build Binv = V diag(D^{-1/2}) V^H  (inverse of B_j)
+        matrix<HilbertField> Binv(p);
+        for(int r = 0; r < p; ++r)
+            for(int c = 0; c < p; ++c){
+                HilbertField s = HilbertField(0);
+                for(int m = 0; m < p; ++m)
+                    s += V(r,m) * HilbertField(1.0/sqrt(D[m])) * conjugate(V(c,m));
+                Binv(r,c) = s;
+            }
+
+        // New Q_{j+1}[:,l] = sum_k Binv_{kl} Z[k]
+        //   (derived from Z_mat = Q_mat Bj  =>  Q_mat = Z_mat Binv)
+        vector<vector<HilbertField>> Q_next(p, vector<HilbertField>(dim));
+        for(int l = 0; l < p; ++l){
+            to_zero(Q_next[l]);
+            for(int k = 0; k < p; ++k)
+                mult_add(Binv(k,l), Z[k], Q_next[l]);
+        }
+
+        // Advance rolling window: Q_prev <- Q_cur, Q_cur <- Q_next
+        Q_prev = Q_cur;
+        Q_cur  = Q_next;
+        for(int k = 0; k < p; ++k) to_zero(Z[k]);
+
+        // Step 6 — Convergence check every p steps (mirrors blockLanczos strategy)
+        if((j+1) >= 2*p && (j+1) % p == 0){
+            int sz = (j+1) * p;
+            matrix<HilbertField> T(sz, sz);
+            for(int jj = 0; jj <= j; ++jj)
+                for(int r = 0; r < p; ++r)
+                    for(int c = 0; c < p; ++c)
+                        T(jj*p+r, jj*p+c) = A[jj](r,c);
+            for(int jj = 0; jj < j; ++jj)
+                for(int r = 0; r < p; ++r)
+                    for(int c = 0; c < p; ++c){
+                        T((jj+1)*p+r, jj*p+c) = B[jj](r,c);
+                        T(jj*p+c, (jj+1)*p+r) = conjugate(B[jj](r,c));
+                    }
+            vector<double> evals(sz);
+            T.eigenvalues(evals);
+            double delta = abs(evals[0] - ev_old);
+            ev_old = evals[0];
+            if(verb){
+                cout.precision(10);
+                cout << "--> block Lanczos SVD step " << j+1
+                     << ", delta E = " << delta << endl;
+            }
+            if(delta < accur_band_lanczos){ converged = true; break; }
+        }
+    }
+
+    M0 = j + 1;
+    if(verb) cout << A.size() << " block Lanczos SVD floors obtained" << endl;
+    return converged;
+}
+
+
 //! Block Lanczos biorthogonalization method (non-symmetric / two-sided version)
 /**
  Builds biorthogonal block Krylov subspaces for a Hermitian matrix H from

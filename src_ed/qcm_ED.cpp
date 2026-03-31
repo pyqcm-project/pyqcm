@@ -639,7 +639,7 @@ namespace ED{
        inst_base->GF_solver != GF_format_Q_to_MCF)
       qcm_ED_throw("get_combined_mcf: the instance at label "
                    + to_string(label) + " does not use the MCF format "
-                   "(GF_method must be 'M', or 'L' with combine_mcf=True).");
+                   "(GF_method must be 'M' or 'H', or 'L' with combine_mcf=True).");
     if(!global_bool("combine_mcf"))
       qcm_ED_throw("get_combined_mcf: the combined MCF is not built unless "
                    "the global parameter 'combine_mcf' is set to True.");
