@@ -914,13 +914,13 @@ void model_instance<HilbertField>::build_mcf(state<HilbertField> &Omega, bool sp
     if(H->dim == 0){ delete H; continue; }
 
     // Block Lanczos on the p_actual orthonormal starting vectors.
-    // GF_method='H' uses the polar-decomposition variant with Hermitian B blocks.
+    // block_Lanczos_QR=true (default) uses QR upper-triangular B; false uses polar (Hermitian B).
     vector<matrix<HilbertField>> A, B;
     int M0 = (int)(14 * p_actual * log(1.0 * H->dim));
-    if(global_char("GF_method") == 'H')
-      blockLanczosSVD(*H, q, A, B, M0, global_bool("verb_ED"));
-    else
+    if(global_bool("block_Lanczos_QR"))
       blockLanczos(*H, q, A, B, M0, global_bool("verb_ED"));
+    else
+      blockLanczosSVD(*H, q, A, B, M0, global_bool("verb_ED"));
 
     delete H; H = nullptr;
 

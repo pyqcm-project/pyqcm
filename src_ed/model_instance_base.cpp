@@ -30,7 +30,6 @@ model_instance_base::model_instance_base(size_t _label, shared_ptr<model> _the_m
       switch(gf){
         case 'F': GF_solver = GF_format_CF;  break;
         case 'M': GF_solver = GF_format_MCF; break;
-        case 'H': GF_solver = GF_format_MCF; break;
         default:  GF_solver = GF_format_BL;  break;
       }
     }

@@ -64,39 +64,39 @@ w =  -0.5+0.01j
 
 pyqcm.set_global_parameter('GF_method', 'L')
 I = pyqcm.model_instance(model)
+print("GF_method = 'L'")
 print(I.cluster_Green_function(w))
 
 pyqcm.set_global_parameter('GF_method', 'L')
 pyqcm.set_global_parameter('combine_mcf')
 I = pyqcm.model_instance(model)
+print("GF_method = 'L', combined_mfc = True")
 print(I.cluster_Green_function(w))
-W, A, B = I.combined_mcf()
-print('W = \n' + str(W))
-for i,x in enumerate(A):
-    print('A[' + str(i) + '] = \n' + str(x))
-for i,x in enumerate(B):
-    print('B[' + str(i) + '] = \n' + str(x))    
+W, A, B = I.combined_mcf(pr=True)
 pyqcm.set_global_parameter('combine_mcf', False)
 
 pyqcm.set_global_parameter('GF_method', 'F')
 I = pyqcm.model_instance(model)
+print("GF_method = 'F'")
 print(I.cluster_Green_function(w))
 
 pyqcm.set_global_parameter('GF_method', 'M')
 I = pyqcm.model_instance(model)
+print("GF_method = 'M'")
 print(I.cluster_Green_function(w))
+
+pyqcm.set_global_parameter('GF_method', 'H')
+I = pyqcm.model_instance(model)
+print("GF_method = 'H'")
+print(I.cluster_Green_function(w))
+
 
 pyqcm.set_global_parameter('combine_mcf')
-pyqcm.set_global_parameter('GF_method', 'M')
+pyqcm.set_global_parameter('GF_method', 'H')
 I = pyqcm.model_instance(model)
+print("GF_method = 'H', combined_mfc = True")
 print(I.cluster_Green_function(w))
-
-W, A, B = I.combined_mcf()
-print('W = \n' + str(W))
-for i,x in enumerate(A):
-    print('A[' + str(i) + '] = \n' + str(x))
-for i,x in enumerate(B):
-    print('B[' + str(i) + '] = \n' + str(x))    
+W, A, B = I.combined_mcf(pr=True)
 
 pyqcm.set_global_parameter('combine_mcf', False)
 

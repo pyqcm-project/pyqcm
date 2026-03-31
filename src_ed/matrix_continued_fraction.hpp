@@ -300,7 +300,10 @@ matrix_continued_fraction<HilbertField> Q_matrix_to_mcf(const Q_matrix<HilbertFi
     diagonal_hamiltonian<HilbertField> H(Q.e);
     vector<matrix<HilbertField>> A, B;
     int M0 = M;
-    blockLanczos(H, phi, A, B, M0);
+    if(global_bool("block_Lanczos_QR"))
+        blockLanczos(H, phi, A, B, M0);
+    else
+        blockLanczosSVD(H, phi, A, B, M0);
 
     return matrix_continued_fraction<HilbertField>(A, B, to_complex_matrix(W));
 }
@@ -472,14 +475,13 @@ matrix_continued_fraction<T> combine_via_lanczos(
     }
 
     // Run block Lanczos on T_e ⊕ T_h with the p starting vectors.
-    // blockLanczos orthonormalises phi internally.
-    // GF_method='H' uses the polar-decomposition variant with Hermitian B blocks.
+    // block_Lanczos_QR=true (default) uses QR; false uses polar decomposition (Hermitian B).
     combined_sector_operator<T> op(e, h);
     vector<matrix<T>> A_new, B_new;
-    if(global_char("GF_method") == 'H')
-        blockLanczosSVD(op, phi, A_new, B_new, M0);
-    else
+    if(global_bool("block_Lanczos_QR"))
         blockLanczos(op, phi, A_new, B_new, M0);
+    else
+        blockLanczosSVD(op, phi, A_new, B_new, M0);
 
     return matrix_continued_fraction<T>(A_new, B_new, to_complex_matrix(W_new));
 }

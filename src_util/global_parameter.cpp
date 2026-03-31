@@ -52,6 +52,7 @@ namespace QCM {
     new_global_bool(false,"parallel_sectors","uses openMP to parallelize the computation of the Green function structures across the different sectors (uses more memory)");
     new_global_bool(false,"merge_states","merges states in the mixed state case");
     new_global_bool(false,"combine_mcf","combines electron and hole matrix continued fractions via a new block Lanczos run (combine_via_lanczos) instead of summing them separately");
+    new_global_bool(false, "block_Lanczos_QR", "Block Lanczos factorisation of the residual block: true uses QR (upper-triangular B), false (default) uses polar decomposition (Hermitian B via SVD)");
 
     new_global_double(1e-12,"accur_band_lanczos","energy difference tolerance for stopping the BL process");
     new_global_double(0.01,"accur_continued_fraction","value of beta below which the simple Lanczos process stops");

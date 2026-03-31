@@ -87,6 +87,7 @@ Char-valued options
     :widths: 15, 10, 50
 
     "GF_method", "L", "Representation of the Green function: L (Lehmann/band-Lanczos - default), F (continued fraction), M (matrix continued fraction)"
+    "block_Lanczos_QR", "True", "Block Lanczos residual factorisation: True (default) uses QR decomposition (upper-triangular B blocks); False uses polar decomposition (Hermitian B blocks via SVD). Applies to GF_method=M and Q_matrix_to_mcf."
     "Ground_state_method", "P", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
     "Hamiltonian_format", "E", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix))"
     "periodization", "G", "periodization scheme: G, S, M, C, N (None) or L (Lanczos MCF, requires GF_method=M)"
