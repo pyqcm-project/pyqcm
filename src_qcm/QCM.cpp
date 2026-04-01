@@ -573,6 +573,62 @@ check_instance(label);
 
 
   /**
+   Returns the combined MCF (W, A[j], B[j]) periodized into the band basis at wavevector k.
+   Implements the 'L' periodization scheme: adds inter-cluster hopping V to A[0],
+   applies compact_tiling to A[j>=1] and B[j>=1], then periodizes all blocks and W.
+   Only valid with a single cluster per lattice model and with GF_method='M' or
+   GF_method='L' + combine_mcf=True.
+   @param k          wavevector in the physical reciprocal basis (same convention as periodized_Green_function)
+   @param spin_down  true for the spin-down sector (mixing = 4)
+   @param label      lattice model instance label
+   */
+  ED::CombinedMCF_data get_combined_mcf_k(const vector3D<double>& k, bool spin_down, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    QCM_ASSERT(mod.clusters.size() == 1);
+
+    // Convert to superdual basis (same convention as set_V / periodize)
+    vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
+
+    // Build a dummy Green_function_k to retrieve V(k)
+    Green_function G = lattice_model_instances.at(label)->cluster_Green_function(Complex(0, 0.1), false, spin_down);
+    Green_function_k M(G, K);
+    lattice_model_instances.at(label)->set_V(M);
+
+    // Get combined MCF from the ED layer
+    size_t sys_label = mod.nsys * label + mod.clusters[0].sys_start;
+    auto D = ED::get_combined_mcf(spin_down, sys_label);
+
+    // Add inter-cluster hopping into the first diagonal block
+    D.A[0].v += M.V.v;
+
+    int nA = (int)D.A.size();
+    int nB = (int)D.B.size();
+
+    // Apply compact_tiling to A[j>=1] and B[j>=1]
+    for(int j = 1; j < nA; ++j)
+      D.A[j] = mod.compact_tiling(D.A[j], K);
+    for(int j = 1; j < nB; ++j)
+      D.B[j] = mod.compact_tiling(D.B[j], K);
+
+    // Periodize all blocks into the band basis
+    ED::CombinedMCF_data Dper;
+    Dper.A.resize(nA);
+    Dper.B.resize(nB);
+    for(int j = 0; j < nA; ++j)
+      Dper.A[j] = mod.periodize(K, D.A[j]);
+    for(int j = 0; j < nB; ++j)
+      Dper.B[j] = mod.periodize(K, D.B[j]);
+    Dper.W = mod.periodize(K, D.W);
+
+    return Dper;
+  }
+
+
+  /**
    returns the dispersion relation for an array of wavevectors
  * @param spin_down true if the spin-down sector is covered (mixing = 4)
    */

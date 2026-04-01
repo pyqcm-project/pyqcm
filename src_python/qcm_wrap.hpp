@@ -354,6 +354,94 @@ static PyObject *compact_tiling_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *combined_mcf_help =
+    R"{(
+Returns the combined matrix continued fraction (W, A, B) for the cluster Green
+function G = G⁺ + (G⁻)ᵀ in the full site-orbital basis.
+
+Only available when GF_method = 'M' and combine_mcf = True, or when
+GF_method = 'L' and combine_mcf = True.
+Raises an exception otherwise.
+
+Arguments:
+  label (optional, int)           : label of the model instance (default 0)
+  k     (optional, ndarray(3))    : wavevector in the physical reciprocal basis.
+    If k is None (default), returns the cluster-level MCF (W, A, B) in the
+    full site-orbital basis (dimensions L x L).
+    If k is provided, applies the 'L' periodization scheme: adds inter-cluster
+    hopping V(k) to A[0], applies compact_tiling to A[j>=1] and B[j>=1], then
+    periodizes all blocks into the reduced (band) basis. Returns the
+    k-dependent MCF (W_k, A_k, B_k) in the band basis.
+
+Returns a 3-tuple:
+  1. W  -- complex weight matrix
+  2. A  -- list of M complex diagonal blocks
+  3. B  -- list of M complex off-diagonal blocks
+where M is the number of floors (Lanczos steps).
+){";
+//------------------------------------------------------------------------------
+static PyObject *combined_mcf_python(PyObject *self, PyObject *args) {
+  int label = 0;
+  PyObject *k_obj = nullptr;
+
+  try {
+    if (!PyArg_ParseTuple(args, "|iO", &label, &k_obj))
+      qcm_throw("failed to read parameters in call to combined_mcf (python)");
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+
+  try {
+    ED::CombinedMCF_data D;
+    if (k_obj == nullptr || k_obj == Py_None) {
+      D = ED::get_combined_mcf(false, label);
+    } else {
+      if (!PyArray_Check(k_obj))
+        qcm_throw("k argument of combined_mcf must be a numpy array or None");
+      vector3D<double> k = vector_from_Py((PyArrayObject *)k_obj);
+      D = QCM::get_combined_mcf_k(k, false, label);
+    }
+
+    int nW_r = D.W.r;
+    int nW_c = D.W.c;
+    int nM = (int)D.A.size();
+    npy_intp dims2[2];
+
+    // W matrix
+    dims2[0] = nW_r; dims2[1] = nW_c;
+    PyObject *outW = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+    memcpy(PyArray_DATA((PyArrayObject *)outW), D.W.v.data(), nW_r * nW_c * sizeof(complex<double>));
+    PyArray_ENABLEFLAGS((PyArrayObject *)outW, NPY_ARRAY_OWNDATA);
+
+    // A list
+    PyObject *listA = PyList_New(nM);
+    for(int j = 0; j < nM; ++j){
+      dims2[0] = D.A[j].r; dims2[1] = D.A[j].c;
+      PyObject *arr = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+      memcpy(PyArray_DATA((PyArrayObject *)arr), D.A[j].v.data(), D.A[j].r * D.A[j].c * sizeof(complex<double>));
+      PyArray_ENABLEFLAGS((PyArrayObject *)arr, NPY_ARRAY_OWNDATA);
+      PyList_SET_ITEM(listA, j, arr);
+    }
+
+    // B list
+    PyObject *listB = PyList_New(nM);
+    for(int j = 0; j < nM; ++j){
+      dims2[0] = D.B[j].r; dims2[1] = D.B[j].c;
+      PyObject *arr = PyArray_SimpleNew(2, dims2, NPY_COMPLEX128);
+      memcpy(PyArray_DATA((PyArrayObject *)arr), D.B[j].v.data(), D.B[j].r * D.B[j].c * sizeof(complex<double>));
+      PyArray_ENABLEFLAGS((PyArrayObject *)arr, NPY_ARRAY_OWNDATA);
+      PyList_SET_ITEM(listB, j, arr);
+    }
+
+    return Py_BuildValue("OOO", outW, listA, listB);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+  }
+  Py_RETURN_NONE;
+}
+
+//==============================================================================
 const char *cluster_hopping_matrix_help =
     R"{(
 returns the one-body matrix of cluster no i for instance 'label'
