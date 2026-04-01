@@ -40,7 +40,6 @@ namespace QCM {
     new_global_bool(false,"check_lanczos_residual","checks the Lanczos residual at the end of the eigenvector computation");
     new_global_bool(false,"no_degenerate_BL","forbids band lanczos to proceed when the eigenstates have degenerate energies");
     new_global_bool(false,"nosym", "does not take cluster symmetries into account");
-    new_global_bool(false,"one_body_solution","Only solves the one-body part of the problem, for the Green function");
     new_global_bool(false,"print_Hamiltonian","Prints the Hamiltonian on the screen, if small enough");
     new_global_bool(false,"strip_anomalous_self","sets to zero the anomalous part of the self-energy");
     new_global_bool(false,"continued_fraction","Uses the continued fraction solver for the Green function instead of the band Lanczos method");

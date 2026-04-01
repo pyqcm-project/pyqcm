@@ -13,7 +13,6 @@ Boolean options
     "merge_states", "false", "merges states in the mixed state case"
     "no_degenerate_BL", "false", "forbids band lanczos to proceed when the eigenstates have degenerate energies"
     "nosym", "false", "does not take cluster symmetries into account"
-    "one_body_solution", "false", "Only solves the one-body part of the problem, for the Green function"
     "parallel_sectors", "false", "uses openMP to parallelize the computation of the Green function structures across the different sectors (uses more memory)"
     "periodic", "false", "considers the cluster(s) as periodic"
     "periodized_averages", "false", "computes lattice averages using the periodized Green function"

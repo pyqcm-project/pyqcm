@@ -18,12 +18,6 @@ using namespace::std;
 namespace ED{
   
   /**
-   initialization
-   */
-  void qcm_ED_init();
-  
-  
-  /**
    function that defines the groundwork for a system
 
    name : name of the system (=cluster)

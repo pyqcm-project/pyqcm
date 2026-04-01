@@ -242,7 +242,6 @@ namespace ED {
     new_global_bool(false,"check_lanczos_residual","checks the Lanczos residual at the end of the eigenvector computation");
     new_global_bool(false,"no_degenerate_BL","forbids band lanczos to proceed when the eigenstates have degenerate energies");
     new_global_bool(false,"nosym", "does not take cluster symmetries into account");
-    new_global_bool(false,"one_body_solution","Only solves the one-body part of the problem, for the Green function");
     new_global_bool(false,"print_Hamiltonian","Prints the Hamiltonian on the screen, if small enough");
     new_global_bool(false,"strip_anomalous_self","sets to zero the anomalous part of the self-energy");
     new_global_bool(false,"continued_fraction","Uses the continued fraction solver for the Green function instead of the band Lanczos method");
@@ -261,7 +260,6 @@ namespace ED {
     new_global_double(1.0e-5,"accur_Q_matrix","tolerance in the normalization of the Q matrix");
     new_global_double(1e-5,"band_lanczos_minimum_gap","gap between the lowest two states in BL below which the method fails");
     new_global_double(0.01,"minimum_weight","minimum weight in the density matrix");
-    new_global_double(1.0e-4, "Qmatrix_tolerance", "minimum value of a Qmatrix coefficient");
     new_global_double(0.0,"temperature", "Temperature of the system.");
 
     new_global_int(2,"Davidson_states","Number of states requested in the Davidson-Liu algorithm");
