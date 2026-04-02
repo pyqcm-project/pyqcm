@@ -2280,7 +2280,7 @@ def wavevector_path(n=32, shape="triangle"):
     Builds a wavevector path and associated tick marks
 
     :param int n: number of wavevectors per segment
-    :param str shape: the geometry of the path, one of: line, halfline, triangle, diagonal, graphene, graphene2, tri, cubic, cubic2, tetragonal, tetragonal2  OR a tuple with two wavevectors for a straight path between the two OR a filename ending with ".tsv". In the latter case, the file contains a tab-separated list of wavevectors (in units of 2*pi) and tick marks: the first three columns are the x,y,z components of the wavevectors, and the last columns the strings (possibly latex) for the tick marks (write - in that column if you do not want a tick mark for a specific wavevector).
+    :param str shape: the geometry of the path, one of: line, halfline, triangle, diagonal, graphene, graphene2, tri, cubic, cubic2, tetragonal, tetragonal2  OR a tuple with two wavevectors for a straight path between the two OR a filename ending with ".tsv". In the latter case, the file contains a tab-separated list of wavevectors (in units of pi) and tick marks: the first three columns are the x,y,z components of the wavevectors, and the last columns the strings (possibly latex) for the tick marks (write - in that column if you do not want a tick mark for a specific wavevector).
     :returns tuple: 1) a ndarray of wavevectors 2) a list of tick positions 3) a list of tick strings
 
     """

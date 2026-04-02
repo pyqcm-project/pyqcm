@@ -260,17 +260,19 @@ matrix<Complex> lattice_model::compact_tiling(const matrix<Complex>& A, const ve
   }
 
   matrix<Complex> Act(dim_GF);
-
   for(size_t b1 = 0; b1 < nb; ++b1){
     for(size_t b2 = 0; b2 < nb; ++b2){
       for(auto& grp : tiling_data){
         // Step 1: average A over intra-cluster (n=0) entries for this displacement
         Complex avg = 0.0;
+        double iave = 1.0/grp.n_intra;
+        if(global_bool("compact_tiling_per_site")) iave = 1.0/ns;
+
         for(size_t i = 0; i < grp.n_intra; ++i){
           auto& e = grp.entries[i];
           avg += A(e[0] + b1*ns, e[1] + b2*ns);
         }
-        avg /= (double)grp.n_intra;
+        avg *= iave;
 
         // Step 2: add avg*phase[n] for all entries (intra: phase=1, inter: Bloch factor)
         for(auto& e : grp.entries)

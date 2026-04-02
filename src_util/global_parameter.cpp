@@ -15,6 +15,7 @@ namespace QCM {
     new_global_bool(false, "periodized_averages","computes lattice averages using the periodized Green function");
     new_global_bool(false, "zero_dim","sets the spatial dimension to zero, on any model");
     new_global_bool(false, "print_all","prints dependent parameters as well");
+    new_global_bool(false, "compact_tiling_per_site","uses a version of compact tiling where the average is done per site and not per link");
 
     new_global_bool(false, "use_pcubature", "uses p-adaptive cubature (pcubature_v) instead of h-adaptive cubature (hcubature_v) for numerical integration");
 
