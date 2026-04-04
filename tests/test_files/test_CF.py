@@ -1,3 +1,6 @@
+# Test file
+# Goal : to test various GF solvers
+#--------------------------------------------------------------------------------
 import pyqcm
 pyqcm.set_global_parameter('nosym')
 

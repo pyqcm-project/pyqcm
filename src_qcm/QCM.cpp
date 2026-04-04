@@ -145,12 +145,11 @@ void erase_lattice_model_instance(size_t label){
    */
   map<string,double> parameters()
   {
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
     return qcm_model->param_set->value_map();
   }
   
-    
-
-
+  
   /**
    outputs a map of the parameters for model instance 'label'
    */

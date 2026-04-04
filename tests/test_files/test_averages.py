@@ -1,11 +1,28 @@
 import pyqcm
-from model_1D import model1D
-model = model1D(4, sym=False)
+
+#--------------------------------------------------------------------------------
+# defining the model
+clus = pyqcm.cluster_model(4, name='clus')
+clus0 = pyqcm.cluster(clus, [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)], pos=(0, 0, 0))
+model = pyqcm.lattice_model('1D_4', clus0, ((4, 0, 0),))
+model.current_dir = 'x'
+model.interaction_operator('U')
+model.hopping_operator('t', (1, 0, 0), -1)
+model.hopping_operator('tp', (2, 0, 0), -1)
+model.hopping_operator('hx', [0, 0, 0], 1, tau=0, sigma=1)
+model.hopping_operator('h', [0, 0, 0], 1, tau=0, sigma=3)
+model.anomalous_operator('D', (1, 0, 0), 1)
+model.anomalous_operator('S', (0, 0, 0), 1)
+model.hopping_operator('H', (0, 0, 0), 1, tau=0, sigma=3)
+model.hopping_operator('Hx', (0, 0, 0), 1, tau=0, sigma=1)
+model.hopping_operator('tsi', (1, 0, 0), -1, sigma=3, tau=2)
+model.hopping_operator('ti', (1, 0, 0), -1, tau=2)
+#--------------------------------------------------------------------------------
 
 sec = 'R0:S0'
 model.set_target_sectors([sec])
 model.set_parameters("""
-t=1
+ti=1
 U = 4
 mu = 1
 D = 0.2

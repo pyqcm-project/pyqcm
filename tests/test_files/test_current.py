@@ -1,3 +1,6 @@
+# Test file
+# Goal : to test the computation of the current in a 1D system
+#--------------------------------------------------------------------------------
 import pyqcm
 import numpy as np
 from model_1D import model1D
@@ -21,9 +24,7 @@ Iti = 0
 """.format(np.cos(phase), np.sin(phase)))
 
 P = model.parameters()
-print(P)
-
 I = pyqcm.model_instance(model)
-# ave = I.averages(pr=True)
-# print('current = ', ave['It']*P['t'] + ave['Iti']*P['ti'] )
+ave = I.averages(pr=True)
+print('current = ', ave['It']*P['t'] + ave['Iti']*P['ti'] )
 

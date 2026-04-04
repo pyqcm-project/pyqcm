@@ -117,8 +117,10 @@ class cluster_model:
         self.n_sites = n_sites
         self.n_bath = n_bath
         self.generators = generators
+        self.bath_irrep = bath_irrep
         self.gbath = None
         self.is_closed = False
+        self.operators = []  # list of (op_name, op_type, elem, is_complex)
         qcm.new_model(name, n_sites, n_bath, generators, bath_irrep)
 
     # -----------------------------------------------------------------------------------------------
@@ -150,6 +152,7 @@ class cluster_model:
                     )
 
         qcm.new_operator(self.name, op_name, op_type, elem)
+        self.operators.append((op_name, op_type, elem, False))
 
     # -----------------------------------------------------------------------------------------------
     def new_operator_complex(self, op_name, op_type, elem):
@@ -180,6 +183,7 @@ class cluster_model:
                     )
 
         qcm.new_operator_complex(self.name, op_name, op_type, elem)
+        self.operators.append((op_name, op_type, elem, True))
 
     # -----------------------------------------------------------------------------------------------
     def matrix_elements(self, op):
@@ -268,6 +272,9 @@ class lattice_model:
         self.nclus = len(self.clus)
         self.systems = []
         self.sys_clus = []  # index of the cluster associated with each system
+        self.superlattice = superlattice
+        self.lattice = lattice
+        self.hybrid_file = hybrid_file
         self.dim = len(superlattice)
         self.nsites = 0
         self.descrpt = {}
@@ -275,6 +282,8 @@ class lattice_model:
         self.hoppings = set()  # set of hopping terms
         self.currents = set()  # set of currents
         self.has_bath = False
+        self.operator_calls = []  # list of (method_name, args, kwargs) for write_definition
+        self.target_sectors = None
         for c, x in enumerate(self.clus):
             if not isinstance(x, cluster):
                 raise ValueError(
@@ -334,6 +343,8 @@ class lattice_model:
                     name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
                 )
 
+        self.operator_calls.append(('hopping_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
+
         dir = {"x": 0, "y": 1, "z": 2}
         if (
             "tau" in kwargs and (kwargs["tau"] == 1 or kwargs["tau"] == 2)
@@ -391,6 +402,7 @@ class lattice_model:
                 qcm.anomalous_operator(
                     name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
                 )
+        self.operator_calls.append(('anomalous_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
 
     # -----------------------------------------------------------------------------------------------
     def explicit_operator(self, name, elem, **kwargs):
@@ -412,6 +424,7 @@ class lattice_model:
             )
 
         qcm.explicit_operator(name, elem, **kwargs)
+        self.operator_calls.append(('explicit_operator', (name, elem), kwargs))
 
     # -----------------------------------------------------------------------------------------------
     def density_wave(self, name, t, Q, **kwargs):
@@ -435,6 +448,7 @@ class lattice_model:
                 'names of operators must not include the character "_" (underline)'
             )
         qcm.density_wave(name, t, Q, **kwargs)
+        self.operator_calls.append(('density_wave', (name, t, Q), kwargs))
 
     # -----------------------------------------------------------------------------------------------
     def set_basis(self, B):
@@ -474,6 +488,7 @@ class lattice_model:
                 qcm.interaction_operator(
                     name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs
                 )
+        self.operator_calls.append(('interaction_operator', (name,), {'link': link, 'orbitals': orbitals, **kwargs}))
 
     # -----------------------------------------------------------------------------------------------
     def set_target_sectors(self, sec):
@@ -509,6 +524,7 @@ class lattice_model:
                 )
 
         qcm.set_target_sectors(sec)
+        self.target_sectors = sec
 
     # -----------------------------------------------------------------------------------------------
     def set_parameters(self, params):
@@ -786,6 +802,108 @@ class lattice_model:
         return qcm.compact_tiling(A, k)
 
     # -----------------------------------------------------------------------------------------------
+    def write_definition(self, filename=None, str=False):
+        """Writes a Python file containing the code necessary to define this lattice_model.
+
+        The generated file contains calls to cluster_model, cluster and lattice_model
+        constructors and their operator-adding methods, reproducing the full model definition.
+
+        :param str filename: path of the Python file to write. Required unless str=True.
+        :param bool str: if True, return the content as a string instead of writing to a file.
+        :returns: None, or the definition string if str=True
+        """
+        lines = ['import pyqcm', '']
+
+        # --- cluster_model definitions (deduplicated, preserving order) ---
+        seen = set()
+        clus_models = []
+        for c in self.clus:
+            if c.sys is not None:
+                for s in c.sys:
+                    if s.name not in seen:
+                        seen.add(s.name)
+                        clus_models.append(s)
+
+        for s in clus_models:
+            args = [repr(s.n_sites)]
+            if s.n_bath != 0:
+                args.append(f'n_bath={s.n_bath}')
+            args.append(f'name={repr(s.name)}')
+            if s.generators is not None:
+                args.append(f'generators={repr(s.generators)}')
+            if s.bath_irrep:
+                args.append(f'bath_irrep=True')
+            lines.append(f'{s.name} = pyqcm.cluster_model({", ".join(args)})')
+            for op_name, op_type, elem, is_complex in s.operators:
+                method = 'new_operator_complex' if is_complex else 'new_operator'
+                lines.append(f'{s.name}.{method}({repr(op_name)}, {repr(op_type)}, {repr(elem)})')
+            lines.append('')
+
+        # --- cluster definitions ---
+        clus_varnames = []
+        for i, c in enumerate(self.clus):
+            varname = f'clus{i}'
+            clus_varnames.append(varname)
+            if c.ref is not None:
+                ref_var = clus_varnames[c.ref.index]
+                lines.append(f'{varname} = pyqcm.cluster({ref_var}, {repr(c.sites)}, pos={repr(c.pos)})')
+            else:
+                if len(c.sys) == 1:
+                    sys_arg = c.sys[0].name
+                else:
+                    sys_arg = '[' + ', '.join(s.name for s in c.sys) + ']'
+                lines.append(f'{varname} = pyqcm.cluster({sys_arg}, {repr(c.sites)}, pos={repr(c.pos)})')
+        lines.append('')
+
+        # --- lattice_model constructor ---
+        clus_arg = clus_varnames[0] if len(clus_varnames) == 1 else '[' + ', '.join(clus_varnames) + ']'
+        lm_args = [repr(self.name), clus_arg, repr(self.superlattice)]
+        if self.lattice is not None:
+            lm_args.append(f'lattice={repr(self.lattice)}')
+        if self.hybrid_file:
+            lm_args.append(f'hybrid_file={repr(self.hybrid_file)}')
+        lines.append(f'model = pyqcm.lattice_model({", ".join(lm_args)})')
+        lines.append('')
+
+        # --- lattice-level operator calls ---
+        if self.current_dir is not None:
+            lines.append(f'model.current_dir = {repr(self.current_dir)}')
+        for method, args, kwargs in self.operator_calls:
+            parts = [repr(a) for a in args]
+            for k, v in kwargs.items():
+                if v is None and k == 'orbitals':
+                    continue  # omit default None for orbitals
+                if v is None and k == 'link':
+                    continue  # omit default None for link
+                parts.append(f'{k}={repr(v)}')
+            lines.append(f'model.{method}({", ".join(parts)})')
+
+        # --- target sectors ---
+        if self.target_sectors is not None:
+            lines.append(f'model.set_target_sectors({repr(list(self.target_sectors))})')
+            lines.append('')
+
+        # --- parameter set (structure + current values, if defined) ---
+        try:
+            P = self.parameter_set()
+            lines.append('')
+            lines.append('model.set_parameters("""')
+            for name, (value, overlord, multiplier) in P.items():
+                if overlord is None:
+                    lines.append(f'    {name}={value!r}')
+                else:
+                    lines.append(f'    {name}={multiplier!r}*{overlord}')
+            lines.append('""")')
+        except Exception:
+            pass  # parameter set not yet defined
+
+        content = '\n'.join(lines) + '\n'
+        if str:
+            return content
+        with open(filename, 'w') as f:
+            f.write(content)
+
+    # -----------------------------------------------------------------------------------------------
     # imports further functions from other source files
 
     from ._draw import draw_cluster_operator, draw_operator
@@ -970,8 +1088,13 @@ class model_instance:
             import h5py
             with h5py.File(filename, 'r') as f:
                 params = {k: float(v) for k, v in f[group]['params'].attrs.items()}
+            valid = set(self.model.parameter_set().keys())
+            suffix = f'_{sys + 1}'
             for name, val in params.items():
-                self.model.set_parameter(name, val)
+                if name in valid:
+                    self.model.set_parameter(name, val)
+                elif name + suffix in valid:
+                    self.model.set_parameter(name + suffix, val)
         qcm.read_instance_from_hdf5(filename, group, label)
 
     # -----------------------------------------------------------------------------------------------
@@ -980,13 +1103,18 @@ class model_instance:
         Writes the solved model instance (all clusters) to a **single** HDF5 file.
 
         Each cluster is stored in its own group ``"cluster_0"``,
-        ``"cluster_1"``, … within *filename*.
+        ``"cluster_1"``, … within *filename*.  The full model definition (as
+        executable Python code) is stored as the root attribute
+        ``"model_definition"`` of the HDF5 file.
 
         :param str filename: path to the HDF5 file
         :returns: None
         """
         for s in range(self.model.nsys):
             self.write_hdf5(filename, sys=s)
+        import h5py
+        with h5py.File(filename, 'a') as f:
+            f.attrs['model_definition'] = self.model.write_definition(str=True)
 
     # -----------------------------------------------------------------------------------------------
     def read_all_hdf5(self, filename, set_parameters=False):
@@ -2867,6 +2995,50 @@ def is_sequence(obj):
 
 
 # ---------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------
+def read_model_instance(filename):
+    """
+    Reconstructs a model and its solved instance from an HDF5 file written by
+    :meth:`model_instance.write_all_hdf5`.
+
+    The model definition stored in the file is executed as Python code in the
+    caller's global namespace (defining ``model``, ``clus0``, … there).  The
+    parameters collected from all cluster groups are then passed to
+    ``model.set_parameters()``, a new :class:`model_instance` is created, and
+    all cluster data are loaded from the file with their stored parameter values.
+
+    :param str filename: path to the HDF5 file
+    :returns: the reconstructed :class:`model_instance`
+    """
+    import h5py, sys as _sys
+    caller_globals = _sys._getframe(1).f_globals
+    with h5py.File(filename, 'r') as f:
+        if 'model_definition' not in f.attrs:
+            raise ValueError("The file does not contain a model definition.")
+        exec(f.attrs['model_definition'], caller_globals)
+        model = caller_globals['model']
+        try:
+            model.parameter_set()  # succeeds if set_parameters was part of the definition
+        except Exception:
+            # Fallback for files written before set_parameters was included in write_definition.
+            # Operators defined via cluster_model.new_operator are system-specific (need _N suffix);
+            # all other parameters are lattice-wide and keep their name as-is.
+            cluster_op_names = {op_name for s in model.systems for op_name, *_ in s.operators}
+            params = {}
+            for key in sorted(f.keys()):
+                if key.startswith('cluster_') and 'params' in f[key]:
+                    sys_idx = int(key.split('_')[1])  # 0-based
+                    for k, v in f[key]['params'].attrs.items():
+                        if k in cluster_op_names:
+                            params[f'{k}_{sys_idx + 1}'] = float(v)
+                        else:
+                            params[k] = float(v)
+            model.set_parameters(list(params.items()))
+    I = model_instance(model)
+    I.read_all_hdf5(filename, set_parameters=True)
+    return I
+
+
 # ---------------------------------------------------------------------------------------------------
 def reset_model():
     """
