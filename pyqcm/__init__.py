@@ -3146,3 +3146,14 @@ def regular_frequency_grid(wc, n1, n2):
     w[n1:] = np.flip(1.0 / np.linspace(0.5 * dw, 1 / wc - 0.5 * dw, n2))
     p[n1:] = w[n1:] * w[n1:] * dw / np.pi
     return w, p
+
+
+def discrete_integration_grid(freqs, weights):
+    """
+    Defines a frequency grid and associated weights for fixed-grid integration instead of using cubature
+    param array freqs: array of frequencies along the Matsubara axis
+    param array weights: associated weights
+    """
+    qcm.frequency_grid(freqs, weights)
+
+

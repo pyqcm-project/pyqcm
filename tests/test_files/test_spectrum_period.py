@@ -1,3 +1,6 @@
+# Test file
+# Goal : to test the different values GF_method with periodization G and L
+#--------------------------------------------------------------------------------
 import numpy as np
 import pyqcm
 

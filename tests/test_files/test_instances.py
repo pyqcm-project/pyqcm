@@ -1,7 +1,16 @@
+# Test file
+# Goal : to test the existence of several model instances that are not deleted
+#--------------------------------------------------------------------------------
 import pyqcm
 import matplotlib.pyplot as plt
-from model_1D import model1D
-model = model1D(4)
+
+
+clus = pyqcm.cluster_model(4, name='clus', generators=[[4, 3, 2, 1]])
+clus0 = pyqcm.cluster(clus, [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)], pos=(0, 0, 0))
+model = pyqcm.lattice_model('1D_4', clus0, ((4, 0, 0),))
+model.interaction_operator('U')
+model.hopping_operator('t', (1, 0, 0), -1)
+
 
 sec = 'R0:N4:S0'
 model.set_target_sectors([sec])

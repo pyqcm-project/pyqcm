@@ -1,5 +1,8 @@
+# Test file
+# Goal : to test the fidelity() function
+#--------------------------------------------------------------------------------
 import pyqcm
-from pyqcm.cdmft import *
+import numpy as np
 
 def model1D(ns):
     g = [ns-i for i in range(ns)]
@@ -31,7 +34,7 @@ with open('fid.tsv', 'w') as fout:
             model.set_parameter('U', u)
             I2 = pyqcm.model_instance(model) # call to constructor of class "model_instance"
             f[i,j] = model.fidelity(I1,I2)
-            S = '{:d}\t{:1.2f}\t{:g}'.format(L, u, f[i,j])
+            S = 'L = {:d}\tU = {:1.2f}\tfidelity = {:g}'.format(L, u, f[i,j])
             print(S)
             fout.writelines(S+'\n')
         fout.writelines('\n\n')

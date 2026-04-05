@@ -1,16 +1,16 @@
-import pyqcm
+# Test file
+# Goal : to test drawing functions on a two-cluster system
+#--------------------------------------------------------------------------------
 from model_graphene_bath import model
-
 import matplotlib.pyplot as plt
 
+model.draw_operator('t', show_neighbors=True, values=True, show_labels=True, plt_ax=plt.gca())
+plt.savefig('draw_t.pdf')
+plt.cla()
 
-# model.draw_operator('t', show_neighbors=True, values=True, show_labels=True, plt_ax=plt.gca())
-# plt.savefig('draw_t.pdf')
-# plt.cla()
-
-# model.draw_operator('U', show_neighbors=True, values=True, show_labels=True, plt_ax=plt.gca())
-# plt.savefig('draw_U.pdf')
-# plt.cla()
+model.draw_operator('U', show_neighbors=True, values=True, show_labels=True, plt_ax=plt.gca())
+plt.savefig('draw_U.pdf')
+plt.cla()
 
 model.draw_operator('M', show_neighbors=True, values=True, show_labels=True, plt_ax=plt.gca())
 plt.savefig('draw_M.pdf')

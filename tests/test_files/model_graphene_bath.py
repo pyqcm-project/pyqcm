@@ -58,3 +58,5 @@ model.hopping_operator('Mx', (0,0,0),  1, orbitals=(1,1), tau=0, sigma=1)
 model.hopping_operator('Mx', (0,0,0), -1, orbitals=(2,2), tau=0, sigma=1)
 model.hopping_operator('cdw', (0,0,0),  1, orbitals=(1,1))
 model.hopping_operator('cdw', (0,0,0), -1, orbitals=(2,2))
+
+model.write_definition('tmp.py')

@@ -1,9 +1,24 @@
+# Test file
+# Goal : to test the Hartree procedure in two ways : self-consistent and VCA
+#--------------------------------------------------------------------------------
 import pyqcm
 from pyqcm.vca import *
 import numpy as np
 
-from model_hartree import model
+#--------------------------------------------------------------------------------
+# model definition
+clus = pyqcm.cluster_model(4, name='clus')
 
+clus0 = pyqcm.cluster(clus, ((0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)), pos=(0, 0, 0))
+
+model = pyqcm.lattice_model('1D_4', clus0, ((4, 0, 0),))
+
+model.interaction_operator('U', amplitude=1)
+model.interaction_operator('V', link=(1, 0, 0), amplitude=1)
+model.explicit_operator('Vm', [((0, 0, 0), (0, 0, 0), np.float64(0.7071067811865475)), ([3, 0, 0], (0, 0, 0), np.float64(0.7071067811865475))], type='one-body', tau=0)
+model.hopping_operator('t', (1, 0, 0), -1)
+model.density_wave('Delta', 'N', (1, 0, 0), amplitude=1)
+#--------------------------------------------------------------------------------
 # Parameters required for half-filling
 model.set_target_sectors(["R0:N4:S0"])
 model.set_parameters("""
@@ -17,6 +32,7 @@ model.set_parameters("""
 """)
 
 
+#--------------------------------------------------------------------------------
 # Updates mu as a function of V and U
 def _adjust_mu():
     V = model.parameters()['V']

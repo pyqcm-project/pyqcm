@@ -1,3 +1,6 @@
+# Test file
+# Goal : to test the hdf5 I/O of a single instance 
+#--------------------------------------------------------------------------------
 import pyqcm
 from model_1D import model1D
 
