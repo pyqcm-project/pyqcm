@@ -1,3 +1,6 @@
+# Test file
+# Goal : to test CDMFT in a 1-cluster model with two sub-baths
+#--------------------------------------------------------------------------------
 """Test SB-CDMFT for the 1x4 chain hybridized with two 4-orbital
 subbaths each belonging to an irrep of C2 point group.
 """
@@ -6,46 +9,28 @@ import pyqcm
 from pyqcm.cdmft import CDMFT
 
 # Number of orbitals of the models
-n_sites, n_baths = 4, 4
-no = n_sites + n_baths
+ns, nb = 4, 4
+no = ns + nb
 
-# The 2 coupling sequences correspond to the 2 irreps of C2
-irreps = {
-    "A": [1, 1, 1, 1],
-    "B": [1, 1, -1, -1],
-}
-cluster_models = {}
+CMA = pyqcm.cluster_model(4, 4, 'CMA', generators=([4,3,2,1,0,0,0,0],), bath_irrep=True)
+CMB = pyqcm.cluster_model(4, 4, 'CMB', generators=([4,3,2,1,1,1,1,1],), bath_irrep=True)
 
-for sb_name, irrep in irreps.items():
-    cluster_model = pyqcm.cluster_model(
-        n_sites, n_baths, name="1x4_4b_{:s}".format(sb_name)
-    )
-    for i in range(1, n_baths + 1):
-        lab = i + n_sites
-        cluster_model.new_operator(
-            "eb{:d}".format(i), "one-body", [(lab, lab, 1), (lab + no, lab + no, 1)]
-        )
-        elem = [
-            (1, lab, irrep[0]),
-            (n_sites, lab, irrep[n_sites - 1]),
-            (1 + no, lab + no, irrep[0]),
-            (n_sites + no, lab + no, irrep[n_sites - 1]),
-        ]
-        cluster_model.new_operator("tb{:d}".format(i), "one-body", elem)
-    cluster_models[sb_name] = cluster_model
-
-cluster_model_A, cluster_model_B = cluster_models["A"], cluster_models["B"]
+for i in range(1, nb + 1):
+    lab = i + ns
+    CMA.new_operator("eb{:d}".format(i), "one-body", [(lab, lab, 1), (lab + no, lab + no, 1)])
+    CMB.new_operator("eb{:d}".format(i), "one-body", [(lab, lab, 1), (lab + no, lab + no, 1)])
+    elemA = [(1, lab, 1), (ns, lab, 1), (1 + no, lab + no,1),(ns + no, lab + no, 1)]
+    elemB = [(1, lab, 1), (ns, lab,-1), (1 + no, lab + no,1),(ns + no, lab + no,-1)]
+    CMA.new_operator("tb{:d}".format(i), "one-body", elemA)
+    CMB.new_operator("tb{:d}".format(i), "one-body", elemB)
 
 varia = []
-for k in range(1, len(irreps) + 1):
-    varia += ["eb{:d}_{:d}".format(i, k) for i in range(1, n_baths + 1)]
-    varia += ["tb{:d}_{:d}".format(i, k) for i in range(1, n_baths + 1)]
+for k in range(1,3):
+    varia += ["eb{:d}_{:d}".format(i, k) for i in range(1, nb + 1)]
+    varia += ["tb{:d}_{:d}".format(i, k) for i in range(1, nb + 1)]
 
-clus = pyqcm.cluster(
-    (cluster_model_A, cluster_model_B),
-    [[i, 0, 0] for i in range(n_sites)],
-)
-model = pyqcm.lattice_model("1x4_4b_2sb", clus, [[n_sites, 0, 0]])
+clus = pyqcm.cluster((CMA, CMB), [[i, 0, 0] for i in range(ns)])
+model = pyqcm.lattice_model("1x4_4b_2sb", clus, [[ns, 0, 0]])
 
 model.varia = varia
 model.interaction_operator("U")
@@ -85,7 +70,7 @@ X = CDMFT(
     varia,
     accur_bath=1e-6,
     accur_dist=1e-12,
-    method="BOBYQA",
+    method="PRAXIS",
     iteration="fixed_point",
 )
 

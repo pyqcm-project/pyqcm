@@ -504,10 +504,18 @@ class lattice_model:
         :returns:None
 
         """
+        def is_integer(s):
+            try:
+                int(s)
+                return True
+            except ValueError:
+                return False
+    
         if not is_sequence(sec):
             sec = (sec,)
 
         # sanity check on the sector strings before sending it to qcm
+        valid = True
         for i, s in enumerate(sec):
             if not isinstance(s, str):
                 print(
@@ -518,11 +526,22 @@ class lattice_model:
                     ", which is not a string !",
                 )
                 raise ValueError("Target sector {:d} is is not a string".format(i))
-            elif not set(s).issubset(set("RSN:-/0123456789")):
-                raise ValueError(
-                    "String {:s} does not represent a valid sector".format(s)
-                )
-
+            for x in s.split('/'):
+                if len(x) == 0:
+                    valid = False
+                    break
+                for y in x.split(':'):
+                    if y[0] not in 'RNS':
+                        valid = False
+                        break
+                    if not is_integer(y[1:]):
+                        valid = False
+                        break
+                if valid == False:
+                    raise ValueError("String {:s} does not represent a valid sector".format(s))
+            if valid == False:
+                raise ValueError("String {:s} does not represent a valid set of sectors".format(s))
+       
         qcm.set_target_sectors(sec)
         self.target_sectors = sec
 
