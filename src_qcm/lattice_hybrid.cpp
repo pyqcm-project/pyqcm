@@ -72,6 +72,10 @@ lattice_hybrid::lattice_hybrid(const string &filename){
                 << dims[2] << " x "
                 << dims[3] << " matrices" << std::endl;
 
+      // Get the mixing
+      H5::Attribute attr = file.openAttribute("mixing");
+      attr.read(H5::PredType::NATIVE_INT, &mixing);
+
   } catch (H5::Exception& error) {
       qcm_throw("Failed to read HDF5 file");
   }

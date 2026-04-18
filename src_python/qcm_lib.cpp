@@ -73,6 +73,7 @@ static PyMethodDef methods[] = {
     {"complex_HS", complex_HS_python, METH_VARARGS, complex_HS_help},
     {"CPT_Green_function_inverse", CPT_Green_function_inverse_python, METH_VARARGS, CPT_Green_function_inverse_help},
     {"CPT_Green_function", CPT_Green_function_python, METH_VARARGS, CPT_Green_function_help},
+    {"CPT_Green_function_grid", CPT_Green_function_grid_python, METH_VARARGS, CPT_Green_function_grid_help},
     {"current_operator", (PyCFunction)current_operator_python, METH_VARARGS | METH_KEYWORDS, current_operator_help},
     {"density_wave", (PyCFunction)density_wave_python, METH_VARARGS | METH_KEYWORDS, density_wave_help},
     {"dispersion", dispersion_python, METH_VARARGS, dispersion_help},

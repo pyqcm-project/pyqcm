@@ -308,6 +308,33 @@ void erase_lattice_model_instance(size_t label){
   
   
   /**
+   returns the CPT Green function at a frequency and wavevector indexed within the external hybridization grids.
+   Requires that the model was created with a non-empty hybrid_file.
+   * @param iw index of the frequency in the external hybridization frequency array
+   * @param ik index of the wavevector in the external hybridization wavevector array
+   */
+  matrix<complex<double>> CPT_Green_function(int iw, int ik, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    if(mod.hybrid == nullptr) qcm_throw("CPT_Green_function(iw, ik, ...) requires an external hybridization (hybrid_file)");
+    lattice_hybrid& H = *mod.hybrid;
+    if(iw < 0 || (size_t)iw >= H.nw) qcm_throw("frequency index iw out of range");
+    if(ik < 0 || (size_t)ik >= H.nk) qcm_throw("wavevector index ik out of range");
+    Complex w(0.0, H.w[iw]);
+    Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, false);
+    G.iw = iw;
+    Green_function_k M(G, H.k[ik], ik);
+    lattice_model_instances.at(label)->set_Gcpt(M);
+    cout << "k (read) = " << H.k[ik] << "\tw = " << w << endl; // TEMPO
+    cout << "gamma = \n" << mod.lattice_hybridization(M.G.iw, M.ik) << endl; // TEMPO
+    return M.Gcpt;
+  }
+
+
+  /**
    returns the V matrix at a given frequency and wavevector
    * @param spin_down true if the spin-down sector is covered
    * @param w complex frequency

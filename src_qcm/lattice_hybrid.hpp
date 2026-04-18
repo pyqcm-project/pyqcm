@@ -19,7 +19,7 @@ struct lattice_hybrid {
   size_t d=0; //!< dimension of hybridization function
   vector<double> R; //!< array of values (real part, ow-major)
   vector<double> I; //!< array of values (imaginary part, ow-major)
-
+  int mixing; //!< mixing state of the hybridization function
   lattice_hybrid(const string &filename); //!< constructor from HDF5 file
 };
 

@@ -51,6 +51,7 @@ namespace QCM{
   matrix<complex<double>> compact_tiling(const matrix<complex<double>>& A, const vector3D<double>& k);
   ED::CombinedMCF_data get_combined_mcf_k(const vector3D<double>& k, bool spin_down, int label);
   matrix<complex<double>> CPT_Green_function(const complex<double> w, const vector3D<double> &k, bool spin_down, int label);
+  matrix<complex<double>> CPT_Green_function(int iw, int ik, int label);
   matrix<complex<double>> hybridization_function(complex<double> w, bool spin_down, size_t i, int label);
   matrix<complex<double>> Green_integral(bool spin_down, int clus, int label);
   matrix<complex<double>> periodized_Green_function(const complex<double> w, const vector3D<double> &k, bool spin_down, int label);

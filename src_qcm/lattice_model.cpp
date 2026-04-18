@@ -550,7 +550,13 @@ void lattice_model::post_parameter_consolidate(size_t label)
 
   if(hybrid_file.empty() == false){
     hybrid = make_shared<lattice_hybrid>(hybrid_file);
-    if(n_mixed*hybrid->d != dim_GF) qcm_throw("incorrect dimension of the external hybridization matrix");
+    if(hybrid->mixing==0){
+      if(n_mixed*hybrid->d != dim_GF) qcm_throw("incorrect dimension of the external hybridization matrix");
+    }
+    else if(hybrid->mixing==1){
+      if(mixing != 1) qcm_throw("External hybridization matrix has mixing = 1, so should the lattice model!");
+      if(hybrid->d != dim_GF) qcm_throw("incorrect dimension of the external hybridization matrix");
+    }
   }
 }
 
@@ -1296,14 +1302,14 @@ matrix<Complex> lattice_model::lattice_hybridization(int iw, int ik){
   }
 
   // upgrade depending on mixing state
-  if(mixing == 0) return gamma;
-  else if(HS_mixing::anomalous){
+  if(mixing == H.mixing) return gamma;
+  else if(HS_mixing::anomalous and H.mixing==0){
     matrix<Complex> h(2*H.d);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, 0, 0, h);
-    gamma.move_sub_matrix(H.d, H.d, 0, 0, H.d, H.d, h, -1.0);
+    gamma.move_sub_matrix_HC(H.d, H.d, 0, 0, H.d, H.d, h, -1.0);
     return h;
   }
-  else if(HS_mixing::spin_flip){
+  else if(HS_mixing::spin_flip and H.mixing==0){
     matrix<Complex> h(2*H.d);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, 0, 0, h);
     gamma.move_sub_matrix(H.d, H.d, 0, 0, H.d, H.d, h);

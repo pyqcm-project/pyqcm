@@ -1343,6 +1343,20 @@ class model_instance:
         return qcm.CPT_Green_function(z, k, spin_down, self.label)
 
     # -----------------------------------------------------------------------------------------------
+    def CPT_Green_function_grid(self, iw, ik):
+        r"""
+        Computes the CPT Green function at a frequency and wavevector indexed in the external hybridization grids.
+        Requires the model to have been created with a non-empty ``hybrid_file``.
+
+        :param int iw: index of the frequency in the external hybridization frequency array
+        :param int ik: index of the wavevector in the external hybridization wavevector array
+        :returns: a complex-valued matrix
+
+        """
+
+        return qcm.CPT_Green_function_grid(iw, ik, self.label)
+
+    # -----------------------------------------------------------------------------------------------
     def CPT_Green_function_inverse(self, z, k, spin_down=False):
         r"""
         Computes the inverse CPT Green function at a given frequency

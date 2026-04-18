@@ -764,6 +764,43 @@ static PyObject *CPT_Green_function_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *CPT_Green_function_grid_help =
+    R"{(
+computes the CPT Green function at a frequency and wavevector indexed in the external hybridization grids.
+Requires the model to have been created with a non-empty hybrid_file.
+arguments:
+1. iw : index of the frequency in the external hybridization frequency array
+2. ik : index of the wavevector in the external hybridization wavevector array
+3. label (optional) : label of the model instance (default 0)
+returns: a complex-valued matrix
+){";
+//------------------------------------------------------------------------------
+static PyObject *CPT_Green_function_grid_python(PyObject *self, PyObject *args) {
+  int label = 0;
+  int iw = 0;
+  int ik = 0;
+
+  try {
+    if (!PyArg_ParseTuple(args, "ii|i", &iw, &ik, &label))
+      qcm_throw(
+          "failed to read parameters in call to CPT_Green_function_grid (python)");
+
+    matrix<complex<double>> g = QCM::CPT_Green_function(iw, ik, label);
+    size_t d = QCM::Green_function_dimension();
+    npy_intp dims[2];
+    dims[0] = dims[1] = d;
+    PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
+    memcpy(PyArray_DATA((PyArrayObject *)out), g.data(),
+           g.size() * sizeof(complex<double>));
+    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
+    return out;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+}
+
+//==============================================================================
 const char *CPT_Green_function_inverse_help =
     R"{(
 computes the inverse CPT Green function at a given frequency
