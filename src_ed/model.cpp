@@ -94,6 +94,7 @@ void model::build_HS_operators(const sector& sec, bool is_complex)
   }
   for(auto& x : keys){
     if(!x->is_active) continue;
+    std::lock_guard<std::mutex> lock(x->hs_op_mutex);
     if(x->HS_operator.find(sec) == x->HS_operator.end())
       cout << "building operator " << x->name << endl;
       x->HS_operator[sec] = x->build_HS_operator(sec, is_complex);

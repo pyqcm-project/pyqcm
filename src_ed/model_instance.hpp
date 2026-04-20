@@ -1038,7 +1038,12 @@ vector<Complex> model_instance<HilbertField>::susceptibility(shared_ptr<Hermitia
       if(gs->sec != sec) continue;
       vector<vector<HilbertField>> b(1);
       b[0].resize(H->dim);
-      h->HS_operator.at(sec)->multiply_add(gs->psi, b[0], 1.0);
+      shared_ptr<HS_Hermitian_operator> hs_op;
+      {
+        std::lock_guard<std::mutex> lock(h->hs_op_mutex);
+        hs_op = h->HS_operator.at(sec);
+      }
+      hs_op->multiply_add(gs->psi, b[0], 1.0);
       Q_matrix<HilbertField> Q = H->build_Q_matrix(b);
       Q.e -= gs->energy; 	// adjust the eigenvalues by subtracting the GS energy
       matrix<Complex> g(1);
@@ -1077,7 +1082,12 @@ vector<pair<double,double>> model_instance<HilbertField>::susceptibility_poles(s
       if(gs->sec != sec) continue;
       vector<vector<HilbertField>> b(1);
       b[0].resize(H->dim);
-      h->HS_operator.at(sec)->multiply_add(gs->psi, b[0], 1.0);
+      shared_ptr<HS_Hermitian_operator> hs_op;
+      {
+        std::lock_guard<std::mutex> lock(h->hs_op_mutex);
+        hs_op = h->HS_operator.at(sec);
+      }
+      hs_op->multiply_add(gs->psi, b[0], 1.0);
       Q_matrix<HilbertField> Q = H->build_Q_matrix(b);
       Q.e -= gs->energy; 	// adjust the eigenvalues by subtracting the GS energy
       for(size_t i = 0; i<Q.M; i++){

@@ -45,9 +45,10 @@ class Hamiltonian_Dense : public Hamiltonian<HilbertField>
 template<typename HilbertField>
 Hamiltonian_Dense<HilbertField>::Hamiltonian_Dense(
     shared_ptr<model> _the_model,
-    const map<string, double> &value, 
+    const map<string, double> &value,
     sector _sec
 ) {
+    std::lock_guard<std::mutex> ctor_lock(Hamiltonian_ctor_mutex());
     this->the_model = _the_model;
     this->sec = _sec;
     this->B = _the_model->provide_basis(_sec);
@@ -184,8 +185,9 @@ void Hamiltonian_Dense<HilbertField>::HS_ops_map(const map<string, double> &valu
     if(typeid(HilbertField) == typeid(Complex)) is_complex = true;
     for(auto& x : value){
         Hermitian_operator& op = *this->the_model->term.at(x.first);
+        std::lock_guard<std::mutex> lock(op.hs_op_mutex);
         if(op.HS_operator.find(this->sec) == op.HS_operator.end()){
-            op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex); // ***TEMPO***
+            op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex);
         }
         sparse_ops[op.HS_operator.at(this->sec)] = value.at(x.first);
     }

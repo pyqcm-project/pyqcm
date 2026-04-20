@@ -9,6 +9,7 @@
 #include <Eigen/SparseCore>
 #include <Eigen/Dense>
 #include <vector>
+#include <mutex>
 
 
 template<typename HilbertField>
@@ -40,9 +41,10 @@ class Hamiltonian_Eigen : public Hamiltonian<HilbertField>
 template<typename HilbertField>
 Hamiltonian_Eigen<HilbertField>::Hamiltonian_Eigen(
     shared_ptr<model> _the_model,
-    const map<string, double> &value, 
+    const map<string, double> &value,
     sector _sec
 ) {
+    std::lock_guard<std::mutex> ctor_lock(Hamiltonian_ctor_mutex());
     this->the_model = _the_model;
     this->sec = _sec;
     this->B = _the_model->provide_basis(_sec);
@@ -50,7 +52,7 @@ Hamiltonian_Eigen<HilbertField>::Hamiltonian_Eigen(
     if(this->dim == 0) return;
 
     HS_ops_map(value);
-    
+
     if(global_bool("verb_ED")) cout << "assembling the Hamiltonian sparse matrix" << endl;
 
     vector<matrix_element<HilbertField>> tripletList;
@@ -113,7 +115,7 @@ void Hamiltonian_Eigen<HilbertField>::HS_ops_map(const map<string, double> &valu
         {
             std::lock_guard<std::mutex> lock(op.hs_op_mutex);
             if(op.HS_operator.find(this->sec) == op.HS_operator.end()){
-                op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex); // ***TEMPO***
+                op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex);
             }
         }
     }
@@ -122,7 +124,11 @@ void Hamiltonian_Eigen<HilbertField>::HS_ops_map(const map<string, double> &valu
     //then add it to sparse_ops
     for(const auto& x : value){
         Hermitian_operator& op = *this->the_model->term.at(x.first);
-        sparse_ops[op.HS_operator.at(this->sec)] = x.second; //value.at(x.first);
+        // op.HS_operator is a std::map shared across threads via the_model->term;
+        // concurrent inserts from other Hamiltonian_Eigen ctors racing with this read
+        // corrupts the shared_ptr and produces garbage triplets in setFromTriplets.
+        std::lock_guard<std::mutex> lock(op.hs_op_mutex);
+        sparse_ops[op.HS_operator.at(this->sec)] = x.second;
     }
 }
 

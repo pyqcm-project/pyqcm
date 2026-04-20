@@ -38,9 +38,10 @@ class Hamiltonian_CSR : public Hamiltonian<HilbertField>
 template<typename HilbertField>
 Hamiltonian_CSR<HilbertField>::Hamiltonian_CSR(
     shared_ptr<model> _the_model,
-    const map<string, double> &value, 
+    const map<string, double> &value,
     sector _sec
 ) {
+    std::lock_guard<std::mutex> ctor_lock(Hamiltonian_ctor_mutex());
     this->the_model = _the_model;
     this->sec = _sec;
     this->B = _the_model->provide_basis(_sec);
@@ -135,7 +136,8 @@ void Hamiltonian_CSR<HilbertField>::HS_ops_map(const map<string, double> &value)
     //then add it to sparse_ops
     for(const auto& x : value){
         Hermitian_operator& op = *this->the_model->term.at(x.first);
-        sparse_ops[op.HS_operator.at(this->sec)] = x.second; //value.at(x.first);
+        std::lock_guard<std::mutex> lock(op.hs_op_mutex);
+        sparse_ops[op.HS_operator.at(this->sec)] = x.second;
     }
 }
 

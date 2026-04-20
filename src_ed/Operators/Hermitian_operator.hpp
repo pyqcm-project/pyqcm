@@ -74,7 +74,12 @@ struct Hermitian_operator
       average2 += gs.weight*norm2(tmp_gs);
     }
     else{
-      HS_operator.at(gs.sec)->expectation_value(gs, average, average2);
+      shared_ptr<HS_Hermitian_operator> hs_op;
+      {
+        std::lock_guard<std::mutex> lock(hs_op_mutex);
+        hs_op = HS_operator.at(gs.sec);
+      }
+      hs_op->expectation_value(gs, average, average2);
     }
   }
 

@@ -31,9 +31,10 @@ class Hamiltonian_Factorized: public Hamiltonian<HilbertField>
 template<typename HilbertField>
 Hamiltonian_Factorized<HilbertField>::Hamiltonian_Factorized(
     shared_ptr<model> _the_model,
-    const map<string, double> &value, 
+    const map<string, double> &value,
     sector _sec
-) { 
+) {
+    std::lock_guard<std::mutex> ctor_lock(Hamiltonian_ctor_mutex());
     this->the_model = _the_model;
     this->sec = _sec;
     this->dim = _the_model->provide_factorized_basis(_sec)->dim;
@@ -77,8 +78,9 @@ void Hamiltonian_Factorized<HilbertField>::HS_ops_map(const map<string, double> 
     if(typeid(HilbertField) == typeid(Complex)) is_complex = true;
     for(auto& x : value){
         Hermitian_operator& op = *this->the_model->term.at(x.first);
+        std::lock_guard<std::mutex> lock(op.hs_op_mutex);
         if(op.HS_operator.find(this->sec) == op.HS_operator.end()){
-            op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex); // ***TEMPO***
+            op.HS_operator[this->sec] = op.build_HS_operator(this->sec, is_complex);
         }
         sparse_ops[op.HS_operator.at(this->sec)] = value.at(x.first);
     }

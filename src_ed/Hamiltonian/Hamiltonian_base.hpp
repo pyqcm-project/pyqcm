@@ -14,6 +14,24 @@ Also provide default method that could be overwrite by implementation
 #include "Q_matrix.hpp"
 #include "Lanczos.hpp"
 #include "Davidson.hpp"
+#include <mutex>
+
+// Coarse mutex shared by all Hamiltonian_* constructors.
+// Rationale: each Hamiltonian_* ctor calls HS_ops_map, which inserts into
+// op.HS_operator (a std::map member of a shared Hermitian_operator). The
+// insert is guarded by op.hs_op_mutex, but many other call sites read
+// op.HS_operator.at(sec) without that lock (susceptibility, expectation_value,
+// the ctor's own serial tail, etc.). Concurrent insert + unlocked read
+// corrupts the std::map and ends up producing garbage matrix triplets,
+// tripping the assertion in Eigen's setFromTriplets. Serializing the ctors
+// globally avoids that while leaves the rest of the parallelism (the outer
+// CDMFT frequency loop, parallel_sectors, etc.) untouched.
+// Meyer's singleton so every TU that includes this header resolves to the
+// same mutex (portable pre-C++17).
+inline std::mutex& Hamiltonian_ctor_mutex() {
+    static std::mutex m;
+    return m;
+}
 
 #ifdef WITH_PRIMME
 #include "PRIMME_solver.hpp"
