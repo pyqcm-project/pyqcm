@@ -94,9 +94,14 @@ vector<pair<double,string>> lattice_model_instance::ground_state()
 
   first_time = false;
   int sc=0;
+  // When nsys > 1, solve sub-systems in parallel. Inner OMP regions (Hamiltonian
+  // build, Q-matrix irrep loop) will serialize under nested parallelism, but the
+  // outer loop exposes more coarse-grained work than the inner loops typically do.
+  #pragma omp parallel for schedule(dynamic,1) if(model->nsys > 1)
   for(size_t s = 0; s < model->systems.size(); s++){
     gs[s] = ED::ground_state_solve(model->nsys*label + s);
     clus_ave[s] = ED::cluster_averages(model->nsys*label + s);
+    #pragma omp atomic
     GS_energy[model->systems[s].clus+1] +=  gs[s].first;
   }
 
@@ -142,6 +147,7 @@ void lattice_model_instance::Green_function_solve()
   static bool first_time = true;
   if(gf_solved) return;
   if(!gs_solved) ground_state();
+  #pragma omp parallel for schedule(dynamic,1) if(model->nsys > 1)
   for(size_t s = 0; s<model->nsys; s++) ED::Green_function_solve(model->nsys*label+s);
   build_H();
 }

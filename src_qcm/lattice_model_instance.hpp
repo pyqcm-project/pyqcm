@@ -61,7 +61,7 @@ struct lattice_model_instance{
 	pair<vector<array<double,9>>, vector<array<complex<double>, 11>>> site_and_bond_profile();
 	vector<double> Berry_curvature(vector3D<double>& k1, vector3D<double>& k2, int nk, int orb, bool recursive=false, int dir=3);
 	vector<double> dispersion(Green_function_k &M);
-	vector<double> dos(const complex<double> w);
+	vector<double> dos(const complex<double> w, bool use_grid=false);
 	vector<double> momentum_profile_per(const lattice_operator& op, const vector<vector3D<double>> &k);
 	vector<double> momentum_profile(const lattice_operator& op, const vector<vector3D<double>> &k);
 	vector<pair<double,string>> ground_state();

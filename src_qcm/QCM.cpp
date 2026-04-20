@@ -423,12 +423,12 @@ void erase_lattice_model_instance(size_t label){
   /**
    returns the density of states at a given frequency for the different lattice orbitals
    */
-  vector<double> dos(const complex<double> w, int label)
+  vector<double> dos(const complex<double> w, int label, bool use_grid)
   {
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    return lattice_model_instances.at(label)->dos(w);
+    return lattice_model_instances.at(label)->dos(w, use_grid);
   }
   
   

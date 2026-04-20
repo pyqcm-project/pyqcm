@@ -56,7 +56,7 @@ static PyObject *add_cluster_python(PyObject *self, PyObject *args) {
   int conj = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "OO|ii", &cpos_pyobj, &pos_pyobj, &ref, &conj))
+    if (!PyArg_ParseTuple(args, "OO|ip", &cpos_pyobj, &pos_pyobj, &ref, &conj))
       qcm_throw("failed to read parameters in call to add_cluster (python)");
 
     QCM::add_cluster(intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref, conj);
@@ -196,7 +196,7 @@ static PyObject *Berry_curvature_python(PyObject *self, PyObject *args) {
   int dir;
 
   try {
-    if (!PyArg_ParseTuple(args, "OOi|iiii", &k1_pyobj, &k2_pyobj, &nk, &orb,
+    if (!PyArg_ParseTuple(args, "OOi|ipii", &k1_pyobj, &k2_pyobj, &nk, &orb,
                           &rec, &dir, &label))
       qcm_throw(
           "failed to read parameters in call to Berry_curvature (python)");
@@ -239,7 +239,7 @@ static PyObject *cluster_Green_function_python(PyObject *self, PyObject *args) {
   complex<double> z;
 
   try {
-    if (!PyArg_ParseTuple(args, "iD|iii", &clus, &z, &spin_down, &label,
+    if (!PyArg_ParseTuple(args, "iD|pip", &clus, &z, &spin_down, &label,
                           &blocks))
       qcm_throw("failed to read parameters in call to cluster_Green_function "
                 "(python)");
@@ -281,7 +281,7 @@ static PyObject *cluster_self_energy_python(PyObject *self, PyObject *args) {
   complex<double> z;
 
   try {
-    if (!PyArg_ParseTuple(args, "iD|ii", &clus, &z, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "iD|pi", &clus, &z, &spin_down, &label))
       qcm_throw(
           "failed to read parameters in call to cluster_self_energy (python)");
 
@@ -458,7 +458,7 @@ static PyObject *cluster_hopping_matrix_python(PyObject *self, PyObject *args) {
   int spin_down = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "i|ii", &clus, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "i|pi", &clus, &spin_down, &label))
       qcm_throw("failed to read parameters in call to cluster_hopping_matrix "
                 "(python)");
 
@@ -496,7 +496,7 @@ static PyObject *Green_integral_python(PyObject *self, PyObject *args) {
   int clus = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "|iii", &spin_down, &clus, &label))
+    if (!PyArg_ParseTuple(args, "|pii", &spin_down, &clus, &label))
       qcm_throw("failed to read parameters in call to Green_integral "
                 "(python)");
 
@@ -613,7 +613,7 @@ static PyObject *set_CDMFT_host_python(PyObject *self, PyObject *args) {
   int spin_down = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "iOO|ii", &label, &freqs, &H, &clus,
+    if (!PyArg_ParseTuple(args, "iOO|ip", &label, &freqs, &H, &clus,
                           &spin_down))
       qcm_throw("failed to read parameters in call to set_CDMFT_host (python)");
     vector<double> _freqs = doubles_from_Py(freqs);
@@ -643,7 +643,7 @@ static PyObject *get_CDMFT_host_python(PyObject *self, PyObject *args) {
   int clus = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "|iii", &clus, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "|ipi", &clus, &spin_down, &label))
       qcm_throw("failed to read parameters in call to get_CDMFT_host (python)");
     auto g = QCM::get_CDMFT_host(spin_down, label);
     size_t d = qcm_model->GF_dims[clus];
@@ -719,7 +719,7 @@ static PyObject *CPT_Green_function_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw(
           "failed to read parameters in call to CPT_Green_function (python)");
 
@@ -820,7 +820,7 @@ static PyObject *CPT_Green_function_inverse_python(PyObject *self,
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to "
                 "CPT_Green_function_inverse (python)");
     int ndim = PyArray_NDIM(k_pyobj);
@@ -866,7 +866,7 @@ static PyObject *dispersion_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "O|ii", &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "O|pi", &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to dispersion (python)");
 
     int ndim = PyArray_NDIM(k_pyobj);
@@ -920,7 +920,7 @@ static PyObject *epsilon_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "O|ii", &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "O|pi", &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to epsilon (python)");
 
     int ndim = PyArray_NDIM(k_pyobj);
@@ -975,7 +975,7 @@ static PyObject *tk_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "O|ii", &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "O|pi", &k_pyobj, &spin_down, &label))
       qcm_throw(
           "failed to read parameters in call to tk (python)");
 
@@ -1024,18 +1024,20 @@ computes the density of states at a given frequency.
 arguments:
 1. z : complex frequency
 2. label (optional) :  label of the model instance (default 0)
+3. use_grid (optional) : if True, the wavevector integral is done on a fixed grid set by the global parameter "kgrid_side" (default False, adaptive cubature)
 returns: ndarray(d) of real values, d being the reduced GF dimension
 ){";
 //------------------------------------------------------------------------------
 static PyObject *dos_python(PyObject *self, PyObject *args) {
   int label = 0;
+  int use_grid = 0;
   complex<double> z;
 
   try {
-    if (!PyArg_ParseTuple(args, "D|i", &z, &label))
+    if (!PyArg_ParseTuple(args, "D|ip", &z, &label, &use_grid))
       qcm_throw("failed to read parameters in call to dos (python)");
 
-    vector<double> g = QCM::dos(z, label);
+    vector<double> g = QCM::dos(z, label, (bool)use_grid);
     npy_intp dims[1];
     dims[0] = g.size();
 
@@ -1135,7 +1137,7 @@ static PyObject *hybridization_function_python(PyObject *self, PyObject *args) {
   int spin_down = 0;
   complex<double> z;
   try {
-    if (!PyArg_ParseTuple(args, "D|iii", &z, &spin_down, &clus, &label))
+    if (!PyArg_ParseTuple(args, "D|pii", &z, &spin_down, &clus, &label))
       qcm_throw("failed to read parameters in call to hybridization_function "
                 "(python)");
 
@@ -1529,7 +1531,7 @@ static PyObject *periodized_Green_function_python(PyObject *self,
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to "
                 "periodized_Green_function (python)");
 
@@ -1585,7 +1587,7 @@ static PyObject *band_Green_function_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw(
           "failed to read parameters in call to band_Green_function (python)");
 
@@ -1645,7 +1647,7 @@ static PyObject *periodized_Green_function_element_python(PyObject *self,
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "iiDO|ii", &r, &c, &z, &k_pyobj, &spin_down,
+    if (!PyArg_ParseTuple(args, "iiDO|pi", &r, &c, &z, &k_pyobj, &spin_down,
                           &label))
       qcm_throw("failed to read parameters in call to "
                 "periodized_Green_function_element (python)");
@@ -1807,7 +1809,7 @@ static PyObject *projected_Green_function_python(PyObject *self,
   int spin_down = 0;
   complex<double> z;
   try {
-    if (!PyArg_ParseTuple(args, "D|ii", &z, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "D|pi", &z, &spin_down, &label))
       qcm_throw("failed to read parameters in call to projected_Green_function "
                 "(python)");
 
@@ -1863,7 +1865,7 @@ static PyObject *self_energy_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to self_energy (python)");
 
     int ndim = PyArray_NDIM(k_pyobj);
@@ -2476,7 +2478,7 @@ static PyObject *V_matrix_python(PyObject *self, PyObject *args) {
   complex<double> z;
   PyArrayObject *k_pyobj = nullptr;
   try {
-    if (!PyArg_ParseTuple(args, "DO|ii", &z, &k_pyobj, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "DO|pi", &z, &k_pyobj, &spin_down, &label))
       qcm_throw("failed to read parameters in call to "
                 "V_matrix (python)");
 
@@ -2519,7 +2521,7 @@ static PyObject *Lehmann_Green_function_python(PyObject *self, PyObject *args) {
   PyArrayObject *k_pyobj = nullptr;
 
   try {
-    if (!PyArg_ParseTuple(args, "O|iii", &k_pyobj, &orb, &spin_down, &label))
+    if (!PyArg_ParseTuple(args, "O|ipi", &k_pyobj, &orb, &spin_down, &label))
       qcm_throw("failed to read parameters in call to "
                 "Lehmann_Green_function (python)");
 
@@ -2584,7 +2586,7 @@ static PyObject *monopole_python(PyObject *self, PyObject *args) {
   double a = 0.0;
   PyArrayObject *k_pyobj = nullptr;
   try {
-    if (!PyArg_ParseTuple(args, "Odii|ii", &k_pyobj, &a, &nk, &orb, &rec,
+    if (!PyArg_ParseTuple(args, "Odii|pi", &k_pyobj, &a, &nk, &orb, &rec,
                           &label))
       qcm_throw("failed to read parameters in call to monopole (python)");
     vector3D<double> k = vector_from_Py(k_pyobj);

@@ -735,7 +735,7 @@ def gap(self, k, orb = 1, threshold=1e-3):
 
 
 #---------------------------------------------------------------------------------------------------
-def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors=None, file=None, data_file='dos.tsv', plt_ax=None, spin_up = False, **kwargs):
+def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors=None, file=None, data_file='dos.tsv', plt_ax=None, spin_up = False, use_grid=False, **kwargs):
     """Plots the density of states (DoS) as a function of frequency
 
     :param float w: the frequency range is from -w to w if w is a float. If w is a tuple then the range is (wmax[0], wmax[1]). w can also be an explicit list of real frequencies, or of complex frequencies (in which case eta is ignored)
@@ -748,9 +748,10 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     :param str data_file: saves the data in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param bool spin_up: only plots the spin up bands, even if mixing is nonzero
+    :param bool use_grid: if True, the wavevector integral is performed on a fixed regular grid (size set by global parameter "kgrid_side") instead of adaptive cubature
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :returns:w, A : the complex frequency array and the DoS array
-    
+
     """
     from cycler import cycler
 
@@ -786,7 +787,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     # computes the DoS
     eps = (w[1]-w[0]).real
     for i in range(nw):
-        z = self.dos(w[i])[0:d]
+        z = self.dos(w[i], use_grid=use_grid)[0:d]
         total += z*eps
         A[i, :] = z
         if i > 0:
@@ -818,19 +819,19 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
         labels = [str(i+1) for i in range(nband)]
     ax.set_xlim(w[0].real, w[-1].real)
     for i in range(nband):
-        ax.plot(np.real(w), A[:, i], '-', label=labels[i], linewidth=1.6, **kwargs)
+        ax.plot(np.real(w), A[:, i], '-', label=labels[i], **kwargs)
     if mix>0 and spin_up==False:
         for i in range(nband):
-            ax.plot(np.real(w), A[:, i+nband], '-', label=labels[i]+'$\\downarrow$', linewidth=0.8, **kwargs)
+            ax.plot(np.real(w), A[:, i+nband], '-', label=labels[i]+'$\\downarrow$', **kwargs)
     if sum:
         ax.plot(np.real(w), np.sum(A, 1), 'r-', label = 'total', **kwargs)
     ax.set_xlabel(r'$\omega$')
     ax.set_ylabel(r'$\rho(\omega)$')
     ax.set_ylim(0)
     ax.axvline(0, c='r', ls='solid', lw=0.5)
-    ax.legend()
 
     if plt_ax is None:
+        ax.legend()
         if file is not None:
             plt.savefig(file)
             plt.close()

@@ -246,7 +246,7 @@ void lattice_model_instance::average_integrand_per(Complex w, vector3D<double> &
  @param w frequency
  returns an array of dimension 2*n_band 
  */
-vector<double> lattice_model_instance::dos(const complex<double> w)
+vector<double> lattice_model_instance::dos(const complex<double> w, bool use_grid)
 {
   double accur_OP = global_double("accur_OP");
   if(!gf_solved) Green_function_solve();
@@ -255,7 +255,7 @@ vector<double> lattice_model_instance::dos(const complex<double> w)
   size_t d = D_dim;
   if(model->mixing&3) d *= 2;
   vector<double> D(2*D_dim);
-  
+
   Green_function G = cluster_Green_function(w, false, false);
 
   auto F = [this, G] (vector3D<double> &k, const int *nv, double *I) mutable {
@@ -266,7 +266,11 @@ vector<double> lattice_model_instance::dos(const complex<double> w)
   };
 
   vector<double> Iv(model->dim_reduced_GF,0.0);
-  QCM::k_integral(model->spatial_dimension, F, Iv, accur_OP, global_bool("verb_integrals"));
+  if(use_grid){
+    int nk_side = global_int("kgrid_side");
+    QCM::k_integral_grid(model->spatial_dimension, nk_side, F, Iv);
+  }
+  else QCM::k_integral(model->spatial_dimension, F, Iv, accur_OP, global_bool("verb_integrals"));
   for(size_t i=0; i<d; i++) D[i] = -M_1_PI*Iv[i]/model->Lc;
 
   if(model->mixing == HS_mixing::up_down){
@@ -280,7 +284,11 @@ vector<double> lattice_model_instance::dos(const complex<double> w)
     };
 
     to_zero(Iv);
-    QCM::k_integral(model->spatial_dimension, F_down, Iv, accur_OP, global_bool("verb_integrals"));
+    if(use_grid){
+      int nk_side = global_int("kgrid_side");
+      QCM::k_integral_grid(model->spatial_dimension, nk_side, F_down, Iv);
+    }
+    else QCM::k_integral(model->spatial_dimension, F_down, Iv, accur_OP, global_bool("verb_integrals"));
     for(size_t i=0; i<D_dim; i++) D[i+D_dim] = -M_1_PI*Iv[i]/model->Lc;
   }
   else if(model->mixing == HS_mixing::normal){

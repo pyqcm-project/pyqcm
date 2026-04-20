@@ -1408,15 +1408,16 @@ class model_instance:
         return qcm.epsilon(k, spin_down, self.label)
 
     # -----------------------------------------------------------------------------------------------
-    def dos(self, z):
+    def dos(self, z, use_grid=False):
         """
         computes the density of states at a given frequency.
 
         :param complex z: frequency
+        :param bool use_grid: if True, the wavevector integral is done on a fixed regular grid whose size is set by the global parameter "kgrid_side"; otherwise adaptive cubature is used (default).
         :returns:ndarray(d) of real values, d being the reduced GF dimension
 
         """
-        return qcm.dos(z, self.label)
+        return qcm.dos(z, self.label, use_grid)
 
     # -----------------------------------------------------------------------------------------------
     def Green_function_solve(self):

@@ -63,7 +63,7 @@ namespace QCM{
   size_t Green_function_dimension();
   size_t reduced_Green_function_dimension();
   vector<double> Berry_curvature(vector3D<double>& k1, vector3D<double>& k2, int nk, int orb, bool rec, int dir, int label);
-  vector<double> dos(const complex<double> w, int label);
+  vector<double> dos(const complex<double> w, int label, bool use_grid=false);
   vector<double> momentum_profile(const string& op, const vector<vector3D<double>> &k_set, int label);
   vector<matrix<complex<double>>> CPT_Green_function_inverse(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label);
   vector<matrix<complex<double>>> CPT_Green_function(const complex<double> w, const vector<vector3D<double>> &k, bool spin_down, int label);
@@ -89,6 +89,7 @@ namespace QCM{
   void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool re=true);
   void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);
   void k_integral(int dim, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy, bool verb=false);
+  void k_integral_grid(int dim, int nk_side, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv);
   void new_lattice_model(const string &name, vector<int64_t> &superlattice, vector<int64_t> &lattice, const string &latt_hybrid="");
   void new_model_instance(int label);
   void print_model(const string& filename, bool asy_operators=false, bool asy_labels=false, bool asy_orb=false, bool asy_neighbors=false, bool asy_working_basis=false);

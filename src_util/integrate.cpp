@@ -222,6 +222,56 @@ void QCM::wk_integral_grid(const vector<double> &w, const vector<double> &weight
 
 
 /**
+ Performs an integral over wavevectors on a predetermined regular grid.
+ @param dim spatial dimension (1 to 3)
+ @param nk_side number of wavevectors on each side of the momentum integration domain (Brillouin zone)
+ @param f		function to integrate (may be multi-component)
+ @param Iv	value of the integral (adds to previous value: must be properly initialized)
+ */
+void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv)
+{
+	// cout << "computing integral on a grid of " << nk_side << "**" << dim << " k-points" << endl;
+	int nv = (int)Iv.size();
+	vector<double> I(nv, 0.0);
+	vector<double> Ik(nv);
+	double ikside = 1.0/nk_side;
+	if(dim==1){
+		for(int ikx = 0; ikx < nk_side; ikx++){
+			vector3D<double> k(ikx*ikside, 0.0, 0.0);
+			f(k, &nv, Ik.data());
+			I += Ik;
+		}
+		I *= ikside;
+	}
+	else if (dim==2){
+		for(int ikx = 0; ikx < nk_side; ikx++){
+			for(int iky = 0; iky < nk_side; iky++){
+				vector3D<double> k(ikx*ikside, iky*ikside, 0.0);
+				f(k, &nv, Ik.data());
+				I += Ik;
+			}
+		}
+		I *= ikside*ikside;
+	}
+	else if (dim==3){
+		for(int ikx = 0; ikx < nk_side; ikx++){
+			for(int iky = 0; iky < nk_side; iky++){
+				for(int ikz = 0; ikz < nk_side; ikz++){
+					vector3D<double> k(ikx*ikside, iky*ikside, ikz*ikside);
+					f(k, &nv, Ik.data());
+					I += Ik;
+				}
+			}
+		}
+		I *= ikside*ikside*ikside;
+	}
+	Iv += I;
+}
+
+
+
+
+/**
  Performs an integral over wavevectors
  Uses the Cubature library
  @param f		function to integrate (may be multi-component)
