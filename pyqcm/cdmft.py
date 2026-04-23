@@ -125,6 +125,30 @@ class convergence_manager:
         print(S, flush=True)
 
 
+class bias_field:
+    """
+    class containing the information about the procedure of applying an external field that breaks a symmetry and whose
+    amplitude decreases by a given factor at each CDMFT iteration.
+    """
+    def __init__(self, op, value=1.0, factor=0.5, maxiter=32, miniter=3):
+        """
+        @param str name: name of the operator
+        @param float value: initial value of the bias field
+        @param float factor: decreasing factor between iterations (between 0.1 and 0.9)
+        @param int maxiter: maximum iteration number, after which the field is set to 1e-9 
+        @param int miniter: minimum iteration number, before which the field is not attenuated
+        """
+        self.op = op 
+        self.value0 = value
+        self.value = value
+        self.factor = factor
+        self.maxiter = maxiter
+        self.miniter = miniter
+        if self.maxiter < 5 : raise ValueError("'maxiter' in bias_field should be >= 5")
+        if self.miniter < 1 or self.miniter > 32: raise ValueError("'miniter' in bias_field should be from 1 to 32")
+        if factor > 0.9 or factor < 0.1 : raise ValueError("factor in bias_field should be in the interval [0.1, 0.9]")
+
+
 class CDMFT:
     """
     class containing the elements of a CDMFT computation. The constructor executes the computation.
@@ -156,6 +180,7 @@ class CDMFT:
     :param ndarray host_function: if not None, function that computes the host array and passes it to qcm
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
+    :param bias_field bias: bias field (for spontaneous symmetry breaking) that decreases with iterations
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -194,6 +219,7 @@ class CDMFT:
         host_function=None,
         pre_host=None,
         max_value=100,
+        bias = None,
     ):
 
         self.accur_bath = accur_bath
@@ -221,6 +247,7 @@ class CDMFT:
         self.sigma_down = None  # internal : self-energy (spin downs, when mixing=4)
         self.varia = varia
         self.wc = wc
+        self.bias = bias
 
         if pyqcm.is_sequence(accur) == False:
             accur = (accur,)
@@ -251,8 +278,10 @@ class CDMFT:
                 raise ValueError(
                     "{:s} cannot be a CDMFT variational parameter".format(v)
                 )
-            else:
+            elif len(p) == 3:
                 var[model.sys_clus[int(p[2]) - 1] + 1].append(v)
+            else:
+                raise ValueError('parameter name'+ v + ' has wrong format')
         var[0] = [h.Vm for h in self.hartree]
         self.nvar = np.zeros(model.nclus + 1, int)
         for c in range(model.nclus + 1):
@@ -352,9 +381,14 @@ class CDMFT:
             print("damping factor = ", self.alpha)
         print("-" * 100)
 
+        # -------------------------------------- bias field --------------------------------
+        if self.bias != None:
+            model.set_parameter(self.bias.op, self.bias.value0)
+
         # ------------------------------- CDMFT main iteration loop ------------------------
         self.niter = 0
         self.iter = 0
+
 
         def F(x):
             self.x = np.copy(x)
@@ -537,6 +571,21 @@ class CDMFT:
 
             ic += self.nvar[c]
 
+        # --------------------------------------------------------------------------------
+        # decreasing the bias, if any
+
+        if self.bias != None:
+            if self.iter > self.bias.maxiter:
+                self.bias.value = 1e-9
+            elif self.iter < self.bias.miniter:
+                pass
+            else:
+                self.bias.value *= self.bias.factor
+            self.model.set_parameter(self.bias.op, self.bias.value)
+            print('====> bias field : ', self.bias.op, ' = ', self.bias.value)
+
+
+        # --------------------------------------------------------------------------------
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
@@ -568,6 +617,9 @@ class CDMFT:
         """
 
         converged = True
+
+        if self.bias != None and self.iter <= self.bias.miniter: converged=False
+
         for C in self.convergence_test:
             if C.name == "GS energy":
                 gs = self.I.ground_state()
