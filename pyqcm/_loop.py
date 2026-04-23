@@ -408,14 +408,14 @@ def Hartree_procedure(self, task, couplings, maxiter=32, iteration='fixed_point'
 	Performs the Hartree approximation
 	
 	:param task: task to perform within the loop. Must return a model_instance
-	:param [hartree] couplings: sequence of couplings (or single coupling)
+	:param hartree couplings: sequence of couplings (or single coupling), of the Hartree class
 	:param int maxiter: maximum number of iterations
-    :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
+	:param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
 	:param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
 	:param str file: name of the file to which the converged result is written via write_summary()
 	:param bool SEF: if True, computes the Potthoff functional at the end of the procedure
 	:param bool pr: if True, prints progress of each coupling update
-    :param float alpha: if iteration='fixed_point', damping parameter, otherwise trial inverse Jacobian (if a float, that is (1+alpha)*unit matrix)
+	:param float alpha: if iteration='fixed_point', damping parameter, otherwise trial inverse Jacobian (if a float, that is (1+alpha)*unit matrix)
 	:returns: model instance, converged inverse Jacobian
 
 	"""

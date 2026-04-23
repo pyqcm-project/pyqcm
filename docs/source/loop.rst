@@ -1,6 +1,6 @@
-################
+#################
 Looping functions
-################
+#################
 
 Functions for iterating over parameter spaces in VCA and CDMFT calculations.
 These include loops with predictors, the Hartree procedure, and fading between

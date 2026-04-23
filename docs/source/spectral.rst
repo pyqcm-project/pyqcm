@@ -8,7 +8,7 @@ Frequencies
 ===========
 Since PyQCM rests on an exact diagonalization solver, it provides a representation for the Green function (GF) that can evaluate the impurity Green function at any complex-valued frequency. 
 
-Some functions plot various quantities on the real frequency axis, in which case one must provide a frequency interval and a small imaginary part `eta`to be added to each frequency. These are
+Some functions plot various quantities on the real frequency axis, in which case one must provide a frequency interval and a small imaginary part `eta` to be added to each frequency. These are:
 
 - `spectral_function`
 - `cluster_spectral_function`
