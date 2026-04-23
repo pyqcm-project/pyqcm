@@ -59,7 +59,7 @@ class convergence_manager:
         Tests for convergence and stores the test object x in an array for comparisons with 'depth' future iterations
 
         :param object x: the object containing the current test quantity
-        :returns:True if converged, False otherwise
+        :returns: True if converged, False otherwise
         """
         self.iter += 1
         if self.stdev:
@@ -708,8 +708,8 @@ class CDMFT:
     def diff_matrix(self, X, Y):
         """
         Computes a difference in hybridization functions between the current iteration (Hyb) and the previous one (Hyb0)
-        :param object X : the current test object
-        :param object Y : any past test object (same structure as X)
+        :param object X: the current test object
+        :param object Y: any past test object (same structure as X)
         :returns float: the difference in hybridization arrays
 
         """
@@ -1485,7 +1485,7 @@ def check_bounds(x, B=100, v=None):
     :param [float] x: array of parameters
     :param float B: maximum value of all parameters
     :param [str] v: list of corresponding names, if available
-    :returns:None
+    :returns: None
     """
     for i in range(len(x)):
         if np.abs(x[i]) > B:

@@ -131,7 +131,7 @@ class cluster_model:
         :param str op_name: name of the operator
         :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
         :param [(int,int,float)] elem: array of matrix elements (list of tuples)
-        :returns:None
+        :returns: None
 
         """
 
@@ -162,7 +162,7 @@ class cluster_model:
         :param str op_name: name of the operator
         :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
         :param [(int, int, complex)] elem: array of matrix elements (list of tuples)
-        :returns:None
+        :returns: None
 
         """
 
@@ -192,7 +192,7 @@ class cluster_model:
         returns the type and matrix elements defining a Hermitian operator
 
         :param str op: name of the operator
-        :returns:a tuple (typ, elem)
+        :returns: a tuple (typ, elem)
 
         """
         return qcm.matrix_elements(self.name, op)
@@ -205,7 +205,7 @@ class cluster_model:
         :param str sec: target Hilbert space sectors
         :param int label: label of model_instance
 
-        :returns:None
+        :returns: None
 
         """
 
@@ -442,7 +442,7 @@ class lattice_model:
         :keyword int orb: orbital label (0 by default = all orbitals)
         :keyword float phase: real phase (as a multiple of :math:`\pi`)
 
-        :returns:None
+        :returns: None
 
         """
         if "_" in name:
@@ -459,7 +459,7 @@ class lattice_model:
         the two.
 
         :param B: the basis (a (D x 3) real matrix)
-        :returns:None
+        :returns: None
 
         """
 
@@ -503,7 +503,7 @@ class lattice_model:
 
         :param (str) sec: the target sectors
 
-        :returns:None
+        :returns: None
 
         """
         def is_integer(s):
@@ -601,7 +601,7 @@ class lattice_model:
 
         :param str name: name of the parameter, or list of names
         :param float value: its value (or iterable of values)
-        :returns:None
+        :returns: None
 
         """
         if pr:
@@ -628,7 +628,7 @@ class lattice_model:
 
         :param str name: name of the parameter of iterable of names
         :param float value: its value (or iterable of values)
-        :returns:None
+        :returns: None
 
         """
         if pr:
@@ -652,9 +652,9 @@ class lattice_model:
     def parameter_string(self, sys=None, CR=False, constr=False):
         """
         Returns a string with the model parameters. Used for including in plots.
-        :param int sys : system label to print the parameters of (starts at 1). If 0, prints lattice parameters only. If None, prints all parameters.
-        :param bool CR : if True, puts each parameter on a line.
-        :param bool constr : if True, also includes constrained parameters
+        :param int sys: system label to print the parameters of (starts at 1). If 0, prints lattice parameters only. If None, prints all parameters.
+        :param bool CR: if True, puts each parameter on a line.
+        :param bool constr: if True, also includes constrained parameters
         """
         par = qcm.parameter_set()
         S = ""
@@ -682,7 +682,7 @@ class lattice_model:
         if p is a list of parameter names, then returns an array of values associated (in the same order) to this list.
 
         :param [str] param: a list of parameter names (optional)
-        :returns:a dict {string,float} OR a numpy array of values
+        :returns: a dict {string,float} OR a numpy array of values
 
         """
         par = qcm.parameters()
@@ -698,7 +698,7 @@ class lattice_model:
         returns the content of the parameter set
 
         :param str opt: governs the action of the function
-        :returns:depends on opt
+        :returns: depends on opt
 
         if opt = 'all', all parameters as a dictionary {str,(float, str, float)}. The three components are
 
@@ -729,7 +729,7 @@ class lattice_model:
 
         :param str filename: name of the file
 
-        :returns:None
+        :returns: None
         """
         qcm.print_model(filename)
 
@@ -740,7 +740,7 @@ class lattice_model:
 
         :param str out_file: name of output file from which parameters are read
         :param int n: line number of data in output file (excluding titles); -1 means the last line
-        :returns:a dict of the line read in out_file
+        :returns: a dict of the line read in out_file
 
         """
         par = qcm.parameter_set()
@@ -1018,7 +1018,7 @@ class model_instance:
         :param str op_name: name of the operator
         :param [complex] freqs: array of complex frequencies
         :param int clus: label of the cluster (starts at 0)
-        :returns:array of complex susceptibilities
+        :returns: array of complex susceptibilities
 
         """
 
@@ -1030,7 +1030,7 @@ class model_instance:
         Returns the Lehmann representation of the Green function
 
         :param int sys: label of the system (0-based)
-        :returns:2-tuple made of
+        :returns: 2-tuple made of
             1. the array of M real eigenvalues, M being the number of poles in the representation
             2. a rectangular (L x M) matrix (real of complex), L being the dimension of the Green function
 
@@ -1043,7 +1043,7 @@ class model_instance:
         """
         Returns the combined matrix continued fraction (MCF) for the cluster Green function.
 
-        The combined MCF encodes G = G⁺ + (G⁻)ᵀ in a single object whose evaluate()
+        The combined MCF encodes G = G_e + G_h^T in a single object whose evaluate()
         gives the full Green function directly.
 
         Only available when ``GF_method`` has been set to ``'M'`` and the global
@@ -1124,7 +1124,7 @@ class model_instance:
         Writes the solved model instance (all clusters) to a **single** HDF5 file.
 
         Each cluster is stored in its own group ``"cluster_0"``,
-        ``"cluster_1"``, … within *filename*.  The full model definition (as
+        ``"cluster_1"``, ... within *filename*.  The full model definition (as
         executable Python code) is stored as the root attribute
         ``"model_definition"`` of the HDF5 file.
 
@@ -1156,7 +1156,7 @@ class model_instance:
         """
         Returns the values of the parameters of the instance (as opposed to the parameter_set object)
 
-        :returns:a dict {string,float}
+        :returns: a dict {string,float}
 
         """
 
@@ -1174,7 +1174,7 @@ class model_instance:
 
         :param [str] ops: list of operators to compute the average of. If empty, then computes the averages of all one-body operators.
         :param str file: name of the file in which the information is appended
-        :returns:a dict giving the values of the averages for each parameter
+        :returns: a dict giving the values of the averages for each parameter
         :rtype: {str,float}
 
         """
@@ -1206,7 +1206,7 @@ class model_instance:
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
         :param bool blocks: true if returned in the basis of irreducible representations
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
 
@@ -1219,7 +1219,7 @@ class model_instance:
 
         :param clus: label of the cluster (0 to the number of clusters - 1)
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
         if clus >= self.model.nclus:
@@ -1297,7 +1297,7 @@ class model_instance:
         :param complex z: frequency
         :param int clus: label of the cluster (0 to the number of clusters -1)
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
 
@@ -1310,7 +1310,7 @@ class model_instance:
 
         :param int sys: label of the system (0-based)
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 	4)
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
         return qcm.Green_function_average(
@@ -1323,7 +1323,7 @@ class model_instance:
         returns the density-density interactions on a specific cluster
 
         :param int sys: label of the system (0-based)
-        :returns:a list of matrix elements tuples (i,j,v)
+        :returns: a list of matrix elements tuples (i,j,v)
 
         """
 
@@ -1337,7 +1337,7 @@ class model_instance:
         :param z: complex frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single or an array of complex-valued matrices
+        :returns: a single or an array of complex-valued matrices
 
         """
 
@@ -1365,7 +1365,7 @@ class model_instance:
         :param z: complex frequency
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single or an array of complex-valued matrices
+        :returns: a single or an array of complex-valued matrices
 
         """
 
@@ -1378,7 +1378,7 @@ class model_instance:
 
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
         :param int clus: label of the cluster (starts at 1). If clus > 0, integrates the cluster Green function for cluster 'clus'. If clus = 0, then computes the integral over frequencies of the momentum-integrated CPT Green function. The momentum integration is done on the same regular grid as in CDMFT, as set by the global parameter "kgrid_side".
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
 
@@ -1391,7 +1391,7 @@ class model_instance:
 
         :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (ndarray(d)) or an array (ndarray(N,d)) of real values (energies). d is the reduced GF dimension.
+        :returns: a single (ndarray(d)) or an array (ndarray(N,d)) of real values (energies). d is the reduced GF dimension.
 
         """
         return qcm.dispersion(k, spin_down, self.label)
@@ -1403,7 +1403,7 @@ class model_instance:
 
         :param wavevector k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
+        :returns: a single (ndarray(d,d)) or an array (ndarray(N,d,d)) of complex values. d is the reduced GF dimension.
 
         """
         return qcm.epsilon(k, spin_down, self.label)
@@ -1415,7 +1415,7 @@ class model_instance:
 
         :param complex z: frequency
         :param bool use_grid: if True, the wavevector integral is done on a fixed regular grid whose size is set by the global parameter "kgrid_side"; otherwise adaptive cubature is used (default).
-        :returns:ndarray(d) of real values, d being the reduced GF dimension
+        :returns: ndarray(d) of real values, d being the reduced GF dimension
 
         """
         return qcm.dos(z, self.label, use_grid)
@@ -1426,7 +1426,7 @@ class model_instance:
         Usually, the Green function representation is computed only when needed, in a just-in-time fashion (i.e. in a lazy way).
         This forces the computation of the Green function representation for the current instance (i.e. non lazy).
 
-        :returns:None
+        :returns: None
 
         """
         self.ground_state()
@@ -1440,7 +1440,7 @@ class model_instance:
         :param str file: name of the file in which the cluster averages are printed (if not None)
         :param bool pr: if True, prints the result on the screen
         :param bool var: if True, prints the variances of the operators as well
-        :returns:a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
+        :returns: a list of pairs (float, str) of the ground state energy and sector string, for each cluster of the system
 
         """
 
@@ -1474,7 +1474,7 @@ class model_instance:
         Computes the average and variance of all operators of the cluster model in the cluster ground state.
 
         :param int sys: label of the system
-        :returns:a dict str : (float, float) with the averages and variances as a function of operator name
+        :returns: a dict str : (float, float) with the averages and variances as a function of operator name
 
         """
         ave = qcm.cluster_averages(self.label * self.model.nsys + sys)
@@ -1507,7 +1507,7 @@ class model_instance:
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: orbital index (starts at 1)
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a pair {poles, residues}, each of poles and residues being itself a list.
+        :returns: a pair {poles, residues}, each of poles and residues being itself a list.
 
         """
 
@@ -1525,7 +1525,7 @@ class model_instance:
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param complex z: frequency
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a complex-valued matrix
+        :returns: a complex-valued matrix
 
         """
         return qcm.hybridization_function(z, spin_down, clus, self.label)
@@ -1537,7 +1537,7 @@ class model_instance:
 
         :param str name: name of the lattice operator
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
-        :returns:an array of values
+        :returns: an array of values
 
         """
 
@@ -1548,7 +1548,7 @@ class model_instance:
         """
         Returns the values of the parameters in a given instance
 
-        :returns:a dict {string,float}
+        :returns: a dict {string,float}
 
         """
         return qcm.instance_parameters(self.label)
@@ -1561,7 +1561,7 @@ class model_instance:
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :returns: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.periodized_Green_function(z, k, spin_down, self.label)
@@ -1576,7 +1576,7 @@ class model_instance:
         :param complex z: frequency
         :param k: array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a vector of complex numbers
+        :returns: a vector of complex numbers
 
         """
         return qcm.periodized_Green_function_element(r, c, z, k, spin_down, self.label)
@@ -1590,7 +1590,7 @@ class model_instance:
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :returns: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.band_Green_function(z, k, spin_down, self.label)
@@ -1603,7 +1603,7 @@ class model_instance:
         :param complex z: frequency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :returns: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.self_energy(z, k, spin_down, self.label)
@@ -1613,7 +1613,7 @@ class model_instance:
         """
         Computes the potential energy for a given instance, as the functional trace of Sigma x G
 
-        :returns:the value of the potential energy (total for the unit cell, not per site)
+        :returns: the value of the potential energy (total for the unit cell, not per site)
 
         """
         Epot = qcm.potential_energy(self.label)
@@ -1652,7 +1652,7 @@ class model_instance:
 
         :param int sys: label of the system (starts at 0)
         :param [int] sites: list of sites defining subsystem A
-        :returns:the density matrix, the left and right bases (spins up and down)
+        :returns: the density matrix, the left and right bases (spins up and down)
         :rtype:  [complex], [int32], [int32]
 
         """
@@ -1686,7 +1686,7 @@ class model_instance:
         :param str file: name of the file to append with the result
         :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
         :param bool consistency_check: checks the consistency of the Green function
-        :returns:the value of the self-energy functional
+        :returns: the value of the self-energy functional
 
         """
         OM = qcm.Potthoff_functional(self.label)
@@ -1721,7 +1721,7 @@ class model_instance:
         """
         Computes the site and bond profiles in all clusters of the repeated unit
 
-        :returns:A pair of ndarrays
+        :returns: A pair of ndarrays
 
         site profile -- the components are
         x y z n Sx Sy Sz psi.real psi.imag
@@ -1740,7 +1740,7 @@ class model_instance:
         :param int clus: label of the cluster (0 to the number of clusters-1)
         :param bool pr: prints wavefunction to screen if pr=True
 
-        :returns:the wavefunction
+        :returns: the wavefunction
         :rtype: str
 
         """
@@ -1760,7 +1760,7 @@ class model_instance:
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single float or an array of floats, depending on the shape of k
+        :returns: a single float or an array of floats, depending on the shape of k
 
         """
 
@@ -1787,7 +1787,7 @@ class model_instance:
 
         :param complex z: frequency
         :param bool spin_down: true is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:the projected Green function matrix (d x d), d being the dimension of the CPT Green function.
+        :returns: the projected Green function matrix (d x d), d being the dimension of the CPT Green function.
 
         """
         return qcm.projected_Green_function(z, spin_down, self.label)
@@ -1800,7 +1800,7 @@ class model_instance:
         :param complex z: frequency
         :param wavevector k: wavevector (ndarray(3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        :returns: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
 
         """
         return qcm.V_matrix(z, k, spin_down, self.label)
@@ -1812,7 +1812,7 @@ class model_instance:
 
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a single or an array of complex-valued matrices
+        :returns: a single or an array of complex-valued matrices
 
         """
         return qcm.tk(k, spin_down, self.label)
@@ -1826,7 +1826,7 @@ class model_instance:
         :param float eta: increment in the imaginary axis direction used to computed the derivative of the self-energy
         :param int orb: orbital index (starts at 1)
         :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns:a float
+        :returns: a float
 
         """
         sigma1 = self.cluster_self_energy(
@@ -1849,7 +1849,7 @@ class model_instance:
         :param freq: complex freqency
         :param k: single wavevector (ndarray(3)) or array of wavevectors (ndarray(N,3)) in units of :math:`2\pi`
         :param int orb: if None, sums all the orbitals. Otherwise just shows the weight for that orbital (starts at 1)
-        :returns:depending on the shape of k, a nd.array(3) of nd.array(N,3)
+        :returns: depending on the shape of k, a nd.array(3) of nd.array(N,3)
 
         """
         ds = qcm.reduced_Green_function_dimension()
@@ -2203,7 +2203,7 @@ class hartree:
         """
         Tests whether the mean-field procedure has converged
 
-        :returns:True if the mean-field procedure has converged
+        :returns: True if the mean-field procedure has converged
 
         """
 
@@ -2395,7 +2395,7 @@ def set_global_parameter(name, value=None):
 
     :param str name: name of the global option
     :param value: value of that option (None, int, float or str)
-    :returns:None
+    :returns: None
 
     """
     if value is None:
@@ -2410,7 +2410,7 @@ def get_global_parameter(name, value=None):
     Gets the value of a global parameter.
 
     :param str name: name of the global option
-    :returns:the value, according to type
+    :returns: the value, according to type
 
     """
     return qcm.get_global_parameter(name)
@@ -2425,8 +2425,8 @@ def __wavevector_line(k1, k2, n=32):
     """
     Builds a wavevector path and associated tick marks for a straight path between k1 and k2 with n intervals (n+1 points)
 
-    :param (float) k1 : starting wavevector
-    :param (float) k2 : ending wavevector
+    :param (float) k1: starting wavevector
+    :param (float) k2: ending wavevector
     :param int n: number of wavevectors per segment
     :returns tuple: 1) a ndarray of wavevectors 2) a list of tick positions 3) a list of tick strings
 
@@ -2672,7 +2672,7 @@ def wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp=0, plane="z"):
     :param float side: length of the side (in multiples of pi)
     :param float k_perp: momentum component in the third direction (in multiples of pi)
     :param str plane: momentum plane, 'xy'='z', 'yz'='x'='zy' or 'xz'='zx'='y'
-    :returns:ndarray of wavevectors (n*n x 3), in units of 2*pi
+    :returns: ndarray of wavevectors (n*n x 3), in units of 2*pi
 
     """
 
@@ -2854,7 +2854,7 @@ def epsilon(y, pr=False):
 
     :param [float] y: sequence to be extrapolated
     :param bool pr: if True, prints the resulting extrapolation
-    :returns:the extrapolated values
+    :returns: the extrapolated values
     :rtype: [float]
 
     """
@@ -2895,7 +2895,7 @@ def fixed_point_iteration(
     :param int miniter: minimum number of iterations
     :param float alpha: damping coefficient
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
-    :returns:the solution, the number of iterations
+    :returns: the solution, the number of iterations
     :rtype: [float], int
 
     """
@@ -2950,7 +2950,7 @@ def broyden(F, x0, iJ0=0.0, xtol=1e-6, convergence_test=None, maxiter=32, minite
     :param function convergence_test: function called to perform custom convergence tests. Returns True if converged
     :param int maxiter: maximum number of iterations
     :param int miniter: minimum number of iterations
-    :returns:the solution, the number of iterations needed, the concerged inverse Jacobian
+    :returns: the solution, the number of iterations needed, the concerged inverse Jacobian
     :rtype: [float], int, list[list[float]]
 
     """
@@ -3042,7 +3042,7 @@ def read_model_instance(filename):
     :meth:`model_instance.write_all_hdf5`.
 
     The model definition stored in the file is executed as Python code in the
-    caller's global namespace (defining ``model``, ``clus0``, … there).  The
+    caller's global namespace (defining ``model``, ``clus0``, ... there).  The
     parameters collected from all cluster groups are then passed to
     ``model.set_parameters()``, a new :class:`model_instance` is created, and
     all cluster data are loaded from the file with their stored parameter values.

@@ -1,4 +1,4 @@
-"""Kolmogorov–Smirnov distance functions for comparing discrete spectra.
+"""Kolmogorov-Smirnov distance functions for comparing discrete spectra.
 
 Provides :func:`fixed_qmatrix` for extracting spectral weights from the Q-matrix, and
 :func:`Kolmogorov_Smirnov` for computing the KS distance between two discrete spectral
@@ -30,7 +30,7 @@ def Kolmogorov_Smirnov(F, G, tol=1e-6, plot=False):
     """
     :param ([float],[float]) F: a discrete spectrum. Sequence of poles and  (numpy arrays)
     :param ([float],[float]) G: a discrete spectrum. Sequence of poles and residues (numpy arrays)
-    :param float tol : tolerance for the normalization of the distributions
+    :param float tol: tolerance for the normalization of the distributions
     :param bool plot: if True, plots the two cumulative distributions and the KS distance
     :returns: the Kolmogorov-Smirnov distance between the two distributions (a float)
     :rtype: float

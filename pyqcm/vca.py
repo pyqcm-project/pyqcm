@@ -515,7 +515,7 @@ class VCA:
     :param str symmetrized_operator: name of an operator wrt which the functional must be symmetrized
     :param int var_max_start: label of the first variable for which the function is a maximum (minimal vars first, maximal vars last)
     :param bool verb: if True (default) prints ample progress messages
-    :returns:None
+    :returns: None
 
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar I: current model instance (changes in the course of the computation)
@@ -779,8 +779,8 @@ class VCA:
     def _minimax(self, names, var_max_start, start=None, step=None, accur=None, max=10,  max_iteration=30, hartree=None):
         """Applies a minimization of a subset of variables and a maximization on the remainder
         
-        :param ['str'] names : names of variational parameters (minimal ones first, then maximal ones)
-        :param int var_max_start : label of the first maximal variational parameter (= number of minimal variational parameters)
+        :param ['str'] names: names of variational parameters (minimal ones first, then maximal ones)
+        :param int var_max_start: label of the first maximal variational parameter (= number of minimal variational parameters)
         :param [float] start: the starting values
         :param [float] step: the steps used to computed the numerical second derivatives
         :param [float] accur: the required accuracy for each variable
@@ -1035,7 +1035,7 @@ def transition_line(model, varia, P1, P1_range, P2, P2_range, delta, verb=False)
     :param (float) P2_range: 2-uple of values of P2 that bracket the transition
     :param bool verb: If True, prints progress
     :param float delta: at each step, the new bracket for P2 will be P2c +/- delta, P2c being the previous critical value 
-    :returns:None
+    :returns: None
 
     """
 

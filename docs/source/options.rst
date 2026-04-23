@@ -7,7 +7,10 @@ Boolean options
     :widths: 15, 10, 50
 
     "Ground_state_init_last", "false", "Keep ground state in memory for initializing eigenvector in further ground state solving"
+    "block_Lanczos_QR", "false", "Block Lanczos factorisation of the residual block: true uses QR (upper-triangular B), false (default) uses polar decomposition (Hermitian B via SVD)"
     "check_lanczos_residual", "false", "checks the Lanczos residual at the end of the eigenvector computation"
+    "combine_mcf", "false", "combines electron and hole matrix continued fractions via a new block Lanczos run (combine_via_lanczos) instead of summing them separately"
+    "compact_tiling_per_site", "false", "uses a version of compact tiling where the average is done per site and not per link"
     "continued_fraction", "false", "Uses the continued fraction solver for the Green function instead of the band Lanczos method"
     "dual_basis", "false", "uses the dual basis for wavevector computations"
     "merge_states", "false", "merges states in the mixed state case"
@@ -20,6 +23,7 @@ Boolean options
     "print_all", "false", "prints dependent parameters as well"
     "print_variances", "false", "prints the variance of the operators in files"
     "strip_anomalous_self", "false", "sets to zero the anomalous part of the self-energy"
+    "use_pcubature", "false", "uses p-adaptive cubature (pcubature_v) instead of h-adaptive cubature (hcubature_v) for numerical integration"
     "verb_ED", "false", "prints ED information and progress"
     "verb_Hilbert", "false", "prints progress information on bases and operators in the Hilbert space"
     "verb_integrals", "false", "prints information and progress about integrals"
@@ -34,9 +38,7 @@ Integer-valued options
     :header: "name", "default", "description"
     :widths: 15, 10, 50
 
-    "n_states", "1", "Number of low-lying states requested from the eigensolver (Davidson-Liu or PRIMME)"
     "GF_lookup_depth", "64", "depth of the look-up table for the cluster Green function"
-    "GK_min_regions", "8", "minimum number of regions in the Gauss-Kronrod method"
     "PRIMME_algorithm", "1", "PRIMME algorithm to solve ground state (if qcm_wed was compiled with PRIMME): 1 (PRIMME_DYNAMIC - default), 2 (PRIMME_DEFAULT_MIN_TIME), 3 (PRIMME_DEFAULT_MIN_MATVECS), 4 (PRIMME_Arnoldi), 5 (PRIMME_GD), 6 (PRIMME_GD_plusK), 7 (PRIMME_GD_Olsen_plusK), 8 (PRIMME_JD_Olsen_plusK), 9 (PRIMME_RQI), 10 (PRIMME_JDQR), 11 (PRIMME_JDQMR), 12 (PRIMME_JDQMR_ETol), 13 (PRIMME_STEEPEST_DESCENT), 14 (PRIMME_LOBPCG_OrthoBasis), 15 (PRIMME_LOBPCG_OrthoBasis_Window). See PRIMME documentation for more information"
     "PRIMME_preconditionning", "0", "Choose of preconditionner to solve ground state (if qcm_wed was compiled with PRIMME): 0 (No preconditionning), 1 (Jacobi preconditionner)"
     "cuba2D_mineval", "1024", "minimum number of integrand evaluations in CUBA (2D)"
@@ -48,6 +50,7 @@ Integer-valued options
     "max_iter_CF", "400", "Maximum number of iterations in the continuous fraction Lanczos procedure"
     "max_iter_QN", "60", "maximum number of iterations in the quasi-Newton method"
     "max_iter_lanczos", "1000", "Maximum number of iterations in the Lanczos procedure"
+    "n_states", "1", "Number of low-lying states requested from the eigensolver (Davidson-Liu or PRIMME)"
     "print_precision", "9", "precision of printed output"
     "seed", "0", "seed of the random number generator"
 
@@ -86,7 +89,6 @@ Char-valued options
     :widths: 15, 10, 50
 
     "GF_method", "L", "Representation of the Green function: L (Lehmann/band-Lanczos - default), F (continued fraction), M (matrix continued fraction)"
-    "block_Lanczos_QR", "True", "Block Lanczos residual factorisation: True (default) uses QR decomposition (upper-triangular B blocks); False uses polar decomposition (Hermitian B blocks via SVD). Applies to GF_method=M and Q_matrix_to_mcf."
     "Ground_state_method", "P", "Desired method to compute the ground state: L (Lanczos method - default), D (Davidson method), P (use external PRIMME eigensolver - need qcm_wed to be compiled with PRIMME)"
     "Hamiltonian_format", "E", "Desired Hamiltonian format: S (CSR matrix), O (individual operators), F (factorized), N (none = on the fly), E (Eigen CSR matrix))"
     "periodization", "G", "periodization scheme: G, S, M, C, N (None) or L (Lanczos MCF, requires GF_method=M)"

@@ -93,7 +93,7 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, w=
     :param bool Nambu_redress: if True, evaluates the Nambu component at the opposite frequency
     :param bool inverse_path: if True, inverts the path (k --> -k)
     :param bool verb: if True, print progress report
-    :returns:None
+    :returns: None
 
     """
 
@@ -203,7 +203,7 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param str style: if None, draws the curves for different values of k offset by offset; if '3D', draws a real 3D version of the plot; if 'color', draws a colorplot (wavevector on the horizontal axis).
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
 
@@ -316,7 +316,7 @@ def spectral_function(self, w=6.0, eta=0.05, path=None, nk=32, period = 'G', orb
     :param str style: if None, draws the curves for different values of k offset by offset; if '3D', draws a real 3D version of the plot; if 'color', draws a colorplot (wavevector on the horizontal axis).
     :param str data_file: name of file where spectral data is written (no extension; it will be added by the code)
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
 
@@ -503,7 +503,7 @@ def plot_hybridization_function(self, w=6, eta=0.01, imaginary=False, clus = 0, 
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
     if plt_ax is None:
@@ -567,7 +567,7 @@ def cluster_spectral_function(self, w=6, eta = 0.05, imaginary=False, clus=0, of
     :param bool real_part: if True, plots the real part instead of the imaginary part.
     :param color: matplotlib color of the curves
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the array of frequencies, the spectral weight
+    :returns: the array of frequencies, the spectral weight
 
     """
     if plt_ax is None:
@@ -658,7 +658,7 @@ def spectral_function_Lehmann(self, path=None, nk=32, orb=1, offset=0.1, lims=No
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
     
@@ -750,7 +750,7 @@ def plot_DoS(self, w, eta = 0.1, sum=False, progress = True, labels=None, colors
     :param bool spin_up: only plots the spin up bands, even if mixing is nonzero
     :param bool use_grid: if True, the wavevector integral is performed on a fixed regular grid (size set by global parameter "kgrid_side") instead of adaptive cubature
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:w, A : the complex frequency array and the DoS array
+    :returns: w, A : the complex frequency array and the DoS array
 
     """
     from cycler import cycler
@@ -859,7 +859,7 @@ def mdc(self, nk=200, eta=0.1, orb=None, spin_down=False, zone=((0,0),1), opt='G
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param data_file: file to save the data being plotted
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the contour plot object
+    :returns: the contour plot object
     
     """
     if spin_down and self.model.mixing != 4:
@@ -1004,7 +1004,7 @@ def spin_mdc(self, nk=200, eta=0.1, orb=None, zone=((0,0),1), opt='spin', freq =
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:The contour plot object
+    :returns: The contour plot object
     
     """
 
@@ -1120,7 +1120,7 @@ def mdc_anomalous(self, nk=200, w=0.1j, orbitals=(1,1), selfenergy=False, im_par
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
     
     """
     if plt_ax is None:
@@ -1198,7 +1198,7 @@ def plot_dispersion(self, nk=64, spin_down=False, orb=None, contour=False, dataf
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param tuple view_angle: optional projection angle to pass to view_init() in the format of (elevation, azimuth) in degrees
     :param kwargs: keyword arguments passed to the matplotlib 'plot_surface' function
-    :returns:None
+    :returns: None
 
     """
     if self.model.mixing != 4 and spin_down:
@@ -1267,12 +1267,12 @@ def segment_dispersion(self, path=None, nk=64, file=None, plt_ax=None, orb = Non
     :param orb: orbital (or sequence of orbitals) to plot. None for all.
     :param bool band_assign: if True, assigns band by using the continuity of the eigenvectors
     :param float diff_coeff: coefficient used to weight velocity differences when tracking bands with overlaps (used only if band_assign is True)
-    :param [str] colors : colors of the different orbitals
+    :param [str] colors: colors of the different orbitals
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
-    
+
     if path==None:
         if self.model.dim == 1 : path = 'line'
         else : path = 'triangle'
@@ -1341,9 +1341,9 @@ def segment_dispersion_fat(self, orb, width=True, path=None, nk=64, band_assign 
     :param str file: if not None, saves the plot in a file with that name
     :param str data_file: if not None, saves the data in two files with that prefix
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
-    :param float scale : relative scale of the fat bands, multiplied by the default, which is one fifieth of the maximum range of vertical data.
+    :param float scale: relative scale of the fat bands, multiplied by the default, which is one fifieth of the maximum range of vertical data.
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None or LineCollection, depending on the value of width
+    :returns: None or LineCollection, depending on the value of width
 
     """
     from matplotlib.patches import Rectangle
@@ -1450,7 +1450,7 @@ def Fermi_surface(self, nk=64, orb=None, zone=((0,0),1), plane='xy', k_perp=0.0,
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'contour' function
-    :returns:None
+    :returns: None
 
     """
     orbs = pyqcm.orbital_manager(orb, from_zero=True)
@@ -1498,7 +1498,7 @@ def G_dispersion(self, nk=64, orb=None, period = 'G', contour=False, inv=False, 
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
     
     """
 
@@ -1582,7 +1582,7 @@ def Luttinger_surface(self, nk=200, orb=1, zone=((0,0),1), k_perp = 0, plane = '
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
 
@@ -1624,7 +1624,7 @@ def plot_momentum_profile(self, op, nk=50, zone=((0,0),1), k_perp=0.0, plane='xy
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
     
     """
 
@@ -1660,14 +1660,14 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, yli
     """
     Plots a comparison between the host function and the hybridization function
 
-    :param [float] w : array of frequencies used
+    :param [float] w: array of frequencies used
     :param (int,int) e: matrix element to plot (zero based)
     :param int clus: cluster label (starts at 0)
     :param str title: optional title for the plot, displayed when plt_ax is None
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:None
+    :returns: None
 
     """
 
@@ -1722,7 +1722,7 @@ def Berry_curvature(self, nk=200, eta=0.0, period='G', range=None, orb=None, sub
     :param str data_file: Name of the file to save the data.
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the contourplot object of matplotlib
+    :returns: the contourplot object of matplotlib
 
     """
     if plt_ax is None:
@@ -1829,12 +1829,12 @@ def Chern_number(self, nk=100, eta=0.0, period='G', offset=[0., 0., 0.], orb=Non
 def monopole(self, k, a=0.01, nk=20, orb=None, subdivide=False):
     """computes the topological charge of a node in a Weyl semi-metal
 
-    :param [double] k: wavevector, position of the node
+    :param [double] k: wavevector, position of the node
     :param float a: half-side of the cube surrounding the node 
     :param int nk: number of divisions along the side of the cube
     :param int orb: orbital to compute the charge of (if None, sums over all bands)
     :param bool subdivide: True if subdivision is allowed (False by default)
-    :returns:the monopole charge
+    :returns: the monopole charge
     :rtype: float
 
     """
@@ -1897,7 +1897,7 @@ def monopole_map(self, nk=40, nk_cube=5, orb=None, plane='z', k_perp=0.0, file=N
     :param str file: Name of the file to save the plot. If None, shows the plot on screen.
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the contourplot object of matplotlib
+    :returns: the contourplot object of matplotlib
 
     """
 
@@ -1952,7 +1952,7 @@ def Berry_flux_map(self, nk=40, plane='z', dir='z', k_perp=0.0, orb=None, npoint
     :param str file: Name of the file to save the plot. If None, shows the plot on screen.
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the contourplot object of matplotlib
+    :returns: the contourplot object of matplotlib
 
     """
 
@@ -2009,7 +2009,7 @@ def Berry_field_map(self, nk=40, nsides = 4, plane='z', k_perp=0.0, orb=None, fi
     :param str file: Name of the file to save the plot. If None, shows the plot on screen.
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
-    :returns:the contourplot object of matplotlib, the quiver object of matplotlib
+    :returns: the contourplot object of matplotlib, the quiver object of matplotlib
 
     """
 

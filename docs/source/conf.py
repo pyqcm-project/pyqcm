@@ -38,6 +38,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'sphinx_copybutton',
 	'myst_parser',
 ]
 
@@ -78,7 +79,7 @@ author = 'David Sénéchal'
 # The short X.Y version.
 try:
     version = subprocess.check_output(
-        ['git', 'describe'], stderr=subprocess.DEVNULL
+        ['git', 'describe', '--tags'], stderr=subprocess.DEVNULL
     ).decode().split()[0]
 except (subprocess.CalledProcessError, FileNotFoundError):
     version = 'unknown'
@@ -99,7 +100,8 @@ language = 'en'
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'colorful'
+pygments_style = 'friendly'
+pygments_dark_style = 'monokai'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
@@ -111,7 +113,7 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 # html_theme = 'bizstyle'
-html_theme = 'nature'
+html_theme = 'furo'
 
 add_module_names = False
 toc_object_entries_show_parents = 'hide'
@@ -120,7 +122,8 @@ toc_object_entries_show_parents = 'hide'
 # documentation.
 #
 html_theme_options = {
-    'sidebarwidth' : '25%'
+    'sidebar_hide_name': False,
+    'navigation_with_keys': True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,

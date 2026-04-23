@@ -399,7 +399,7 @@ class superlattice:
         :param [([int], float)] _V: density-density interactions
         :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
         :param list[list[float]] basis: the real space, geometric basis
-        :returns:None
+        :returns: None
 
         """
         
@@ -431,7 +431,7 @@ class superlattice:
         :param [([int], float)] _V: density-density interactions
         :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
         :param list[list[float]] basis: the real space, geometric basis
-        :returns:None
+        :returns: None
 
         """
         
@@ -465,7 +465,7 @@ class superlattice:
         :param [float] X: amplitude (one per site)
         :param matplotlib.axes.Axes plt_ax: matplotlib axis object for plotting
         :param list[list[float]] basis: the real space, geometric basis
-        :returns:None
+        :returns: None
 
         """
         
