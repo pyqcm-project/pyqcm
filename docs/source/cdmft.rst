@@ -17,11 +17,16 @@ Some auxiliary classes are also defined:
 frequency grids
 ===============
 
-All frequency grids used in CDMFT are defined along the imaginary axis. The basic grid is the set of fermionic Matsubara frequencies :math:`\omega_n` at inverse temperature ``beta`` between 0 and a maximum frequency ``wc``, and all these frequencies have the same weight. This choice is obtained by specifying ``grid_type==sharp`` in the call to ``CDMFT()`` and by specifying ``wc``and ``beta``. Other choices are:
- * ``grid_type==ifreq`` : same grid as ``sharp``, but the weights are proportional to :math:`1/\omega_n`.
- * ``grid_type==legendre``: this is a non uniform grid, defined by the tuple ``(w1,w2,n)``. A Gauss-Legendre grid is defined in the interval :math:`(0,\omega_1)` with :math:`n` points, another one in the interval :math:`(\omega_1,\omega_2)`, and a final one as a function of :math:`1/\omega` in the interval :math:`(0,1/\omega_2)`, for a total of :math:`3n` points.
+All frequency grids used in CDMFT are defined along the imaginary axis. The grid is built by passing a ``frequency_grid`` instance to ``CDMFT()`` via its ``grid`` argument; if none is supplied a default grid is constructed. The ``frequency_grid`` constructor takes a ``grid_type`` and a ``specs`` tuple. The available grid types are:
 
-In addition, the boolean option ``selfnorm`` (false by default) multiplies the weights by the norm of the self-energy matrix, giving more weight to those frequencies at which correlations are more important.
+ * ``grid_type='legendre'`` (default): a non-uniform Gauss-Legendre grid, defined by the tuple ``(w1, w2, n1, n2, n3)``. A Gauss-Legendre grid is defined in the interval :math:`(0,\omega_1)` with :math:`n_1` points, another one in the interval :math:`(\omega_1,\omega_2)` with :math:`n_2` points, and a final one as a function of :math:`1/\omega` in the interval :math:`(0,1/\omega_2)` with :math:`n_3` points.
+ * ``grid_type='matsubara'`` : the set of fermionic Matsubara frequencies :math:`\omega_n` at inverse temperature ``beta`` between 0 and a maximum frequency ``wc``, defined by the tuple ``(wc, beta)``. All frequencies carry the same integration weight.
+ * ``grid_type='regular'`` : a uniform grid defined by the tuple ``(wc, n1, n2)``, with :math:`n_1` points in :math:`(0, \omega_c)` and :math:`n_2` points in the high-frequency complement.
+
+In addition, the constructor takes an ``opt`` argument that modifies the CDMFT distance weights:
+
+ * ``opt='self'`` : the CDMFT weights are scaled like the norm of the self-energy at each frequency (the Hartree-Fock part is subtracted), giving more weight to those frequencies at which correlations are more important.
+ * ``opt='ifreq'`` : the CDMFT weights are scaled like :math:`1/\omega_n`.
 
 Subbaths
 ========

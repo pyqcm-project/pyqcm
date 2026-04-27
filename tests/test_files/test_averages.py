@@ -35,7 +35,7 @@ print('potential energy = ', I.potential_energy())
 I.averages(pr=True)
 
 print("\ntesting cluster averages from a grid:\n")
-wr, weight = pyqcm.legendre_frequency_grid(1,10,10)
+wr, weight = pyqcm.legendre_frequency_grid(1, 10, 10, 10, 10)
 # wr, weight = pyqcm.regular_frequency_grid(20, 200, 10)
 pyqcm.qcm.frequency_grid(wr, weight)
 pyqcm.set_global_parameter('kgrid_side', 128)

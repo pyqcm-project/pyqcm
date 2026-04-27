@@ -154,10 +154,7 @@ class CDMFT:
     class containing the elements of a CDMFT computation. The constructor executes the computation.
 
     :param [str] varia: list of variational parameters.
-    :param float beta: inverse fictitious temperature (for the frequency grid)
-    :param float wc: cutoff frequency (for the frequency grid) or, if grid_type = 'legendre', (w1, w2, n), where w1 is a low-frequency boundary, w2 a high-frequency boundary and n the number of points in each of the 3 segments 
-    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'adapt', 'legendre'
-    :param bool selfnorm: multiplies the weights of the frequency grid by the norm of the self-energy
+    :param str grid: frequency_grid object. If None, constructs a default frequency_grid object.
     :param int maxiter: maximum number of CDMFT iterations
     :param int miniter: minimum number of CDMFT iterations
     :param float accur_bath: the x-tolerance for distance function optimization
@@ -192,10 +189,7 @@ class CDMFT:
         self,
         model,
         varia,
-        beta=50,
-        wc=2.0,
-        grid_type="sharp",
-        selfnorm=False,
+        grid=None,
         maxiter=32,
         miniter=0,
         convergence="parameters",
@@ -225,12 +219,9 @@ class CDMFT:
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
         self.alpha = alpha
-        self.beta = beta
         self.check_ground_state = check_ground_state
         self.dist = 1e6
         self.hartree = hartree
-        self.grid_type = grid_type
-        self.selfnorm = selfnorm
         self.host_function = host_function
         self.Hyb = None  # internal : hybridization function
         self.Hyb_down = (
@@ -246,7 +237,6 @@ class CDMFT:
         self.sigma = None  # internal : self-energy
         self.sigma_down = None  # internal : self-energy (spin downs, when mixing=4)
         self.varia = varia
-        self.wc = wc
         self.bias = bias
 
         if pyqcm.is_sequence(accur) == False:
@@ -338,10 +328,6 @@ class CDMFT:
                         C, lambda x, y: self.diff_matrix(x, y), accur[i], depth
                     )
                 elif C == "self-energy":
-                    if grid_type == "adapt":
-                        raise ValueError(
-                            "cannot use convergence on self-energy with adaptive frequency grid"
-                        )
                     conv_manager = convergence_manager(
                         C, lambda x, y: self.diff_matrix(x, y), accur[i], depth
                     )
@@ -373,10 +359,13 @@ class CDMFT:
             pyqcm.banner("CDMFT procedure", "*", skip=1)
 
         # -------------- first define the frequency grid for the distance function ---------
-        print("frequency grid type = ", grid_type)
-        if grid_type != 'legendre':
-            print("fictitious inverse temperature = ", beta)
-            print("frequency cutoff = ", wc)
+        if grid == None:
+            self.grid = frequency_grid()
+        else:
+            self.grid = grid
+        print("frequency grid = ", self.grid.name)
+
+
         if alpha is float:
             print("damping factor = ", self.alpha)
         print("-" * 100)
@@ -459,7 +448,7 @@ class CDMFT:
             self.I.props["opt_method"] = method
             self.I.props["CDMFT_method"] = actual_method
             self.I.props["CDMFT_iterations"] = self.niter
-            self.I.props["dist_function"] = self.grid.dist_function
+            self.I.props["dist_function"] = self.grid.name
             self.I.props["convergence"] = convergence_test_string
             self.I.props["min_dist"] = self.dist
             self.I.write_summary(file)
@@ -477,13 +466,7 @@ class CDMFT:
 
         self.model.set_parameter(self.varia, self.x)
         self.I = pyqcm.model_instance(self.model)
-
-        if (
-            self.grid_type == "adapt"
-        ):  # find the maximum value of variational (bath) parameters
-            self.wc = max([2.0, max(self.x[self.nvar[0] :])])
-
-        self.grid = frequency_grid(self.I, self.grid_type, self.beta, self.wc, self.selfnorm)
+        self.grid.udpate(self.I)
 
         # solve the impurity problem
 
@@ -495,7 +478,7 @@ class CDMFT:
         # computing or transferring the host array --------------------------------------
 
         if self.host_function == None:
-            qcm.CDMFT_host(self.grid.wr, self.grid.weight, self.I.label)
+            qcm.CDMFT_host(self.grid.wr, self.grid.cdmft_weight, self.I.label)
         else:
             self.host_function(self.I)
         # --------------------------------------------------------------------------------
@@ -591,7 +574,7 @@ class CDMFT:
 
         # writing the parameters in a progress file
         self.I.props["opt_method"] = self.method
-        self.I.props["dist_function"] = self.grid.dist_function
+        self.I.props["dist_function"] = self.grid.name
         self.I.props["min_dist"] = self.dist
         self.I.write_summary(self.iter_file)
 
@@ -804,66 +787,72 @@ class frequency_grid:
     """
     This class contains the imaginary frequency grid data, including weights
 
-    :param model_instance I: current model instance
-    :param str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq'
-    :param float beta: inverse fictitious temperature (for the frequency grid)
-    :param float wc: cutoff frequency (for the frequency grid) OR, if grid_type='legendre', (w1, w2, n) where w1 and w2 are low- and high-frequency boundaries and n is the number of points for each of the 3 frequency regions
-    :param bool self_norm: if true, multiplies the weight by the norm of the self-energy
-
-    :ivar float beta: inverse fictitious temperature
-    :ivar float wc: cutoff frequency (for the frequency grid)
-    :ivar str grid_type: type of frequency grid along the imaginary axis : 'sharp', 'ifreq', 'self'
-    :ivar wr: array of frequencies (real array, i.e., imaginary part of the frequencies)
-    :ivar w: array of complex frequencies (= wr * 1j)
-    :ivar [float] weight: array of weights for the different frequencies of the grid
-    :ivar int nw: number of frequencies in the grid
+    :param str grid_type: type of frequency grid along the imaginary axis : 'legendre', 'matsubara', 'regular'
+    :param tuple specs: specific parameters for each grid type. For 'legendre', specs=(w1, w2, n1, n2, n3) where w1 and w2 define 3 regions along the imaginary frequency axis. Below w1, n1 grid points are used; between w1 and w2, n2 grid points are used, and n3 grid points are used between w2 and infinity. For 'matsubara', specs=(wc, beta), where wc is the frequency cutoff and beta the inverse effective temperature. For 'regular', specs=(wc, n1, n2), where wc is the boundary between the low- and high-frequency regions, and n1 and n2 the number of points in each region, respectively.
+    :param str opt: if opt='self', the cdmft weights (not the integration weights) are not the same as the integration weights, but scale like the norm of the self-energy at the corresponding frequency (the Hartree-Fock part of the self-energy is subtracted). If opt = 'ifreq', the cdmft weights are rather scaled like 1/frequency.
+    :ivar wr: (real array) the frequencies along the imaginary axis
+    :ivar w: the complex version of wr (=wr*1j)
+    :ivar weight: the weight associated to each frequency in an integral
+    :ivar cdmft_weight: the weight associated to each frequency in the CDMFT distance function
+    :ivar name: the name of the frequency array scheme chosen (for reference)
     """
 
-    def __init__(self, I=None, grid_type="sharp", beta=50, wc=2, self_norm=False):
-        self.beta = beta
-        self.wc = wc
-        self.grid_type = grid_type
+    def __init__(self, grid_type = 'legendre', specs=(1,10,5,10,5), opt=""):
+        if grid_type == 'legendre' or grid_type == 'Legendre':
+            self.grid_type = 'legendre'
+            w1, w2, n1, n2, n3 = specs
+            self.wr, self.weight = pyqcm.legendre_frequency_grid(w1,w2,n1,n2,n3)
+            self.name = 'legendre({:g}-{:g}-{:d}-{:d}-{:d})'.format(w1,w2,n1,n2,n3)
 
-        if grid_type == "legendre":
-            assert pyqcm.is_sequence(wc)
-            self.wr, self.weight = pyqcm.legendre_frequency_grid(wc[0], wc[1], wc[2])
-            self.w = self.wr * 1j
-            self.dist_function = "legendre/{:.1f}/{:.1f}/{:d}".format(
-                wc[0], wc[1], wc[2]
-            )
-            self.nw = len(self.wr)
+        elif grid_type == 'Matsubara' or grid_type == 'matsubara':
+            wc, beta = specs
+            self.wr = np.arange((np.pi / beta), wc + 1e-6, 2 * np.pi / beta)
+            self.weight = (2*np.pi/beta)*np.ones_like(self.wr)
+            self.cdmft_weight = self.weight
+            self.name = 'matsubara({:g}-{:g})'.format(wc,beta)
+
+        elif grid_type == 'regular': 
+            wc, n1, n2 = specs
+            self.wr, self.weight = pyqcm.regular_frequency_grid(wc, n1, n2)
+            self.name = 'regular({:g}-{:d}-{:d})'.format(wc,n1,n2)
+
         else:
-            self.wr = np.arange(
-                (np.pi / self.beta), self.wc + 1e-6, 2 * np.pi / self.beta
-            )
-            self.nw = len(self.wr)
-            self.w = np.ones(len(self.wr), dtype=np.complex128)
-            self.w = self.w * 1j
-            self.w *= self.wr
-            if self.grid_type == "sharp" or self.grid_type == "adapt":
-                self.weight = np.ones(self.nw)
-                self.weight *= 1.0 / self.nw
-                self.dist_function = "{:s}_wc_{:.3g}_b_{:d}".format(
-                    self.grid_type, self.wc, int(self.beta)
-                )
-            elif self.grid_type == "ifreq":
-                self.weight = 1.0 / self.wr
-                self.weight *= 1.0 / self.weight.sum()
-                self.dist_function = "ifreq_wc_{0:.1f}_b_{1:d}".format(
-                    self.wc, int(self.beta)
-                )
-            else:
-                raise ValueError(f"unknown frequency grid type `{grid_type}`")
-        if self_norm:
+            raise ValueError('Unknown type of frequency grid ' + grid_type)
+
+        self.nw = self.wr.shape[0]
+        self.w = np.ones(len(self.wr), dtype=np.complex128)
+        self.w = self.w * 1j
+        self.cdmft_weight = np.ones_like(self.wr)
+
+        self.self_norm = False
+        if opt == '':
+            pass
+        elif opt == "ifreq":
+            tmp = np.ones(1.0/self.wr)
+            self.cdmft_weight = tmp/tmp.sum()
+            self.name += '_ifreq'
+        elif opt == 'self' : 
+            self.self_norm = True
+            self.name += '_self'
+        else:
+            raise ValueError('Unknown option '+opt+' in frequency_grid()') 
+
+
+    
+    def udpate(self, I):
+        """
+        Updates the cdmft_weight array depending on the model_instance
+        
+        :param model_instance I: current model instance
+        """
+        if self.self_norm:
             Sig_inf = I.cluster_self_energy(1.0e6j)
             for i, x in enumerate(self.w):
-                Sig = I.cluster_self_energy(x) - Sig_inf
-                self.weight[i] *= np.linalg.norm(Sig)
-            self.weight *= 1.0 / self.weight.sum()
-            self.dist_function += "-self"
+                self.cdmft_weight[i] = np.linalg.norm(I.cluster_self_energy(x) - Sig_inf)
+            self.cdmft_weight = self.cdmft_weight / self.cdmft_weight.sum()
+        else:
+            pass
         
-
-
 
 ####################################################################################################
 class general_bath:

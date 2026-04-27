@@ -3,7 +3,7 @@
 #--------------------------------------------------------------------------------
 import numpy as np
 import pyqcm
-from pyqcm.cdmft import CDMFT
+from pyqcm.cdmft import CDMFT, frequency_grid
 
 #--------------------------------------------------------------------------------
 # First, defining the model (a 2-cluster model for graphene with bath)
@@ -50,4 +50,4 @@ convergence=['self-energy', 'distance']; accur=[1e-4, 1e-5]
 
 varia = ['tb1_1', 'eb1_1', 'tb2_1', 'eb2_1', 'tb1_2', 'eb1_2', 'tb2_2', 'eb2_2']
 
-sol = CDMFT(model, varia=varia, grid_type='legendre', wc=(1,10,10), accur=accur, convergence=convergence, method='PRAXIS', maxiter=64, depth=1, iteration='fixed_point')
+sol = CDMFT(model, varia=varia, accur=accur, convergence=convergence, method='PRAXIS', maxiter=64, depth=1, iteration='fixed_point')

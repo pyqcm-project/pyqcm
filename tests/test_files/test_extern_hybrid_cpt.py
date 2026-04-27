@@ -67,7 +67,7 @@ dim = 4
 model.set_parameters(band_params)
 
 # defining a frequency grid along the Matsubara axis
-wr, weight = pyqcm.legendre_frequency_grid(1,10,5)
+wr, weight = pyqcm.legendre_frequency_grid(1, 10, 5, 5, 5)
 nw = wr.shape[0]
 
 # defining a wavevector grid

@@ -7,7 +7,7 @@
 
 import numpy as np
 import pyqcm
-from pyqcm.cdmft import CDMFT
+from pyqcm.cdmft import CDMFT, frequency_grid
 import h5py
 
 #--------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ tb6_1 = 1
 model.set_parameters(band_params+bath_params)
 
 # defining a frequency grid along the Matsubara axis
-wr, weight = pyqcm.legendre_frequency_grid(1,5,10)
+wr, weight = pyqcm.legendre_frequency_grid(1, 5, 10, 10, 10)
 nw = wr.shape[0]
 
 # defining a wavevector grid
@@ -197,7 +197,7 @@ varia = [
 ]
 
 
-sol = CDMFT(model, varia=varia, wc=[1,5,10], grid_type='legendre', accur=1e-3, convergence='self-energy', maxiter=64, depth=1, iteration='fixed_point')
+sol = CDMFT(model, varia=varia, grid=frequency_grid('legendre', (1, 5, 10, 10, 10)), accur=1e-3, convergence='self-energy', maxiter=64, depth=1, iteration='fixed_point')
 A = sol.I.averages(pr=True)
 I = pyqcm.model_instance(model)
 A = sol.I.averages(pr=True)

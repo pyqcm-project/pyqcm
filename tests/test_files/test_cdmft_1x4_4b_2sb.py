@@ -6,7 +6,7 @@ subbaths each belonging to an irrep of C2 point group.
 """
 
 import pyqcm
-from pyqcm.cdmft import CDMFT
+from pyqcm.cdmft import CDMFT, frequency_grid
 
 # Number of orbitals of the models
 ns, nb = 4, 4
@@ -65,9 +65,17 @@ bath_params = """
 
 model.set_parameters(lattice_params + bath_params)
 
+grid = frequency_grid('legendre', (1,10,5,10,5))
+# grid = frequency_grid('matsubara', (2,50))
+# grid = frequency_grid('regular', (10,50,5))
+
+pyqcm.discrete_integration_grid(grid.wr, grid.weight)
+
+
 X = CDMFT(
     model,
     varia,
+    grid = grid,
     accur_bath=1e-6,
     accur_dist=1e-12,
     method="PRAXIS",

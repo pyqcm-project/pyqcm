@@ -3,4 +3,4 @@ python3 -c 'import pyqcm; print(pyqcm.qcm.print_options(2))'
 mv options.rst source/.
 make html
 #make latex
-make latexpdf
+#make latexpdf

@@ -25,9 +25,9 @@ The following simple example illustrates how to define a Hubbard model on the sq
     model.anomalous_operator('D', (0, 1, 0), -1)
     model.density_wave('M', 'Z', (1, 1, 0))
 
-There is a call to ``cluster_model()`` to define a :math:`2\times2` plaquette with a :math:`C_2` symmetry (rotation by 180 degrees). Then another object, of type `cluster`, is defined based on this model. This object has geometrical meaning, whereas the `cluster_model` does not. The `cluster` constructor takes the following arguments:
+There is a call to ``cluster_model()`` to define a :math:`2\times2` plaquette with a :math:`C_2` symmetry (rotation by 180 degrees). Then another object, of type ``cluster``, is defined based on this model. This object has geometrical meaning, whereas the ``cluster_model`` does not. The ``cluster`` constructor takes the following arguments:
 
-#. The `cluster_model` object it is based on. It is possible to associate more than one cluster model to a cluster, if one wants to use the *subbath* concept is dynamical mean field theory.
+#. The ``cluster_model`` object it is based on. It is possible to associate more than one cluster model to a cluster, if one wants to use the *subbath* concept is dynamical mean field theory.
 #. An array of integer positions of the different cluster sites. This is where the geometry of the cluster appears.
 #. The base position of the cluster within the super unit cell ( ``[0,0,0]`` by default). This is just added for convenience when complex super unit cells are built out of the same cluster, shifted in position.
 

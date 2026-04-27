@@ -93,7 +93,7 @@ if os.path.isfile("./cdmft.tsv"):
 varia=('tb1_1', 'eb1_1')
 def run_cdmft():
     U = model.parameters()['U']
-    cdmft_simulation = cdmft.CDMFT(model, varia=varia, wc=10, beta=50)
+    cdmft_simulation = cdmft.CDMFT(model, varia=varia, grid=cdmft.frequency_grid('matsubara', (10, 50)))
     return cdmft_simulation.I
 
 # Looping over values of U

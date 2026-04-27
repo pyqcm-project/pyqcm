@@ -58,7 +58,7 @@ model.density_wave('M', 'Z', (1,1,0)) # Spin density wave at Q = (pi,pi)
 # model.draw_operator('t')
 # model.draw_cluster_operator(model.clus[0], 'tperim')
 
-W, P = pyqcm.legendre_frequency_grid(2,10,5)
+W, P = pyqcm.legendre_frequency_grid(2, 10, 5, 5, 5)
 pyqcm.discrete_integration_grid(W, P)
 
 # Setting target sectors with S=1 and S=-1 such that S_total = 0
