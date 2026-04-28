@@ -165,33 +165,37 @@ void QCM::wk_integral(int dim, function<void (Complex w, vector3D<double> &k, co
 
 
 /**
- Performs an integral over wavevectors on a predetermined regular grid.
+ Performs an integral over wavevectors on a predetermined regular grid with
+ a possibly direction-dependent number of wavevectors.
  @param dim spatial dimension (1 to 3)
- @param nk_side number of wavevectors on each side of the momentum integration domain (Brillouin zone)
+ @param nkx number of wavevectors along the kx direction
+ @param nky number of wavevectors along the ky direction (used only if dim>=2)
+ @param nkz number of wavevectors along the kz direction (used only if dim==3)
  @param f		function to integrate (may be multi-component)
  @param Iv	value of the integral (adds to previous value: must be properly initialized)
  */
-void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv)
+void QCM::k_integral_grid(int dim, int nkx, int nky, int nkz, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv)
 {
-	// cout << "computing integral on a grid of " << nk_side << "**" << dim << " k-points" << endl;
 	int nv = (int)Iv.size();
 	vector<double> I(nv, 0.0);
-	double ikside = 1.0/nk_side;
+	double ikx = 1.0/nkx;
+	double iky = 1.0/nky;
+	double ikz = 1.0/nkz;
 	if(dim==1){
 		#pragma omp parallel
 		{
 			vector<double> Ik(nv);
 			vector<double> Ip(nv, 0.0);
 			#pragma omp for nowait
-			for(int ikx = 0; ikx < nk_side; ikx++){
-				vector3D<double> k(ikx*ikside, 0.0, 0.0);
+			for(int i = 0; i < nkx; i++){
+				vector3D<double> k(i*ikx, 0.0, 0.0);
 				f(k, &nv, Ik.data());
 				Ip += Ik;
 			}
 			#pragma omp critical
 			I += Ip;
 		}
-		I *= ikside;
+		I *= ikx;
 	}
 	else if (dim==2){
 		#pragma omp parallel
@@ -199,9 +203,9 @@ void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> 
 			vector<double> Ik(nv);
 			vector<double> Ip(nv, 0.0);
 			#pragma omp for collapse(2) nowait
-			for(int ikx = 0; ikx < nk_side; ikx++){
-				for(int iky = 0; iky < nk_side; iky++){
-					vector3D<double> k(ikx*ikside, iky*ikside, 0.0);
+			for(int i = 0; i < nkx; i++){
+				for(int j = 0; j < nky; j++){
+					vector3D<double> k(i*ikx, j*iky, 0.0);
 					f(k, &nv, Ik.data());
 					Ip += Ik;
 				}
@@ -209,7 +213,7 @@ void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> 
 			#pragma omp critical
 			I += Ip;
 		}
-		I *= ikside*ikside;
+		I *= ikx*iky;
 	}
 	else if (dim==3){
 		#pragma omp parallel
@@ -217,10 +221,10 @@ void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> 
 			vector<double> Ik(nv);
 			vector<double> Ip(nv, 0.0);
 			#pragma omp for collapse(3) nowait
-			for(int ikx = 0; ikx < nk_side; ikx++){
-				for(int iky = 0; iky < nk_side; iky++){
-					for(int ikz = 0; ikz < nk_side; ikz++){
-						vector3D<double> k(ikx*ikside, iky*ikside, ikz*ikside);
+			for(int i = 0; i < nkx; i++){
+				for(int j = 0; j < nky; j++){
+					for(int l = 0; l < nkz; l++){
+						vector3D<double> k(i*ikx, j*iky, l*ikz);
 						f(k, &nv, Ik.data());
 						Ip += Ik;
 					}
@@ -229,7 +233,7 @@ void QCM::k_integral_grid(int dim, int nk_side, function<void (vector3D<double> 
 			#pragma omp critical
 			I += Ip;
 		}
-		I *= ikside*ikside*ikside;
+		I *= ikx*iky*ikz;
 	}
 	Iv += I;
 }

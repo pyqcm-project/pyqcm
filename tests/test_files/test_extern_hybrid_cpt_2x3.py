@@ -50,7 +50,6 @@ def Emery_model(oxygen=False, hybrid_file = None):
 # 1st part : writing the external hybridization from the model with oxygens
 
 model = Emery_model(oxygen = True)
-model.draw_operator('tpd', show_neighbors=True); exit()
 model.set_target_sectors(['N6:S0', 'N12:S0'])
 
 band_params = """

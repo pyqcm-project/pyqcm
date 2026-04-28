@@ -2405,6 +2405,22 @@ def set_global_parameter(name, value=None):
 
 
 # ---------------------------------------------------------------------------------------------------
+def set_wavevector_grid(nkx, nky, nkz):
+    """
+    Sets the number of wavevectors along each direction of the fixed wavevector grid
+    used by grid integration routines. If this function is never called, the grid
+    defaults to (kgrid_side, kgrid_side, kgrid_side), where ``kgrid_side`` is a
+    global parameter.
+
+    :param int nkx: number of wavevectors along the kx direction
+    :param int nky: number of wavevectors along the ky direction
+    :param int nkz: number of wavevectors along the kz direction
+    :returns: None
+    """
+    return qcm.set_wavevector_grid(int(nkx), int(nky), int(nkz))
+
+
+# ---------------------------------------------------------------------------------------------------
 def get_global_parameter(name, value=None):
     """
     Gets the value of a global parameter.
@@ -2663,7 +2679,7 @@ def wavevector_path(n=32, shape="triangle"):
 
 
 # ---------------------------------------------------------------------------------------------------
-def wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp=0, plane="z"):
+def mdc_wavevector_grid(n=100, orig=[-1.0, -1.0], side=2, k_perp=0, plane="z"):
     """
     Produces a set of wavevectors for a MDC
 

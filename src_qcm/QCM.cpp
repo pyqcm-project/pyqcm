@@ -13,6 +13,7 @@
 #endif
 
 #include "QCM.hpp"
+#include "global_parameter.hpp"
 #include "lattice_model.hpp"
 #include "lattice_model_instance.hpp"
 #include "parser.hpp"
@@ -33,8 +34,39 @@ extern map<size_t, shared_ptr<model_instance_base>> model_instances;
 vector<double> grid_freqs; // optional imaginary frequency grid for discrete integrals
 vector<double> grid_weights; // weights associated with grid_freqs
 
+// per-direction wavevector grid sizes set via QCM::set_wavevector_grid().
+// A value of 0 means "not set: fall back to global_int(\"kgrid_side\")".
+int wavevector_grid_nx = 0;
+int wavevector_grid_ny = 0;
+int wavevector_grid_nz = 0;
+
 //==============================================================================
 namespace QCM{
+
+
+/**
+Sets the per-direction wavevector grid sizes used by the grid integration
+routines. A value of zero in any direction is treated as "not set" and the
+global parameter "kgrid_side" is used as the fallback for that direction.
+*/
+void set_wavevector_grid(int nkx, int nky, int nkz){
+  wavevector_grid_nx = nkx;
+  wavevector_grid_ny = nky;
+  wavevector_grid_nz = nkz;
+}
+
+
+/**
+Resolves the wavevector grid sizes used by the grid integration routines:
+falls back to the global parameter "kgrid_side" for any direction that has
+not been explicitly set via set_wavevector_grid().
+*/
+void get_wavevector_grid(int& nkx, int& nky, int& nkz){
+  int def = (int)global_int("kgrid_side");
+  nkx = wavevector_grid_nx > 0 ? wavevector_grid_nx : def;
+  nky = wavevector_grid_ny > 0 ? wavevector_grid_ny : def;
+  nkz = wavevector_grid_nz > 0 ? wavevector_grid_nz : def;
+}
 
 
 /**

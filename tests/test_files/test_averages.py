@@ -58,4 +58,29 @@ if model.mixing == 4:
 print('\naverage of t from GF= ', -(ave[0,1]+ave[1,2]+ave[2,3]).real)
 print('average of mu from GF = ', I.Green_function_density())
 
+
+# testing grid integration:
+W, P = pyqcm.legendre_frequency_grid(1,10,5,10,5)
+
+I = pyqcm.model_instance(model)
+pyqcm.discrete_integration_grid(W, P)
+pyqcm.set_wavevector_grid(16,16,1)
+print('grille en k : 16,16,1')
+I.averages(pr=True)
+
+I = pyqcm.model_instance(model)
+pyqcm.set_wavevector_grid(8,8,1)
+print('grille en k : 8,8,1')
+I.averages(pr=True)
+
+I = pyqcm.model_instance(model)
+pyqcm.set_wavevector_grid(4,4,1)
+print('grille en k : 4,4,1')
+I.averages(pr=True)
+
+I = pyqcm.model_instance(model)
+pyqcm.set_wavevector_grid(2,2,1)
+print('grille en k : 2,2,1')
+I.averages(pr=True)
+
 I.GS_consistency()

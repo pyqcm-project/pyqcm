@@ -117,6 +117,7 @@ static PyMethodDef methods[] = {
     {"self_energy", self_energy_python, METH_VARARGS, self_energy_help},
     {"set_basis", set_basis_python, METH_VARARGS, set_basis_help},
     {"set_global_parameter", set_global_parameter_python, METH_VARARGS, set_global_parameter_help},
+    {"set_wavevector_grid", set_wavevector_grid_python, METH_VARARGS, set_wavevector_grid_help},
     {"set_multiplier", set_multiplier_python, METH_VARARGS, set_multiplier_help},
     {"set_parameter", set_parameter_python, METH_VARARGS, set_parameter_help},
     {"set_parameters", set_parameters_python, METH_VARARGS, set_parameters_help},

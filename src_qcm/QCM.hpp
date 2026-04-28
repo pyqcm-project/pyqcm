@@ -89,7 +89,9 @@ namespace QCM{
   void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool re=true);
   void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);
   void k_integral(int dim, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy, bool verb=false);
-  void k_integral_grid(int dim, int nk_side, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv);
+  void k_integral_grid(int dim, int nkx, int nky, int nkz, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv);
+  void set_wavevector_grid(int nkx, int nky, int nkz);
+  void get_wavevector_grid(int& nkx, int& nky, int& nkz);
   void new_lattice_model(const string &name, vector<int64_t> &superlattice, vector<int64_t> &lattice, const string &latt_hybrid="");
   void new_model_instance(int label);
   void print_model(const string& filename, bool asy_operators=false, bool asy_labels=false, bool asy_orb=false, bool asy_neighbors=false, bool asy_working_basis=false);

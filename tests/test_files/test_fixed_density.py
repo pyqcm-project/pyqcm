@@ -1,6 +1,9 @@
 import pyqcm
-from model_1D_4_C2 import model
+from model_1D import model1D
 from scipy.optimize import brentq
+
+L = 4 # length of 1D system
+model = model1D(L, sym=True)
 
 model.set_target_sectors(['R0:N4:S0'])
 model.set_parameters("""

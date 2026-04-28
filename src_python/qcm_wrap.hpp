@@ -2709,4 +2709,34 @@ static PyObject *frequency_grid_python(PyObject *self, PyObject *args) {
 }
 
 
+//==============================================================================
+const char *set_wavevector_grid_help =
+    R"{(
+sets the number of wavevectors along each direction of the fixed wavevector grid
+used by grid integration routines. If this function is never called, the grid
+defaults to (kgrid_side, kgrid_side, kgrid_side), where "kgrid_side" is a
+global parameter.
+arguments:
+1. nkx : number of wavevectors along the kx direction
+2. nky : number of wavevectors along the ky direction
+3. nkz : number of wavevectors along the kz direction
+returns: None
+){";
+//------------------------------------------------------------------------------
+static PyObject *set_wavevector_grid_python(PyObject *self, PyObject *args) {
+  int nkx = 0, nky = 0, nkz = 0;
+  try {
+    if (!PyArg_ParseTuple(args, "iii", &nkx, &nky, &nkz))
+      qcm_throw("failed to read parameters in call to set_wavevector_grid (python)");
+    if (nkx <= 0 || nky <= 0 || nkz <= 0)
+      qcm_throw("set_wavevector_grid: nkx, nky and nkz must all be strictly positive");
+    QCM::set_wavevector_grid(nkx, nky, nkz);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+  return Py_BuildValue("");
+}
+
+
 #endif

@@ -61,7 +61,7 @@ def __kgrid(ax, nk, zone=((0,0),1), k_perp=0.0, plane='xy'):
     y1 = zone[0][1]-size
     y2 = zone[0][1]+size
     orig = np.array([x1, y1, 0])
-    k = pyqcm.wavevector_grid(nk, orig, size*2, k_perp, plane)
+    k = pyqcm.mdc_wavevector_grid(nk, orig, size*2, k_perp, plane)
     ax.set_xticks((x1, x2))
     ax.set_yticks((y1, y2))
     ax.set_xticklabels(('${:1.4g}\\pi$'.format(x1), '${:1.4g}\\pi$'.format(x2)))
@@ -87,7 +87,7 @@ def compute_spectral_function_shared(self, irange, A_sh_name, A_down_sh_name, w=
     :param float eta: Lorentzian broadening
     :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
     :param str period: periodization scheme ('G' - default, 'M', 'S', 'C', 'N'). If 'N', deals with a bigger matrix (sites in the repeated unit).
-    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
+    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_path())
     :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
     :param str opt: 'A' : spectral function, 'self' : self-energy
     :param bool Nambu_redress: if True, evaluates the Nambu component at the opposite frequency
@@ -196,7 +196,7 @@ def plot_spectral_function(self, w, A, A_down, path=None, nk=32, offset=2, opt='
     :param ndarray A: spectral function data, from 'compute_spectral_function()'
     :param ndarray A_down: spectral function data (spin down), from 'compute_spectral_function()'
     :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
-    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
+    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_path())
     :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
     :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
     :param bool inverse_path: if True, inverts the path (k --> -k)
@@ -306,7 +306,7 @@ def spectral_function(self, w=6.0, eta=0.05, path=None, nk=32, period = 'G', orb
     :param float eta: Lorentzian broadening
     :param str path: a keyword that is passed to pyqcm.wavevector_path() to produce a set of wavevectors along a path, or a tuple 
     :param str period: periodization scheme ('G' - default, 'M', 'S', 'C', 'N'). If 'N', deals with a bigger matrix (sites in the repeated unit).
-    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_grid())
+    :param int nk: the number of wavevectors along each segment of the path (passed to pyqcm.wavevector_path())
     :param int orb: if not None, only plots the spectral function associated with this orbital number (starts at 1). If None, sums over all orbitals.
     :param float offset: vertical offset in the plot between the curves associated to successive wavevectors
     :param str opt: 'A' : spectral function, 'self' : self-energy, 'selfabs' : module of the self-energy
@@ -1916,7 +1916,7 @@ def monopole_map(self, nk=40, nk_cube=5, orb=None, plane='z', k_perp=0.0, file=N
         ax = plt_ax
     ax.set_aspect(1)
 
-    K = pyqcm.wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
+    K = pyqcm.mdc_wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
     B = np.zeros(nk*nk)
     for i, k in enumerate(K):
         B[i] = self.monopole(2.0*k, a=2.0/nk, nk=nk_cube, orb=orb)
@@ -1972,7 +1972,7 @@ def Berry_flux_map(self, nk=40, plane='z', dir='z', k_perp=0.0, orb=None, npoint
         ax = plt_ax
     ax.set_aspect(1)
 
-    K = pyqcm.wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
+    K = pyqcm.mdc_wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
     B = np.zeros(nk*nk)
     if radius is None:
         radius = 0.8/nk
@@ -2029,7 +2029,7 @@ def Berry_field_map(self, nk=40, nsides = 4, plane='z', k_perp=0.0, orb=None, fi
         ax = plt_ax
     ax.set_aspect(1)
 
-    K = pyqcm.wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
+    K = pyqcm.mdc_wavevector_grid(nk, orig=[-1.0, -1.0], side=2, k_perp = k_perp, plane=plane)
     Bx = np.zeros(nk*nk)
     By = np.zeros(nk*nk)
     Bz = np.zeros(nk*nk)

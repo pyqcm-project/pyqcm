@@ -60,9 +60,10 @@ vector<pair<string,double>> lattice_model_instance::averages(const vector<string
       // via k_integral_grid. The lambda captures G_up (and G_dn) by value: the
       // captured copies live in the lambda object, are read-only inside the parallel
       // section, and contain no shared mutable state.
-      int nk_side = global_int("kgrid_side");
+      int nkx, nky, nkz;
+      QCM::get_wavevector_grid(nkx, nky, nkz);
       cout << "computing integrals from a grid of " << grid_freqs.size() << " frequencies and "
-           << nk_side << "**" << model->spatial_dimension << " k-points" << endl;
+           << nkx << "x" << nky << "x" << nkz << " k-points (dim=" << model->spatial_dimension << ")" << endl;
       bool has_dn = (model->mixing == HS_mixing::up_down);
       for(int iw = 0; iw < (int)grid_freqs.size(); iw++){
         Complex wc(0, grid_freqs[iw]);
@@ -74,7 +75,7 @@ vector<pair<string,double>> lattice_model_instance::averages(const vector<string
           average_integrand_k(G_up, has_dn ? &G_dn : nullptr, k, nv, I);
         };
         to_zero(Iw);
-        QCM::k_integral_grid(model->spatial_dimension, nk_side, F_k, Iw);
+        QCM::k_integral_grid(model->spatial_dimension, nkx, nky, nkz, F_k, Iw);
         Iv += Iw*grid_weights[iw];
       }
     }
@@ -311,8 +312,9 @@ vector<double> lattice_model_instance::dos(const complex<double> w, bool use_gri
 
   vector<double> Iv(model->dim_reduced_GF,0.0);
   if(use_grid){
-    int nk_side = global_int("kgrid_side");
-    QCM::k_integral_grid(model->spatial_dimension, nk_side, F, Iv);
+    int nkx, nky, nkz;
+    QCM::get_wavevector_grid(nkx, nky, nkz);
+    QCM::k_integral_grid(model->spatial_dimension, nkx, nky, nkz, F, Iv);
   }
   else QCM::k_integral(model->spatial_dimension, F, Iv, accur_OP, global_bool("verb_integrals"));
   for(size_t i=0; i<d; i++) D[i] = -M_1_PI*Iv[i]/model->Lc;
@@ -329,8 +331,9 @@ vector<double> lattice_model_instance::dos(const complex<double> w, bool use_gri
 
     to_zero(Iv);
     if(use_grid){
-      int nk_side = global_int("kgrid_side");
-      QCM::k_integral_grid(model->spatial_dimension, nk_side, F_down, Iv);
+      int nkx, nky, nkz;
+      QCM::get_wavevector_grid(nkx, nky, nkz);
+      QCM::k_integral_grid(model->spatial_dimension, nkx, nky, nkz, F_down, Iv);
     }
     else QCM::k_integral(model->spatial_dimension, F_down, Iv, accur_OP, global_bool("verb_integrals"));
     for(size_t i=0; i<D_dim; i++) D[i+D_dim] = -M_1_PI*Iv[i]/model->Lc;

@@ -27,7 +27,7 @@ namespace QCM {
     new_global_double(5e-8,"accur_SEF", "Accuracy of the Potthoff functional");
     
     new_global_int(0,"seed","seed of the random number generator");
-    new_global_int(32,"kgrid_side","number of wavevectors on the side in a fixed wavevector grid");
+    new_global_int(32,"kgrid_side","default number of wavevectors on each side of a fixed wavevector grid (used for every direction unless overridden by set_wavevector_grid(nkx, nky, nkz))");
     new_global_int(60,"max_iter_QN","maximum number of iterations in the quasi-Newton method");
     new_global_int(64,"max_dim_print","Maximum dimension for printing vectors and matrices");
     new_global_int(9,"print_precision","precision of printed output");
