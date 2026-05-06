@@ -1454,7 +1454,7 @@ class hybridization:
 
         nvar = len(varia)
 
-        def tmp_distance(x):
+        def tmp_distance(x, grad=None):
             for i in range(nvar):
                 model.set_parameter(varia[i], x[i])
             I = pyqcm.model_instance(model)
