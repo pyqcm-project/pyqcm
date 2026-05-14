@@ -12,7 +12,7 @@
 
 #define ETADELTA 0.25
 //==============================================================================
-/** 
+/**
  * Builds the matrix tk, the momentum-dependent hopping matrix
  then Calculates V, defined as \f$ t(k) - t' - \Gamma(\omega)\f$
  if nohybrid is true, then only \f$ t(k) - t' \f$
@@ -20,7 +20,7 @@
  @param nohybrid [in] if true, does not add the hybridization function (used in producing the Lehmann form of the Green function)
  */
 void lattice_model_instance::set_V(Green_function_k &M, bool nohybrid){
-	
+
 	if(M.ik >=0 && model->hybrid == nullptr) qcm_throw("Cannot execute this task with a preset lattice hybridization!");
 	size_t nv = model->neighbor.size();
 	M.phase.assign(nv, 1.0);
@@ -29,7 +29,7 @@ void lattice_model_instance::set_V(Green_function_k &M, bool nohybrid){
 		double z = M.k*model->neighbor[i]*2*M_PI;
 		M.phase[i] = Complex(cos(z), sin(z));
 	}
-	
+
 	// computing tk
 	if(M.G.spin_down){
 		M.t = H_down;
@@ -68,7 +68,7 @@ void lattice_model_instance::set_V(Green_function_k &M, bool nohybrid){
 
 
 //==============================================================================
-/** 
+/**
  Computes the CPT Green function (in partial real-space representation)
  \f[ G_{\rm cpt}^{-1} = G^{-1} - V\f]
  @param M [in, out]  Green_function_k object
@@ -76,7 +76,7 @@ void lattice_model_instance::set_V(Green_function_k &M, bool nohybrid){
 void lattice_model_instance::set_Gcpt(Green_function_k &M)
 {
 	matrix<Complex> VG(Green_function_k::dim_GF);
-	
+
 	set_V(M);
 	M.G.G.mult_right(M.V, VG); // VG = V*G
 	VG.v *= -1.0;
@@ -89,7 +89,7 @@ void lattice_model_instance::set_Gcpt(Green_function_k &M)
 
 
 //==============================================================================
-/** 
+/**
  Computes the inverse CPT Green function (in partial real-space representation)
  Ginv is the inverse cluster Green function
  At the end M.V contains the inverse CPT Green function, instead of the CPT
@@ -108,7 +108,7 @@ void lattice_model_instance::inverse_Gcpt(const block_matrix<Complex> &Ginv, Gre
 
 
 //==============================================================================
-/** 
+/**
  calculates the periodized kinetic energy
  (of dimension nband, or 2*nband in the anomalous case)
  @param M [in, out]  Green_function_k object
@@ -126,7 +126,7 @@ matrix<Complex> lattice_model_instance::epsilon(Green_function_k &M)
 
 
 //==============================================================================
-/** 
+/**
  calculates the dispersion relation
  (of dimension nband, or 2*nband in the anomalous case)
  @param M [in, out]  Green_function_k object
@@ -143,7 +143,7 @@ vector<double> lattice_model_instance::dispersion(Green_function_k &M)
 
 
 //==============================================================================
-/** 
+/**
  Produces the periodized Green function, according to possible periodization schemes
  @param M [in, out]  Green_function_k object
  */
@@ -252,7 +252,7 @@ void lattice_model_instance::periodized_Green_function(Green_function_k &M)
 
 
 //==============================================================================
-/** 
+/**
  calculates the lattice self-energy matrix
  (of dimension nband, or 2*nband in the anomalous case)
  @param M [in, out]  Green_function_k object
@@ -275,7 +275,7 @@ void lattice_model_instance::self_energy(Green_function_k &M)
 
 
 //==============================================================================
-/** 
+/**
  Calculates the integral of Gcpt over wavevectors, using the grid kgrid
  @param w [in] complex frequency
  @param spin_down [in] if true, computes the spin-down component (mixing = 4)
@@ -287,10 +287,10 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
 	matrix<Complex> PGF(model->dim_GF);
 	Green_function G = cluster_Green_function(w, false, spin_down);
 	size_t kgrid_side = global_int("kgrid_side");
-  
+
 	double step = 1.0/kgrid_side;
-  
-	
+
+
 	size_t nk = 0;
 	switch((int)model->superlattice.D){
 		case 0:
@@ -348,7 +348,7 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
 
 
 //==============================================================================
-/** 
+/**
  Computes the CDMFT host
  @param freqs [in] frequency array (along the imaginary axis)
  @param weights [in] weights of the different frequencies in the distance function
@@ -427,7 +427,7 @@ void lattice_model_instance::CDMFT_host(const vector<double>& freqs, const vecto
 
 
 //==============================================================================
-/** 
+/**
  Computes the CDMFT host from an external hybridization
  */
 void lattice_model_instance::CDMFT_host()
@@ -481,12 +481,12 @@ vector<vector<matrix<Complex>>> lattice_model_instance::get_CDMFT_host(bool spin
 
 
 //==============================================================================
-/** 
+/**
  sets the CDMFT host from input data
  @param freqs [in] frequency array (along the imaginary axis)
  @param clus [in] label of the cluster
  @param H [in] vector of matrices (host)
- @param spin_down [in] boolean : true if spin-down sector (mixing = 4) 
+ @param spin_down [in] boolean : true if spin-down sector (mixing = 4)
  */
 void lattice_model_instance::set_CDMFT_host(const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down)
 {
@@ -502,7 +502,7 @@ void lattice_model_instance::set_CDMFT_host(const vector<double>& freqs, const i
 			}
 		}
 	}
-	
+
 	if(spin_down){
 		for(int i=0; i<freqs.size(); i++) G_host_down[i][clus] = H[i];
 	}
@@ -511,7 +511,7 @@ void lattice_model_instance::set_CDMFT_host(const vector<double>& freqs, const i
 	}
 }
 //==============================================================================
-/** 
+/**
  Computes the CDMFT distance function
  @param p values of the variational parameters
  @returns the distance function
@@ -526,7 +526,7 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p, int clus)
 
 	double dw = CDMFT_freqs[1]-CDMFT_freqs[0];
 	int dim = G_host[0][0].r;
-	
+
 	#pragma omp parallel for reduction (+:dist)
 	for(int i=0; i<CDMFT_freqs.size(); i++){
 		Complex w(0.0, CDMFT_freqs[i]);
@@ -554,4 +554,119 @@ double lattice_model_instance::CDMFT_distance(const vector<double>& p, int clus)
 	return dist;
 }
 
+//==============================================================================
+/**
+ Computes the CDMFT residual vector (real-valued) used by least_squares optimizers.
+ The residuals are r_n = sqrt(w_n) * (Gamma(iw_n) + G_host(iw_n)), packed as
+ [Re(.).ravel(), Im(.).ravel()] for each frequency, then stacked over frequencies.
+ If the model has up_down mixing, residuals for both spin components are concatenated.
 
+ NOTE: unlike CDMFT_distance, this does NOT multiply by dw nor divide by (dim*dim),
+ because least_squares uses the residuals directly (sum of squares forms the cost).
+ A constant rescaling does not change the optimum.
+
+ @param p values of the variational parameters
+ @param clus cluster index
+ @returns the real residual vector
+ */
+vector<double> lattice_model_instance::CDMFT_residuals(const vector<double>& p, int clus)
+{
+	for(int i=0; i<model->param_set->CDMFT_variational[clus].size(); i++){
+		model->param_set->set_value(model->param_set->CDMFT_variational[clus][i], p[i]);
+	}
+	auto I = lattice_model_instance(model, label+999);
+
+	int dim = G_host[0][0].r;
+	int dim2 = dim*dim;
+	int Nfreq = (int)CDMFT_freqs.size();
+	bool has_down = (model->mixing & HS_mixing::up_down) != 0;
+	int n_spins = has_down ? 2 : 1;
+
+	vector<double> r(2 * n_spins * Nfreq * dim2, 0.0);
+
+	#pragma omp parallel for if(!omp_in_parallel())
+	for(int i=0; i<Nfreq; i++){
+		Complex w(0.0, CDMFT_freqs[i]);
+		double sw = sqrt(CDMFT_weights[i]);
+		auto gamma = I.hybridization_function(clus, w, false);
+		for(int k=0; k<dim2; k++){
+			Complex z = gamma.v[k] + G_host[i][clus].v[k];
+			r[2*dim2*i + k]        = sw * z.real();
+			r[2*dim2*i + dim2 + k] = sw * z.imag();
+		}
+	}
+
+	if(has_down){
+		int off = 2 * Nfreq * dim2;
+		#pragma omp parallel for if(!omp_in_parallel())
+		for(int i=0; i<Nfreq; i++){
+			Complex w(0.0, CDMFT_freqs[i]);
+			double sw = sqrt(CDMFT_weights[i]);
+			auto gamma = I.hybridization_function(clus, w, true);
+			for(int k=0; k<dim2; k++){
+				Complex z = gamma.v[k] + G_host_down[i][clus].v[k];
+				r[off + 2*dim2*i + k]        = sw * z.real();
+				r[off + 2*dim2*i + dim2 + k] = sw * z.imag();
+			}
+		}
+	}
+
+	return r;
+}
+
+//==============================================================================
+/**
+ Computes the finite-difference Jacobian d r / d p of the CDMFT residual vector
+ using central differences: J[:,j] = (r(p+δeⱼ) − r(p−δeⱼ)) / (2δ).
+ Stored row-major with shape (Nrows, Nparams), where Nrows = 2 * n_spins * Nfreq * dim^2.
+
+ Cost: 2*Nparams calls to CDMFT_residuals (no baseline evaluation needed).
+ Accuracy: O(δ²) ≈ 1e-10 versus O(δ) ≈ 1e-7 for forward differences.
+
+ Implementation note: the bath parameters -> Gamma(iw) map is evaluated by
+ finite difference because individual operator derivatives are not exposed by the
+ lattice_model_instance interface. This is still substantially cheaper than
+ scipy's default numerical Jacobian (all computation stays in C++).
+
+ @param p values of the variational parameters
+ @param clus cluster index
+ @returns the Jacobian as a flat row-major vector (shape: Nrows × Nparams, row-major)
+ */
+vector<double> lattice_model_instance::CDMFT_gradient(const vector<double>& p, int clus)
+{
+	int Nparams = (int)p.size();
+	int dim = G_host[0][0].r;
+	int dim2 = dim*dim;
+	int Nfreq = (int)CDMFT_freqs.size();
+	bool has_down = (model->mixing & HS_mixing::up_down) != 0;
+	int n_spins = has_down ? 2 : 1;
+	int Nrows = 2 * n_spins * Nfreq * dim2;
+
+	vector<double> J(Nrows * Nparams, 0.0);
+
+	const double delta = global_double("cdmft_jacobian_delta");
+	for(int j=0; j<Nparams; j++){
+		double scale = std::max(1.0, std::abs(p[j]));
+		double dj = delta * scale;
+
+		vector<double> pp = p;
+		pp[j] = p[j] + dj;
+		vector<double> rp = CDMFT_residuals(pp, clus);
+
+		vector<double> pm = p;
+		pm[j] = p[j] - dj;
+		vector<double> rm = CDMFT_residuals(pm, clus);
+
+		double inv = 1.0 / (2.0 * dj);
+		for(int row=0; row<Nrows; row++){
+			J[row * Nparams + j] = (rp[row] - rm[row]) * inv;
+		}
+	}
+
+	// Restore original parameter values so subsequent calls see consistent state
+	for(int i=0; i<model->param_set->CDMFT_variational[clus].size(); i++){
+		model->param_set->set_value(model->param_set->CDMFT_variational[clus][i], p[i]);
+	}
+
+	return J;
+}
