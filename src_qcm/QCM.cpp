@@ -1196,7 +1196,23 @@ check_instance(label);
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    return lattice_model_instances.at(label)->CDMFT_distance(p, clus); 
+    return lattice_model_instances.at(label)->CDMFT_distance(p, clus);
+  }
+
+  vector<double> CDMFT_residuals(const vector<double>& p, int clus, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    return lattice_model_instances.at(label)->CDMFT_residuals(p, clus);
+  }
+
+  vector<double> CDMFT_gradient(const vector<double>& p, int clus, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    return lattice_model_instances.at(label)->CDMFT_gradient(p, clus);
   }
 
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label)

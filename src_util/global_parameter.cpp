@@ -29,7 +29,8 @@ namespace QCM {
     new_global_double(1e-4, "accur_OP", "accuracy of lattice averages");
     new_global_double(20,"large_scale", "high-frequency region for imaginary frequency axis integrals");
     new_global_double(5e-8,"accur_SEF", "Accuracy of the Potthoff functional");
-    
+    new_global_double(1.0e-5, "cdmft_jacobian_delta", "central-difference step size for the CDMFT analytical Jacobian (used by methods 'trf', 'BFGS-jac', 'L-BFGS-B-jac', 'LD_LBFGS-jac')");
+
     new_global_int(0,"seed","seed of the random number generator");
     new_global_int(32,"kgrid_side","default number of wavevectors on each side of a fixed wavevector grid (used for every direction unless overridden by set_wavevector_grid(nkx, nky, nkz))");
     new_global_int(60,"max_iter_QN","maximum number of iterations in the quasi-Newton method");
@@ -89,4 +90,3 @@ namespace QCM {
     new_global_char('L', "GF_method", "Representation of the Green function: L (Lehmann/band-Lanczos - default), F (continued fraction), M (matrix continued fraction)");
   }
 }
-

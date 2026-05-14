@@ -182,6 +182,10 @@ namespace QCM{
   void set_CDMFT_host(int label, const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down);
   //! Computes the CDMFT distance function at the given variational point.
   double CDMFT_distance(const vector<double>& p, int clus, int label);
+  //! Computes the CDMFT residual vector r(p) used by least-squares optimizers.
+  vector<double> CDMFT_residuals(const vector<double>& p, int clus, int label);
+  //! Computes the analytical Jacobian dr/dp of the CDMFT residual vector.
+  vector<double> CDMFT_gradient(const vector<double>& p, int clus, int label);
   //! Retrieves the CDMFT host function (per-cluster matrices over all frequencies).
   vector<vector<matrix<Complex>>> get_CDMFT_host(bool spin_down, int label);
 };

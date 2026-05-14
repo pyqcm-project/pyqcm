@@ -1,6 +1,4 @@
-"""This file contains functions implementing
-Cluster dynamical mean-field theory (CDMFT).
-"""
+"""This file contains functions implementing Cluster Dynamical Mean-Field Theory (CDMFT)."""
 
 import timeit
 
@@ -130,23 +128,29 @@ class bias_field:
     class containing the information about the procedure of applying an external field that breaks a symmetry and whose
     amplitude decreases by a given factor at each CDMFT iteration.
     """
+
     def __init__(self, op, value=1.0, factor=0.5, maxiter=32, miniter=3):
         """
         @param str name: name of the operator
         @param float value: initial value of the bias field
         @param float factor: decreasing factor between iterations (between 0.1 and 0.9)
-        @param int maxiter: maximum iteration number, after which the field is set to 1e-9 
+        @param int maxiter: maximum iteration number, after which the field is set to 1e-9
         @param int miniter: minimum iteration number, before which the field is not attenuated
         """
-        self.op = op 
+        self.op = op
         self.value0 = value
         self.value = value
         self.factor = factor
         self.maxiter = maxiter
         self.miniter = miniter
-        if self.maxiter < 5 : raise ValueError("'maxiter' in bias_field should be >= 5")
-        if self.miniter < 1 or self.miniter > 32: raise ValueError("'miniter' in bias_field should be from 1 to 32")
-        if factor > 0.9 or factor < 0.1 : raise ValueError("factor in bias_field should be in the interval [0.1, 0.9]")
+        if self.maxiter < 5:
+            raise ValueError("'maxiter' in bias_field should be >= 5")
+        if self.miniter < 1 or self.miniter > 32:
+            raise ValueError("'miniter' in bias_field should be from 1 to 32")
+        if factor > 0.9 or factor < 0.1:
+            raise ValueError(
+                "factor in bias_field should be in the interval [0.1, 0.9]"
+            )
 
 
 class CDMFT:
@@ -163,9 +167,13 @@ class CDMFT:
     :param [float] accur_dist: relative tolerance of the distance function when minimizing it
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
     :param bool converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
-    :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
-    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
-    :param str method: method to use, as used in scipy.optimize.minimize(). Choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', or a choice of NLopt methods : 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'
+    :param str iteration: method of iteration of parameters ('fixed_point', 'broyden', or 'anderson')
+    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run). Unused for 'anderson'.
+    :param int anderson_depth: history depth m for Anderson mixing (number of previous steps to mix); only used when iteration='anderson'
+    :param float anderson_beta: mixing parameter for Anderson mixing (1.0 = full step, < 1.0 = damped); only used when iteration='anderson'
+    :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX', 'L-BFGS-B'. Analytical-Jacobian choices (require ``jac=True``): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
+    :param bool jac: if ``True``, use the analytical Jacobian (``qcm.CDMFT_gradient``) for the chosen method. Supported methods: ``trf``, ``BFGS``, ``L-BFGS-B``. Passing ``jac=True`` with any other method raises ``ValueError``. Default ``False``.
+    :param int lm_max_nfev: maximum number of function/gradient evaluations for all ``jac=True`` methods (default 2000; ignored when ``jac=False``)
     :param str file: name of the file where the solution is written
     :param str iter_file: name of the file where the CDMFT iterations are recorded
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
@@ -200,9 +208,12 @@ class CDMFT:
         accur_dist=1e-8,
         hartree=None,
         converge_with_stdev=False,
-        iteration="broyden",  # or 'fixed_point'
+        iteration="broyden",  # or 'fixed_point' or 'anderson'
         alpha=0.0,
+        anderson_depth=5,
+        anderson_beta=1.0,
         method="Nelder-Mead",
+        lm_max_nfev=2000,
         file="cdmft.tsv",
         iter_file="cdmft_iter.tsv",
         eps_algo=0,
@@ -214,13 +225,16 @@ class CDMFT:
         host_function=None,
         pre_host=None,
         max_value=100,
-        bias = None,
-        post_min = None
+        bias=None,
+        post_min=None,
+        jac=False,
     ):
 
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
         self.alpha = alpha
+        self.anderson_depth = anderson_depth
+        self.anderson_beta = anderson_beta
         self.check_ground_state = check_ground_state
         self.dist = 1e6
         self.hartree = hartree
@@ -233,7 +247,9 @@ class CDMFT:
         self.iter_file = iter_file
         self.max_function_eval = max_function_eval
         self.max_value = max_value
+        self.lm_max_nfev = lm_max_nfev
         self.method = method
+        self.jac = jac
         self.model = model
         self.pre_host = pre_host
         self.sigma = None  # internal : self-energy
@@ -250,9 +266,9 @@ class CDMFT:
                 "The argument 'varia' of CDMFT should be a list of variational parameters"
             )
 
-        if iteration not in ["broyden", "fixed_point"]:
+        if iteration not in ["broyden", "fixed_point", "anderson"]:
             raise ValueError(
-                "the argument 'iteration' of CDMFT() should be one of 'broyden', 'fixed_point'"
+                "the argument 'iteration' of CDMFT() should be one of 'broyden', 'fixed_point', 'anderson'"
             )
 
         # ----------- Managing the variational parameters ---------
@@ -274,7 +290,7 @@ class CDMFT:
             elif len(p) == 3:
                 var[model.sys_clus[int(p[2]) - 1] + 1].append(v)
             else:
-                raise ValueError('parameter name'+ v + ' has wrong format')
+                raise ValueError("parameter name" + v + " has wrong format")
         var[0] = [h.Vm for h in self.hartree]
         self.nvar = np.zeros(model.nclus + 1, int)
         for c in range(model.nclus + 1):
@@ -368,7 +384,6 @@ class CDMFT:
             self.grid = grid
         print("frequency grid = ", self.grid.name)
 
-
         if alpha is float:
             print("damping factor = ", self.alpha)
         print("-" * 100)
@@ -380,7 +395,6 @@ class CDMFT:
         # ------------------------------- CDMFT main iteration loop ------------------------
         self.niter = 0
         self.iter = 0
-
 
         def F(x):
             self.x = np.copy(x)
@@ -423,9 +437,25 @@ class CDMFT:
                     "Failure of the CDMFT method (fixed-point)"
                 ) from E
 
+        elif iteration == "anderson":
+            try:
+                actual_method = "anderson"
+                self.x, self.niter = pyqcm.anderson_mixing(
+                    F,
+                    self.x,
+                    m=self.anderson_depth,
+                    beta=self.anderson_beta,
+                    xtol=1e-6,
+                    convergence_test=G,
+                    maxiter=maxiter,
+                    miniter=miniter,
+                )
+            except Exception as E:
+                raise pyqcm.SolverError("Failure of the CDMFT method (anderson)") from E
+
         else:
             raise ValueError(
-                'unknown iteration method in CDMFT. must be either "broyden" or "fixed_point". Check spelling.'
+                'unknown iteration method in CDMFT. must be one of "broyden", "fixed_point", "anderson". Check spelling.'
             )
 
         # Here we have converged
@@ -511,29 +541,42 @@ class CDMFT:
             if self.nvar[c] == 0:
                 continue
             x0 = self.x[ic : ic + self.nvar[c]]
-            DISTANCE = lambda x, grad=None: qcm.CDMFT_distance(x, c - 1, self.I.label)
-            sol = optimize(
-                DISTANCE,
+            _clus = c - 1
+            _label = self.I.label
+            # NOTE: CDMFT_residuals returns r such that ‖r‖² ∝ D (same minimiser,
+            # different scale). CDMFT_distance normalises by dw/(dim²) for reporting.
+            if self.jac:
+                # All jac-capable methods receive the residual vector r(x) and the
+                # full Jacobian J(x) = ∂r/∂x.  optimize() selects the appropriate
+                # scipy.optimize.least_squares sub-algorithm (trf / lm / dogbox).
+                F = lambda x, _c=_clus, _l=_label: np.asarray(
+                    qcm.CDMFT_residuals(x, _c, _l)
+                )
+                jac_fn = lambda x, _c=_clus, _l=_label: np.asarray(
+                    qcm.CDMFT_gradient(x, _c, _l)
+                )
+                maxfev = self.lm_max_nfev
+            else:
+                F = lambda x, grad=None: qcm.CDMFT_distance(x, _clus, _label)
+                jac_fn = False
+                maxfev = self.max_function_eval
+            opt_x, opt_iter_done, opt_success, _ = optimize(
+                F,
                 x0,
                 self.method,
                 self.initial_step,
                 self.accur_bath,
                 self.accur_dist,
-                self.max_function_eval,
+                maxfev,
+                jac=jac_fn,
+                bounds=self.max_value if self.jac else None,
             )
-            opt_x, opt_iter_done, opt_success, opt_fun = sol
+            opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
             self.dist += opt_fun
 
-            if self.method != "ANNEAL" and not opt_success:
-                print(sol)
-                pyqcm.banner(
-                    "Error in the scipy minimization procedure within CDMFT ", "!"
-                )
-                raise pyqcm.MinimizationError()
-
-            if opt_iter_done > self.max_function_eval:
-                print(sol)
+            if opt_iter_done > maxfev:
+                print(opt_x)
                 pyqcm.banner(
                     "number of function evaluations exceeds preset maximum of {:d}".format(
                         self.max_function_eval
@@ -543,7 +586,7 @@ class CDMFT:
                 raise pyqcm.MinimizationError()
 
             if np.any(np.isnan(opt_x)):
-                print(sol)
+                print(opt_x)
                 pyqcm.banner("NaN found in optimization of bath parameters", "!")
                 raise pyqcm.MinimizationError(
                     "NaN found in optimization of bath parameters"
@@ -568,14 +611,14 @@ class CDMFT:
             else:
                 self.bias.value *= self.bias.factor
             self.model.set_parameter(self.bias.op, self.bias.value)
-            print('====> bias field : ', self.bias.op, ' = ', self.bias.value)
-
+            print("====> bias field : ", self.bias.op, " = ", self.bias.value)
 
         # --------------------------------------------------------------------------------
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
-        if self.post_min != None: self.post_min(self.I)
+        if self.post_min != None:
+            self.post_min(self.I)
 
         # writing the parameters in a progress file
         self.I.props["opt_method"] = self.method
@@ -606,7 +649,8 @@ class CDMFT:
 
         converged = True
 
-        if self.bias != None and self.iter <= self.bias.miniter: converged=False
+        if self.bias != None and self.iter <= self.bias.miniter:
+            converged = False
 
         for C in self.convergence_test:
             if C.name == "GS energy":
@@ -716,12 +760,12 @@ class CDMFT:
                 for c in range(self.model.nclus):
                     delta = X[0][c][i, :, :] - Y[0][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i] * norm * norm /X[0][c].shape[1]**2
+                    diff += g.weight[i] * norm * norm / X[0][c].shape[1] ** 2
             for i in range(g.nw):
                 for c in range(self.model.nclus):
                     delta = X[1][c][i, :, :] - Y[1][c][i, :, :]
                     norm = np.linalg.norm(delta)
-                    diff += g.weight[i] * norm * norm /X[1][c].shape[1]**2
+                    diff += g.weight[i] * norm * norm / X[1][c].shape[1] ** 2
 
         if self.model.mixing == 0:
             diff *= 2
@@ -801,60 +845,60 @@ class frequency_grid:
     :ivar name: the name of the frequency array scheme chosen (for reference)
     """
 
-    def __init__(self, grid_type = 'legendre', specs=(1,10,4,10,4), opt=""):
-        if grid_type == 'legendre' or grid_type == 'Legendre':
-            self.grid_type = 'legendre'
+    def __init__(self, grid_type="legendre", specs=(1, 10, 5, 10, 5), opt=""):
+        if grid_type == "legendre" or grid_type == "Legendre":
+            self.grid_type = "legendre"
             w1, w2, n1, n2, n3 = specs
-            self.wr, self.weight = pyqcm.legendre_frequency_grid(w1,w2,n1,n2,n3)
-            self.name = 'legendre({:g}-{:g}-{:d}-{:d}-{:d})'.format(w1,w2,n1,n2,n3)
+            self.wr, self.weight = pyqcm.legendre_frequency_grid(w1, w2, n1, n2, n3)
+            self.name = "legendre({:g}-{:g}-{:d}-{:d}-{:d})".format(w1, w2, n1, n2, n3)
 
-        elif grid_type == 'Matsubara' or grid_type == 'matsubara':
+        elif grid_type == "Matsubara" or grid_type == "matsubara":
             wc, beta = specs
             self.wr = np.arange((np.pi / beta), wc + 1e-6, 2 * np.pi / beta)
-            self.weight = (2*np.pi/beta)*np.ones_like(self.wr)
+            self.weight = (2 * np.pi / beta) * np.ones_like(self.wr)
             self.cdmft_weight = self.weight
-            self.name = 'matsubara({:g}-{:g})'.format(wc,beta)
+            self.name = "matsubara({:g}-{:g})".format(wc, beta)
 
-        elif grid_type == 'regular': 
+        elif grid_type == "regular":
             wc, n1, n2 = specs
             self.wr, self.weight = pyqcm.regular_frequency_grid(wc, n1, n2)
-            self.name = 'regular({:g}-{:d}-{:d})'.format(wc,n1,n2)
+            self.name = "regular({:g}-{:d}-{:d})".format(wc, n1, n2)
 
         else:
-            raise ValueError('Unknown type of frequency grid ' + grid_type)
+            raise ValueError("Unknown type of frequency grid " + grid_type)
 
         self.nw = self.wr.shape[0]
         self.cdmft_weight = np.ones_like(self.wr)
 
         self.self_norm = False
-        if opt == '':
+        if opt == "":
             pass
         elif opt == "ifreq":
-            tmp = np.ones(1.0/self.wr)
-            self.cdmft_weight = tmp/tmp.sum()
-            self.name += '_ifreq'
-        elif opt == 'self' : 
+            tmp = np.ones(1.0 / self.wr)
+            self.cdmft_weight = tmp / tmp.sum()
+            self.name += "_ifreq"
+        elif opt == "self":
             self.self_norm = True
-            self.name += '_self'
+            self.name += "_self"
         else:
-            raise ValueError('Unknown option '+opt+' in frequency_grid()') 
+            raise ValueError("Unknown option " + opt + " in frequency_grid()")
 
-
-    
     def udpate(self, I):
         """
         Updates the cdmft_weight array depending on the model_instance
-        
+
         :param model_instance I: current model instance
         """
         if self.self_norm:
             Sig_inf = I.cluster_self_energy(1.0e6j)
-            for i, x in enumerate(self.wr * 1j):
-                self.cdmft_weight[i] = np.linalg.norm(I.cluster_self_energy(x) - Sig_inf)
+            for i, x in enumerate(self.w):
+                self.cdmft_weight[i] = np.linalg.norm(
+                    I.cluster_self_energy(x) - Sig_inf
+                )
             self.cdmft_weight = self.cdmft_weight / self.cdmft_weight.sum()
         else:
             pass
-        
+
 
 ####################################################################################################
 class general_bath:
@@ -1502,30 +1546,85 @@ def optimize(
     accur=1e-4,
     accur_dist=1e-8,
     maxfev=5000000,
+    jac=False,
+    bounds=None,
 ):
     """
 
-    :param F: function to be optimized
+    :param F: function to be optimized.
+        When ``jac`` is callable: ``F(x) -> array`` (residual vector ``r(x)``); applies to
+        ``trf``, ``BFGS``, and ``L-BFGS-B``.
+        When ``jac=False``: ``F(x) -> float`` (scalar objective); ``F`` must also accept an
+        optional ``grad`` keyword: ``F(x, grad=None)``.
     :param (float) x: array of variables
-    :param str method: method to use, as used in scipy.optimize.minimize()
+    :param str method: minimization method. Scipy methods: ``Nelder-Mead``, ``Powell``, ``CG``,
+        ``BFGS``, ``ANNEAL``. NLopt derivative-free: ``COBYLA``, ``BOBYQA``, ``PRAXIS``,
+        ``NELDERMEAD``, ``SUBPLEX``. NLopt gradient-based (forward finite differences): ``L-BFGS-B``.
+        Jacobian-based least-squares (require ``jac`` callable): ``trf`` (trust-region reflective),
+        ``BFGS`` (Levenberg-Marquardt, no bounds), ``L-BFGS-B`` (dogbox, supports bounds).
+        All three jac-capable methods call ``scipy.optimize.least_squares`` and therefore
+        share the same xtol/ftol stopping criteria, guaranteeing equivalent bath-parameter
+        precision and consistent outer CDMFT convergence.
     :param float initial_step: initial step in the minimization procedure
-    :param float accur: requested accuracy in the parameters
-    :param float accur_dist: requested accuracy in the distance function
+    :param float accur: absolute tolerance on the parameters (x-tolerance)
+    :param float accur_dist: absolute tolerance on the objective function value (f-tolerance)
     :param int maxfev: maximum number of function evaluations allowed
+    :param jac: ``False`` (default, derivative-free) or a callable ``jac(x) -> 2-D array``
+        returning the full Jacobian matrix J = ∂r/∂x (shape ``Nresiduals × Nparams``).
+    :param bounds: ``None`` (unbounded, ±∞) or a positive scalar ``B`` that applies a ``[-B, B]``
+        box to all parameters. Used by ``trf`` and ``L-BFGS-B`` when ``jac`` is callable;
+        ignored by ``BFGS`` (which uses Levenberg-Marquardt, an unbounded algorithm).
     :returns: a 4-tuple (opt_x, iter_done, success, fun) with the optimal parameters, number of evaluations, success flag, and optimal function value
     :rtype: tuple
 
     """
 
-    displaymin, nvar = False, len(x)
-    nlopt_methods = {
-        "COBYLA": nlopt.LN_COBYLA,
-        "BOBYQA": nlopt.LN_BOBYQA,
-        "PRAXIS": nlopt.LN_PRAXIS,
-        "NELDERMEAD": nlopt.LN_NELDERMEAD,
-        "SUBPLEX": nlopt.LN_SBPLX,
+    _JAC_SUPPORTED = {"trf", "bfgs", "l-bfgs-b"}
+    if callable(jac) and method.lower() not in _JAC_SUPPORTED:
+        raise ValueError(
+            f"method '{method}' does not support an analytical Jacobian; "
+            f"supported methods: {', '.join(sorted(_JAC_SUPPORTED))}"
+        )
+    if method.lower() == "trf" and not callable(jac):
+        raise ValueError('"trf" requires a callable jac — pass jac=True to CDMFT')
+    if callable(jac):
+        print(
+            f"Analytical Jacobian active "
+            f"(cdmft_jacobian_delta = "
+            f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
+        )
+
+    _lo = -bounds if bounds is not None else -np.inf
+    _hi = bounds if bounds is not None else np.inf
+
+    nvar = len(x)
+    nlopt_df_methods = {
+        "cobyla": nlopt.LN_COBYLA,
+        "bobyqa": nlopt.LN_BOBYQA,
+        "praxis": nlopt.LN_PRAXIS,
+        "neldermead": nlopt.LN_NELDERMEAD,
+        "subplex": nlopt.LN_SBPLX,
     }
-    if method == "Nelder-Mead":
+    if method.lower() == "trf":
+        sol_ls = scipy.optimize.least_squares(
+            F,
+            x,
+            jac=jac,
+            method="trf",
+            bounds=(_lo, _hi),
+            max_nfev=maxfev,
+            ftol=accur_dist,
+            xtol=accur,
+            gtol=1e-12,
+        )
+        opt_x, iter_done, success, fun = (
+            sol_ls.x,
+            sol_ls.nfev,
+            sol_ls.success,
+            sol_ls.cost,
+        )
+
+    elif method == "Nelder-Mead":
         initial_simplex = np.zeros((nvar + 1, nvar))
         for i in range(nvar + 1):
             initial_simplex[i, :] = x
@@ -1536,7 +1635,6 @@ def optimize(
             x,
             method="Nelder-Mead",
             options={
-                "disp": displaymin,
                 "maxfev": maxfev,
                 "xatol": accur,
                 "fatol": accur_dist,
@@ -1553,15 +1651,50 @@ def optimize(
 
     elif method == "CG":
         sol = scipy.optimize.minimize(
-            F, x, method="CG", jac=False, tol=accur, options={"gtol": 1e-6, "eps": 1e-6}
+            F,
+            x,
+            method="CG",
+            jac=False,
+            tol=accur,
+            options={
+                "gtol": accur,
+                "eps": pyqcm.get_global_parameter("cdmft_jacobian_delta"),
+            },
         )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == "BFGS":
-        sol = scipy.optimize.minimize(
-            F, x, method="BFGS", jac=False, tol=accur, options={"eps": accur}
-        )
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+        if callable(jac):
+            # Route through Levenberg-Marquardt (least-squares, no bounds).
+            # BFGS with a gradient J^T r is suboptimal for ‖r‖²: it ignores the
+            # Gauss-Newton structure and has no direct x-tolerance stopping criterion.
+            # LM uses J directly (Gauss-Newton step) and stops on xtol, matching TRF.
+            sol_ls = scipy.optimize.least_squares(
+                F,
+                x,
+                jac=jac,
+                method="lm",
+                max_nfev=maxfev,
+                ftol=accur_dist,
+                xtol=accur,
+                gtol=1e-12,
+            )
+            opt_x, iter_done, success, fun = (
+                sol_ls.x,
+                sol_ls.nfev,
+                sol_ls.success,
+                sol_ls.cost,
+            )
+        else:
+            sol = scipy.optimize.minimize(
+                F,
+                x,
+                method="BFGS",
+                jac=False,
+                tol=accur,
+                options={"eps": pyqcm.get_global_parameter("cdmft_jacobian_delta")},
+            )
+            opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == "ANNEAL":
         sol = scipy.optimize.basinhopping(
@@ -1570,38 +1703,86 @@ def optimize(
             minimizer_kwargs={
                 "method": "COBYLA",
                 "options": {
-                    "disp": displaymin,
                     "rhobeg": initial_step,
                     "maxiter": maxfev,
-                    "rtol": accur_dist,
+                    "catol": accur_dist,
                 },
             },
         )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
-    elif method in nlopt_methods.keys():
-        optimizer = nlopt.opt(nlopt_methods[method], nvar)
+    elif method.lower() in nlopt_df_methods.keys():
+        optimizer = nlopt.opt(nlopt_df_methods[method.lower()], nvar)
 
-        # Set objective function and parameters bounds (same as in `check_bounds` method)
         optimizer.set_min_objective(F)
-        optimizer.set_lower_bounds(np.array([-np.inf for _ in x]))
-        optimizer.set_upper_bounds(np.array([np.inf for _ in x]))
+        optimizer.set_lower_bounds(np.full(nvar, -np.inf))
+        optimizer.set_upper_bounds(np.full(nvar, np.inf))
 
-        # Set function values (ftol) and parameters (xtol) tolerances
-        optimizer.set_ftol_rel(accur_dist)
-        optimizer.set_xtol_rel(accur)
+        optimizer.set_ftol_abs(accur_dist)
+        optimizer.set_xtol_abs(accur)
 
         optimizer.set_maxeval(maxfev)
         optimizer.set_initial_step(initial_step)
 
-        # Minimizing...
-        sol = optimizer.optimize(x)
+        sol = optimizer.optimize(np.asarray(x, dtype=float))
         opt_x, iter_done, success, fun = (
             sol,
             optimizer.get_numevals(),
-            optimizer.last_optimize_result(),
+            optimizer.last_optimize_result() > 0,
             optimizer.last_optimum_value(),
         )
+
+    elif method == "L-BFGS-B":
+        if callable(jac):
+            # Route through dogbox (least-squares, supports bounds).
+            # NLopt LD_LBFGS with relative tolerances stalls when ‖r‖ is near
+            # machine precision; dogbox uses xtol/ftol (absolute) and exploits J
+            # directly, matching TRF's convergence precision.
+            sol_ls = scipy.optimize.least_squares(
+                F,
+                x,
+                jac=jac,
+                method="dogbox",
+                bounds=(_lo, _hi),
+                max_nfev=maxfev,
+                ftol=accur_dist,
+                xtol=accur,
+                gtol=1e-12,
+            )
+            opt_x, iter_done, success, fun = (
+                sol_ls.x,
+                sol_ls.nfev,
+                sol_ls.success,
+                sol_ls.cost,
+            )
+        else:
+            _fd_eps = pyqcm.get_global_parameter("cdmft_jacobian_delta")
+
+            def _F_with_grad(x, grad):
+                f0 = F(x)
+                if grad.size > 0:
+                    for i in range(nvar):
+                        x_fwd = x.copy()
+                        x_fwd[i] += _fd_eps
+                        grad[i] = (F(x_fwd) - f0) / _fd_eps
+                return f0
+
+            optimizer = nlopt.opt(nlopt.LD_LBFGS, nvar)
+            optimizer.set_min_objective(_F_with_grad)
+            optimizer.set_lower_bounds(np.full(nvar, -np.inf))
+            optimizer.set_upper_bounds(np.full(nvar, np.inf))
+            optimizer.set_ftol_abs(accur_dist)
+            optimizer.set_xtol_abs(accur)
+            optimizer.set_maxeval(maxfev)
+            optimizer.set_vector_storage(0)
+            optimizer.set_exceptions_enabled(False)
+            sol = optimizer.optimize(np.asarray(x, dtype=float))
+            opt_x, iter_done, success, fun = (
+                sol,
+                optimizer.get_numevals(),
+                optimizer.last_optimize_result() > 0,
+                optimizer.last_optimum_value(),
+            )
 
     else:
         raise ValueError(f"unknown method specified for minimization: {method}")
