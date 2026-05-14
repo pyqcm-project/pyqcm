@@ -62,6 +62,8 @@ static PyMethodDef methods[] = {
     {"Berry_curvature", Berry_curvature_python, METH_VARARGS, Berry_curvature_help},
     {"Berry_flux", Berry_flux_python, METH_VARARGS, Berry_flux_help},
     {"CDMFT_distance", CDMFT_distance_python, METH_VARARGS, CDMFT_distance_help},
+    {"CDMFT_residuals", CDMFT_residuals_python, METH_VARARGS, CDMFT_residuals_help},
+    {"CDMFT_gradient", CDMFT_gradient_python, METH_VARARGS, CDMFT_gradient_help},
     {"CDMFT_host", CDMFT_host_python, METH_VARARGS, CDMFT_host_help},
     {"set_CDMFT_host", set_CDMFT_host_python, METH_VARARGS, set_CDMFT_host_help},
     {"CDMFT_variational_set", CDMFT_variational_set_python, METH_VARARGS, CDMFT_variational_set_help},

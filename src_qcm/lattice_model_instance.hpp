@@ -42,6 +42,8 @@ struct lattice_model_instance{
 	double Berry_flux(const vector<vector3D<double>> &k, int orb, bool spin_down);
 	double Berry_plaquette(Green_function &G, const vector3D<double> &k1, const double deltax, const double deltay, const int opt, int dir, int orb);
 	double CDMFT_distance(const vector<double>& p, int clus);
+	vector<double> CDMFT_residuals(const vector<double>& p, int clus);
+	vector<double> CDMFT_gradient(const vector<double>& p, int clus);
 	double monopole_part(vector3D<double>& k, double a, int nk, int orb, bool rec, int dir, bool spin_down);
 	double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec);
 	double potential_energy();

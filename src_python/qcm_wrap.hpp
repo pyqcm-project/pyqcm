@@ -703,6 +703,78 @@ static PyObject *CDMFT_distance_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *CDMFT_residuals_help =
+    R"{(
+returns the real-valued CDMFT residual vector r = sqrt(w_n)*(Gamma(iw_n)+G_host(iw_n)),
+packed as [Re(.).ravel(), Im(.).ravel()] per frequency, then stacked over all frequencies.
+Used by least_squares optimizers (e.g. scipy.optimize.least_squares with method='trf').
+arguments:
+1. a vector of double : values of variational parameters
+2. int : cluster index
+3. int (optional) : label of the instance (default 0)
+returns : a 1-D ndarray of double
+){";
+//------------------------------------------------------------------------------
+static PyObject *CDMFT_residuals_python(PyObject *self, PyObject *args) {
+  PyObject *val = nullptr;
+  int label = 0;
+  int clus = 0;
+
+  try {
+    if (!PyArg_ParseTuple(args, "Oi|i", &val, &clus, &label))
+      qcm_throw(
+          "failed to read parameters in call to CDMFT_residuals (python)");
+    vector<double> _val = doubles_from_Py(val);
+    vector<double> r = QCM::CDMFT_residuals(_val, clus, label);
+    npy_intp sz = (npy_intp)r.size();
+    PyObject *out = PyArray_SimpleNew(1, &sz, NPY_DOUBLE);
+    double *data = (double *)PyArray_DATA((PyArrayObject *)out);
+    for (npy_intp i = 0; i < sz; i++) data[i] = r[i];
+    return out;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+}
+
+//==============================================================================
+const char *CDMFT_gradient_help =
+    R"{(
+returns the analytical Jacobian dr/dp of the CDMFT residual vector,
+stored row-major as a 2-D ndarray of shape (Nresiduals, Nparams).
+Used by least_squares optimizers (e.g. scipy.optimize.least_squares with method='trf').
+arguments:
+1. a vector of double : values of variational parameters
+2. int : cluster index
+3. int (optional) : label of the instance (default 0)
+returns : a 2-D ndarray of double with shape (Nresiduals, Nparams)
+){";
+//------------------------------------------------------------------------------
+static PyObject *CDMFT_gradient_python(PyObject *self, PyObject *args) {
+  PyObject *val = nullptr;
+  int label = 0;
+  int clus = 0;
+
+  try {
+    if (!PyArg_ParseTuple(args, "Oi|i", &val, &clus, &label))
+      qcm_throw(
+          "failed to read parameters in call to CDMFT_gradient (python)");
+    vector<double> _val = doubles_from_Py(val);
+    vector<double> J = QCM::CDMFT_gradient(_val, clus, label);
+    int Nparams = (int)_val.size();
+    int Nrows = (int)J.size() / Nparams;
+    npy_intp dims[2] = {(npy_intp)Nrows, (npy_intp)Nparams};
+    PyObject *out = PyArray_SimpleNew(2, dims, NPY_DOUBLE);
+    double *data = (double *)PyArray_DATA((PyArrayObject *)out);
+    for (npy_intp i = 0; i < (npy_intp)J.size(); i++) data[i] = J[i];
+    return out;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+}
+
+//==============================================================================
 const char *CPT_Green_function_help =
     R"{(
 computes the CPT Green function at a given frequency

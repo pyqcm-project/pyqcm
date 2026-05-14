@@ -465,7 +465,7 @@ class CDMFT:
 
         # check consistency
         self.I.GS_consistency(self.check_ground_state)
-        var_val = pyqcm.varia_table(self.varia, self.x, self.model.nsys)
+        var_val = pyqcm.varia_table(self.varia, self.x)
         pyqcm.banner(
             "converged variational parameters ({:d} iterations)".format(self.niter), "-"
         )
@@ -546,27 +546,15 @@ class CDMFT:
             # NOTE: CDMFT_residuals returns r such that ‖r‖² ∝ D (same minimiser,
             # different scale). CDMFT_distance normalises by dw/(dim²) for reporting.
             if self.jac:
-                if self.method.lower() == "trf":
-                    F = lambda x, _c=_clus, _l=_label: np.asarray(qcm.CDMFT_residuals(x, _c, _l))
-                    jac_fn = lambda x, _c=_clus, _l=_label: np.asarray(qcm.CDMFT_gradient(x, _c, _l))
-                else:
-                    # NOTE: For jac=True, F and jac_fn are called separately by optimize().
-                    # Each call to jac_fn recomputes CDMFT_residuals — this is unavoidable
-                    # given the optimizer's separate F/jac call convention.
-                    # For quasi-Newton methods (BFGS, L-BFGS-B), the jac callable
-                    # must return the gradient of the scalar objective.
-                    # Using D = 0.5*||r||^2 (same minimiser as CDMFT_distance),
-                    # gradient_i D = (J^T @ r)_i.
-                    def _make_F_and_grad(_c, _l):
-                        def _obj(x):
-                            r = np.asarray(qcm.CDMFT_residuals(x, _c, _l))
-                            return 0.5 * float(np.dot(r, r))
-                        def _grad(x):
-                            r = np.asarray(qcm.CDMFT_residuals(x, _c, _l))
-                            J = np.asarray(qcm.CDMFT_gradient(x, _c, _l))
-                            return J.T @ r
-                        return _obj, _grad
-                    F, jac_fn = _make_F_and_grad(_clus, _label)
+                # All jac-capable methods receive the residual vector r(x) and the
+                # full Jacobian J(x) = ∂r/∂x.  optimize() selects the appropriate
+                # scipy.optimize.least_squares sub-algorithm (trf / lm / dogbox).
+                F = lambda x, _c=_clus, _l=_label: np.asarray(
+                    qcm.CDMFT_residuals(x, _c, _l)
+                )
+                jac_fn = lambda x, _c=_clus, _l=_label: np.asarray(
+                    qcm.CDMFT_gradient(x, _c, _l)
+                )
                 maxfev = self.lm_max_nfev
             else:
                 F = lambda x, grad=None: qcm.CDMFT_distance(x, _clus, _label)
@@ -629,7 +617,8 @@ class CDMFT:
         t3 = timeit.default_timer()
         time_MIN = t3 - t2
 
-        if self.post_min != None: self.post_min(self.I)
+        if self.post_min != None:
+            self.post_min(self.I)
 
         # writing the parameters in a progress file
         self.I.props["opt_method"] = self.method
@@ -645,7 +634,7 @@ class CDMFT:
             flush=True,
         )
 
-        var_val = pyqcm.varia_table(self.varia, self.x, self.model.nsys)
+        var_val = pyqcm.varia_table(self.varia, self.x)
         print("updated variational parameters:\n{:s}".format(var_val))
         self.iter += 1
 
@@ -1563,20 +1552,28 @@ def optimize(
     """
 
     :param F: function to be optimized.
-        For all methods except ``trf``: ``F(x) -> float`` (scalar objective).
-        For ``trf``: ``F(x) -> array`` (residual vector ``r(x)``).
-        When ``jac=False``, ``F`` must also accept an optional ``grad`` keyword: ``F(x, grad=None)``.
+        When ``jac`` is callable: ``F(x) -> array`` (residual vector ``r(x)``); applies to
+        ``trf``, ``BFGS``, and ``L-BFGS-B``.
+        When ``jac=False``: ``F(x) -> float`` (scalar objective); ``F`` must also accept an
+        optional ``grad`` keyword: ``F(x, grad=None)``.
     :param (float) x: array of variables
-    :param str method: minimization method. Scipy methods: ``Nelder-Mead``, ``Powell``, ``CG``, ``BFGS``, ``ANNEAL``. NLopt derivative-free: ``COBYLA``, ``BOBYQA``, ``PRAXIS``, ``NELDERMEAD``, ``SUBPLEX``. NLopt gradient-based (forward finite differences): ``L-BFGS-B``. Analytical-Jacobian methods (require ``jac`` callable): ``trf``, ``BFGS``, ``L-BFGS-B``.
+    :param str method: minimization method. Scipy methods: ``Nelder-Mead``, ``Powell``, ``CG``,
+        ``BFGS``, ``ANNEAL``. NLopt derivative-free: ``COBYLA``, ``BOBYQA``, ``PRAXIS``,
+        ``NELDERMEAD``, ``SUBPLEX``. NLopt gradient-based (forward finite differences): ``L-BFGS-B``.
+        Jacobian-based least-squares (require ``jac`` callable): ``trf`` (trust-region reflective),
+        ``BFGS`` (Levenberg-Marquardt, no bounds), ``L-BFGS-B`` (dogbox, supports bounds).
+        All three jac-capable methods call ``scipy.optimize.least_squares`` and therefore
+        share the same xtol/ftol stopping criteria, guaranteeing equivalent bath-parameter
+        precision and consistent outer CDMFT convergence.
     :param float initial_step: initial step in the minimization procedure
     :param float accur: absolute tolerance on the parameters (x-tolerance)
     :param float accur_dist: absolute tolerance on the objective function value (f-tolerance)
     :param int maxfev: maximum number of function evaluations allowed
-    :param jac: ``False`` (default, derivative-free / forward-FD behaviour preserved) or a callable
-        ``jac(x) -> array``. For scalar gradient methods (``BFGS``, ``L-BFGS-B``) the callable
-        returns the gradient vector; for ``trf`` it returns the full Jacobian matrix J.
+    :param jac: ``False`` (default, derivative-free) or a callable ``jac(x) -> 2-D array``
+        returning the full Jacobian matrix J = ∂r/∂x (shape ``Nresiduals × Nparams``).
     :param bounds: ``None`` (unbounded, ±∞) or a positive scalar ``B`` that applies a ``[-B, B]``
-        box to all parameters. Used by ``trf``, ``BFGS``, and ``L-BFGS-B`` when ``jac`` is callable.
+        box to all parameters. Used by ``trf`` and ``L-BFGS-B`` when ``jac`` is callable;
+        ignored by ``BFGS`` (which uses Levenberg-Marquardt, an unbounded algorithm).
     :returns: a 4-tuple (opt_x, iter_done, success, fun) with the optimal parameters, number of evaluations, success flag, and optimal function value
     :rtype: tuple
 
@@ -1589,9 +1586,7 @@ def optimize(
             f"supported methods: {', '.join(sorted(_JAC_SUPPORTED))}"
         )
     if method.lower() == "trf" and not callable(jac):
-        raise ValueError(
-            '"trf" requires a callable jac — pass jac=True to CDMFT'
-        )
+        raise ValueError('"trf" requires a callable jac — pass jac=True to CDMFT')
     if callable(jac):
         print(
             f"Analytical Jacobian active "
@@ -1600,7 +1595,7 @@ def optimize(
         )
 
     _lo = -bounds if bounds is not None else -np.inf
-    _hi =  bounds if bounds is not None else  np.inf
+    _hi = bounds if bounds is not None else np.inf
 
     nvar = len(x)
     nlopt_df_methods = {
@@ -1656,26 +1651,50 @@ def optimize(
 
     elif method == "CG":
         sol = scipy.optimize.minimize(
-            F, x, method="CG", jac=False, tol=accur, options={"gtol": 1e-6, "eps": 1e-6}
+            F,
+            x,
+            method="CG",
+            jac=False,
+            tol=accur,
+            options={
+                "gtol": accur,
+                "eps": pyqcm.get_global_parameter("cdmft_jacobian_delta"),
+            },
         )
         opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == "BFGS":
         if callable(jac):
-            def _F_and_grad(x):
-                return F(x), jac(x)
-            sol = scipy.optimize.minimize(
-                _F_and_grad,
+            # Route through Levenberg-Marquardt (least-squares, no bounds).
+            # BFGS with a gradient J^T r is suboptimal for ‖r‖²: it ignores the
+            # Gauss-Newton structure and has no direct x-tolerance stopping criterion.
+            # LM uses J directly (Gauss-Newton step) and stops on xtol, matching TRF.
+            sol_ls = scipy.optimize.least_squares(
+                F,
                 x,
-                method="BFGS",
-                jac=True,
-                options={"gtol": accur, "maxiter": maxfev},
+                jac=jac,
+                method="lm",
+                max_nfev=maxfev,
+                ftol=accur_dist,
+                xtol=accur,
+                gtol=1e-12,
+            )
+            opt_x, iter_done, success, fun = (
+                sol_ls.x,
+                sol_ls.nfev,
+                sol_ls.success,
+                sol_ls.cost,
             )
         else:
             sol = scipy.optimize.minimize(
-                F, x, method="BFGS", jac=False, tol=accur, options={"eps": accur}
+                F,
+                x,
+                method="BFGS",
+                jac=False,
+                tol=accur,
+                options={"eps": pyqcm.get_global_parameter("cdmft_jacobian_delta")},
             )
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+            opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
 
     elif method == "ANNEAL":
         sol = scipy.optimize.basinhopping(
@@ -1715,31 +1734,29 @@ def optimize(
 
     elif method == "L-BFGS-B":
         if callable(jac):
-            def _nlopt_obj_jac(x, grad):
-                f = F(x)
-                if grad.size > 0:
-                    grad[:] = jac(x)
-                return f
-
-            optimizer = nlopt.opt(nlopt.LD_LBFGS, nvar)
-            optimizer.set_min_objective(_nlopt_obj_jac)
-            optimizer.set_lower_bounds(np.full(nvar, _lo))
-            optimizer.set_upper_bounds(np.full(nvar, _hi))
-            optimizer.set_ftol_rel(accur_dist)
-            optimizer.set_xtol_rel(accur)
-            optimizer.set_maxeval(maxfev)
-            try:
-                sol = optimizer.optimize(np.asarray(x, dtype=float))
-            except nlopt.RoundoffLimited:
-                sol = optimizer.last_optimum_point()
+            # Route through dogbox (least-squares, supports bounds).
+            # NLopt LD_LBFGS with relative tolerances stalls when ‖r‖ is near
+            # machine precision; dogbox uses xtol/ftol (absolute) and exploits J
+            # directly, matching TRF's convergence precision.
+            sol_ls = scipy.optimize.least_squares(
+                F,
+                x,
+                jac=jac,
+                method="dogbox",
+                bounds=(_lo, _hi),
+                max_nfev=maxfev,
+                ftol=accur_dist,
+                xtol=accur,
+                gtol=1e-12,
+            )
             opt_x, iter_done, success, fun = (
-                sol,
-                optimizer.get_numevals(),
-                optimizer.last_optimize_result() > 0,
-                optimizer.last_optimum_value(),
+                sol_ls.x,
+                sol_ls.nfev,
+                sol_ls.success,
+                sol_ls.cost,
             )
         else:
-            _fd_eps = np.sqrt(np.finfo(float).eps)
+            _fd_eps = pyqcm.get_global_parameter("cdmft_jacobian_delta")
 
             def _F_with_grad(x, grad):
                 f0 = F(x)
