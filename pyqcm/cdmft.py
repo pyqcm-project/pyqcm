@@ -171,9 +171,8 @@ class CDMFT:
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run). Unused for 'anderson'.
     :param int anderson_depth: history depth m for Anderson mixing (number of previous steps to mix); only used when iteration='anderson'
     :param float anderson_beta: mixing parameter for Anderson mixing (1.0 = full step, < 1.0 = damped); only used when iteration='anderson'
-    :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'BFGS', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX', 'L-BFGS-B'. Analytical-Jacobian choices (require ``jac=True``): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
-    :param bool jac: if ``True``, use the analytical Jacobian (``qcm.CDMFT_gradient``) for the chosen method. Supported methods: ``trf``, ``BFGS``, ``L-BFGS-B``. Passing ``jac=True`` with any other method raises ``ValueError``. Default ``False``.
-    :param int lm_max_nfev: maximum number of function/gradient evaluations for all ``jac=True`` methods (default 2000; ignored when ``jac=False``)
+    :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'. Analytical-Jacobian choices (the analytical Jacobian ``qcm.CDMFT_gradient`` is activated automatically): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
+    :param int lm_max_nfev: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param str file: name of the file where the solution is written
     :param str iter_file: name of the file where the CDMFT iterations are recorded
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
@@ -227,7 +226,6 @@ class CDMFT:
         max_value=100,
         bias=None,
         post_min=None,
-        jac=False,
     ):
 
         self.accur_bath = accur_bath
@@ -249,7 +247,7 @@ class CDMFT:
         self.max_value = max_value
         self.lm_max_nfev = lm_max_nfev
         self.method = method
-        self.jac = jac
+        self.jac = method.lower() in {"trf", "bfgs", "l-bfgs-b"}
         self.model = model
         self.pre_host = pre_host
         self.sigma = None  # internal : self-energy
@@ -1586,7 +1584,7 @@ def optimize(
             f"supported methods: {', '.join(sorted(_JAC_SUPPORTED))}"
         )
     if method.lower() == "trf" and not callable(jac):
-        raise ValueError('"trf" requires a callable jac — pass jac=True to CDMFT')
+        raise ValueError('"trf" requires a callable jac')
     if callable(jac):
         print(
             f"Analytical Jacobian active "

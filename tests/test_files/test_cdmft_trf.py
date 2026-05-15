@@ -57,7 +57,6 @@ varia = ["eb1_1", "eb2_1", "tb1_1", "tb2_1"]
 X = CDMFT(
     model,
     method="trf",
-    jac=True,
     varia=varia,
     iteration="fixed_point",
 )
