@@ -171,7 +171,7 @@ class CDMFT:
     :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run). Unused for 'anderson'.
     :param int anderson_depth: history depth m for Anderson mixing (number of previous steps to mix); only used when iteration='anderson'
     :param float anderson_beta: mixing parameter for Anderson mixing (1.0 = full step, < 1.0 = damped); only used when iteration='anderson'
-    :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'. Analytical-Jacobian choices (the analytical Jacobian ``qcm.CDMFT_gradient`` is activated automatically): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
+    :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'. Analytical-Jacobian choices (the Jacobian ``qcm.CDMFT_gradient`` is activated automatically): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
     :param int lm_max_nfev: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param str file: name of the file where the solution is written
     :param str iter_file: name of the file where the CDMFT iterations are recorded
@@ -889,9 +889,9 @@ class frequency_grid:
         """
         if self.self_norm:
             Sig_inf = I.cluster_self_energy(1.0e6j)
-            for i, x in enumerate(self.w):
+            for i, x in enumerate(self.wr):
                 self.cdmft_weight[i] = np.linalg.norm(
-                    I.cluster_self_energy(x) - Sig_inf
+                    I.cluster_self_energy(x*1j) - Sig_inf
                 )
             self.cdmft_weight = self.cdmft_weight / self.cdmft_weight.sum()
         else:
@@ -1580,14 +1580,14 @@ def optimize(
     _JAC_SUPPORTED = {"trf", "bfgs", "l-bfgs-b"}
     if callable(jac) and method.lower() not in _JAC_SUPPORTED:
         raise ValueError(
-            f"method '{method}' does not support an analytical Jacobian; "
+            f"method '{method}' does not support a Jacobian; "
             f"supported methods: {', '.join(sorted(_JAC_SUPPORTED))}"
         )
     if method.lower() == "trf" and not callable(jac):
         raise ValueError('"trf" requires a callable jac')
     if callable(jac):
         print(
-            f"Analytical Jacobian active "
+            f"Jacobian active "
             f"(cdmft_jacobian_delta = "
             f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
         )
