@@ -26,13 +26,12 @@ size_t Green_function_k::dim_GF;
 size_t Green_function_k::dim_reduced_GF;
 
 size_t lattice_index_pair::Nc;
-bool lattice_model::model_consolidated = false;
 
 //==============================================================================
-/** 
+/**
  default constructor
  */
-lattice_model::lattice_model() : is_closed(false), bath_exists(false)
+lattice_model::lattice_model() : is_closed(false), bath_exists(false), model_consolidated(false)
 {
   dim_reduced_GF=0;
   dim_GF=0;

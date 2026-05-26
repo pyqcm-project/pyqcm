@@ -19,7 +19,7 @@ tb2_1=1*tb1_1
 """
 )
 model.set_target_sectors("N6:S0")
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 
 print('\nmatrix elements of the interactions:\n', I.interactions())
 print('\nParameters:\n', I.parameters())

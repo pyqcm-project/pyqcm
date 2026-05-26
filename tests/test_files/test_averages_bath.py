@@ -29,7 +29,7 @@ tb2_1 = 0.5
 """)
 
 
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 I.cluster_averages(pr=True)
 
 ave = I.Green_function_average()

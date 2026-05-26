@@ -44,7 +44,7 @@ model.set_parameters("""
     eb2_2=-1.0
 """)
 
-I = pyqcm.model_instance(model)  
+I = model.model_instance()  
 
 convergence=['self-energy', 'distance']; accur=[1e-4, 1e-5]
 

@@ -127,7 +127,7 @@ k = np.stack((kx,ky,np.zeros(nk))).T  # *2 en raison de la base physique (0.5, 0
 
 pyqcm.set_global_parameter('kgrid_side', nk_side) # necessary if averages on computed on a grid
 pyqcm.qcm.frequency_grid(wr, weight)
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 
 # computing averages (for future comparison)
 A = I.averages()
@@ -161,7 +161,7 @@ with h5py.File('hybrid.h5', "w") as f:
     f.create_dataset("k", data = k, dtype=k.dtype)
     f.create_dataset("hybrid_real", data=hybrid.real, dtype=float)
     f.create_dataset("hybrid_imag", data=hybrid.imag, dtype=float)
-    f.attrs['mixing'] = model.mixing
+    f.create_dataset('mixing', data=np.int32(model.mixing))
 
 
 #--------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ varia = [
 
 sol = CDMFT(model, varia=varia, grid=frequency_grid('legendre', (1, 5, 10, 10, 10)), accur=1e-3, convergence='self-energy', maxiter=64, depth=1, iteration='fixed_point')
 A = sol.I.averages(pr=True)
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 A = sol.I.averages(pr=True)
 print('n_Cu = ', A['ed'])
 n_Cu_read = A['ed']

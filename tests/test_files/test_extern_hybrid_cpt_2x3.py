@@ -80,7 +80,7 @@ k = np.stack((kx,ky,np.zeros(nk))).T  # defined in the [0,1] interval
 
 pyqcm.set_global_parameter('kgrid_side', nk_side) # necessary if averages are computed on a grid
 pyqcm.qcm.frequency_grid(wr, weight)
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 
 # computing averages (for future comparison)
 A = I.averages()
@@ -133,7 +133,7 @@ with h5py.File('hybrid.h5', "w") as f:
     f.create_dataset("k", data = k, dtype=k.dtype)
     f.create_dataset("hybrid_real", data=hybrid.real, dtype=float)
     f.create_dataset("hybrid_imag", data=hybrid.imag, dtype=float)
-    f.attrs['mixing'] = model.mixing
+    f.create_dataset('mixing', data=np.int32(model.mixing))
 
 
 #--------------------------------------------------------------------------------
@@ -155,7 +155,7 @@ ed = 1e-9
 
 model.set_parameters(band_params)
 
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 A = I.averages(pr=True)
 print('n_Cu = ', A['ed'])
 n_Cu_read = A['ed']

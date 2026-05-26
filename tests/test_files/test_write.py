@@ -14,9 +14,9 @@ model.set_parameters("""
     t=1
 """)
 
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print('GF written:\n', I.cluster_Green_function(0.1j, 0))
 I.write_hdf5('test.h5')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 I.read_hdf5('test.h5', set_parameters=True)
 print('\nGF read:\n', I.cluster_Green_function(0.1j, 0))

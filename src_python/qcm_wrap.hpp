@@ -25,7 +25,7 @@ vector3D<double> vector_from_Py(PyArrayObject *k_pyobj);
 vector<vector3D<double>> many_vectors_from_Py(PyArrayObject *k_pyobj);
 vector<string> strings_from_PyList(PyObject *lst);
 
-extern shared_ptr<lattice_model> qcm_model;
+extern map<string, shared_ptr<lattice_model>> qcm_models;
 extern run_statistics STATS;
 
 extern map<string, global_parameter<bool>> GP_bool;
@@ -43,23 +43,25 @@ const char *add_cluster_help =
     R"{(
 Adds a cluster to the repeated unit
 arguments:
-1. position of cluster (array of ints)
-2. list of positions of sites (2D array of ints)
-3. label (starts at 1) of cluster to which this one is entirely equivalent [default = 0, no such equivalence]
+1. name of the lattice model (string)
+2. position of cluster (array of ints)
+3. list of positions of sites (2D array of ints)
+4. label (starts at 1) of cluster to which this one is entirely equivalent [default = 0, no such equivalence]
 returns: None
 ){";
 //------------------------------------------------------------------------------
 static PyObject *add_cluster_python(PyObject *self, PyObject *args) {
+  char *model_name = nullptr;
   PyArrayObject *pos_pyobj = nullptr;
   PyArrayObject *cpos_pyobj = nullptr;
   int ref = 0;
   int conj = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "OO|ip", &cpos_pyobj, &pos_pyobj, &ref, &conj))
+    if (!PyArg_ParseTuple(args, "sOO|ip", &model_name, &cpos_pyobj, &pos_pyobj, &ref, &conj))
       qcm_throw("failed to read parameters in call to add_cluster (python)");
 
-    QCM::add_cluster(intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref, conj);
+    QCM::add_cluster(string(model_name), intvector_from_Py(cpos_pyobj), many_intvectors_from_Py(pos_pyobj), ref, conj);
 
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -73,20 +75,22 @@ const char *add_system_help =
     R"{(
 Adds a system to the repeated unit
 arguments:
-1. name of cluster model (string)
-2. label of cluster
+1. name of the lattice model (string)
+2. name of cluster model (string)
+3. label of cluster
 returns: None
 ){";
 //------------------------------------------------------------------------------
 static PyObject *add_system_python(PyObject *self, PyObject *args) {
+  char *model_name = nullptr;
   char *s1 = nullptr;
   int clus = 0;
 
   try {
-    if (!PyArg_ParseTuple(args, "si", &s1, &clus))
+    if (!PyArg_ParseTuple(args, "ssi", &model_name, &s1, &clus))
       qcm_throw("failed to read parameters in call to add_system (python)");
 
-    QCM::add_system(string(s1), clus);
+    QCM::add_system(string(model_name), string(s1), clus);
 
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -246,7 +250,7 @@ static PyObject *cluster_Green_function_python(PyObject *self, PyObject *args) {
 
     matrix<complex<double>> g = QCM::cluster_Green_function((size_t)clus, z, (bool)spin_down, label,
                                                              blocks);
-    size_t d = qcm_model->GF_dims[clus];
+    size_t d = lattice_model_instances.at(label)->model->GF_dims[clus];
 
     npy_intp dims[2];
     dims[0] = dims[1] = d;
@@ -286,7 +290,7 @@ static PyObject *cluster_self_energy_python(PyObject *self, PyObject *args) {
           "failed to read parameters in call to cluster_self_energy (python)");
 
     matrix<complex<double>> g = QCM::cluster_self_energy((size_t)clus, z, (bool)spin_down, label);
-    size_t d = qcm_model->GF_dims[clus];
+    size_t d = lattice_model_instances.at(label)->model->GF_dims[clus];
 
     npy_intp dims[2];
     dims[0] = dims[1] = d;
@@ -326,12 +330,13 @@ returns: symmetrized matrix (ndarray of shape (d,d), complex)
 static PyObject *compact_tiling_python(PyObject *self, PyObject *args) {
   PyArrayObject *A_pyobj = nullptr;
   PyArrayObject *k_pyobj = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "OO", &A_pyobj, &k_pyobj))
+    if (!PyArg_ParseTuple(args, "OO|s", &A_pyobj, &k_pyobj, &model_name))
       qcm_throw("failed to read parameters in call to compact_tiling (python)");
 
-    size_t d = QCM::Green_function_dimension();
+    size_t d = QCM::Green_function_dimension(string(model_name));
     if (PyArray_NDIM(A_pyobj) != 2 || (size_t)PyArray_DIM(A_pyobj, 0) != d || (size_t)PyArray_DIM(A_pyobj, 1) != d)
       qcm_throw("argument A of compact_tiling must be a square complex array of size dim_GF");
 
@@ -339,7 +344,7 @@ static PyObject *compact_tiling_python(PyObject *self, PyObject *args) {
     memcpy(A.v.data(), PyArray_DATA((PyArrayObject *)A_pyobj), d * d * sizeof(complex<double>));
 
     vector3D<double> k = vector_from_Py(k_pyobj);
-    auto Act = QCM::compact_tiling(A, k);
+    auto Act = QCM::compact_tiling(string(model_name), A, k);
 
     npy_intp dims[2];
     dims[0] = dims[1] = (npy_intp)d;
@@ -463,7 +468,7 @@ static PyObject *cluster_hopping_matrix_python(PyObject *self, PyObject *args) {
                 "(python)");
 
     auto g = QCM::cluster_hopping_matrix((size_t)clus, (bool)spin_down, label);
-    size_t d = qcm_model->GF_dims[clus];
+    size_t d = lattice_model_instances.at(label)->model->GF_dims[clus];
 
     npy_intp dims[2];
     dims[0] = dims[1] = d;
@@ -527,18 +532,26 @@ returns:
 )";
 //------------------------------------------------------------------------------
 static PyObject *cluster_info_python(PyObject *self, PyObject *args) {
-  vector<tuple<string, int, int, int, int>> info = QCM::cluster_info();
-  PyObject *lst = PyList_New(info.size());
-  for (size_t i = 0; i < info.size(); i++) {
-    PyObject *elem = PyTuple_New(5);
-    PyTuple_SetItem(elem, 0, Py_BuildValue("s", get<0>(info[i]).c_str()));
-    PyTuple_SetItem(elem, 1, Py_BuildValue("i", get<1>(info[i])));
-    PyTuple_SetItem(elem, 2, Py_BuildValue("i", get<2>(info[i])));
-    PyTuple_SetItem(elem, 3, Py_BuildValue("i", get<3>(info[i])));
-    PyTuple_SetItem(elem, 4, Py_BuildValue("i", get<4>(info[i])));
-    PyList_SET_ITEM(lst, i, elem);
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    vector<tuple<string, int, int, int, int>> info = QCM::cluster_info(string(model_name));
+    PyObject *lst = PyList_New(info.size());
+    for (size_t i = 0; i < info.size(); i++) {
+      PyObject *elem = PyTuple_New(5);
+      PyTuple_SetItem(elem, 0, Py_BuildValue("s", get<0>(info[i]).c_str()));
+      PyTuple_SetItem(elem, 1, Py_BuildValue("i", get<1>(info[i])));
+      PyTuple_SetItem(elem, 2, Py_BuildValue("i", get<2>(info[i])));
+      PyTuple_SetItem(elem, 3, Py_BuildValue("i", get<3>(info[i])));
+      PyTuple_SetItem(elem, 4, Py_BuildValue("i", get<4>(info[i])));
+      PyList_SET_ITEM(lst, i, elem);
+    }
+    return lst;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
   }
-  return lst;
 }
 
 //==============================================================================
@@ -551,14 +564,16 @@ arguments:
 //------------------------------------------------------------------------------
 static PyObject *CDMFT_variational_set_python(PyObject *self, PyObject *args) {
   PyObject *v = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "O", &v))
+    if (!PyArg_ParseTuple(args, "O|s", &v, &model_name))
       qcm_throw("failed to read parameters in call to CDMFT_variational_set "
                 "(python)");
-    if (qcm_model->param_set == nullptr)
+    auto mod = QCM::resolve_lattice_model(string(model_name));
+    if (mod->param_set == nullptr)
       qcm_throw("The parameters have not been specified yet.");
-    qcm_model->param_set->CDMFT_variational_set(strings_from_DoublePyList(v));
+    mod->param_set->CDMFT_variational_set(strings_from_DoublePyList(v));
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -648,7 +663,7 @@ static PyObject *get_CDMFT_host_python(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "|ipi", &clus, &spin_down, &label))
       qcm_throw("failed to read parameters in call to get_CDMFT_host (python)");
     auto g = QCM::get_CDMFT_host(spin_down, label);
-    size_t d = qcm_model->GF_dims[clus];
+    size_t d = lattice_model_instances.at(label)->model->GF_dims[clus];
     npy_intp dims[3];
     dims[0] = g.size();
     dims[1] = dims[2] = d;
@@ -806,7 +821,7 @@ static PyObject *CPT_Green_function_python(PyObject *self, PyObject *args) {
       vector3D<double> k = vector_from_Py(k_pyobj);
       matrix<complex<double>> g =
           QCM::CPT_Green_function(z, k, (bool)spin_down, label);
-      size_t d = QCM::Green_function_dimension();
+      size_t d = QCM::Green_function_dimension("");
       npy_intp dims[2];
       dims[0] = dims[1] = d;
       PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
@@ -818,7 +833,7 @@ static PyObject *CPT_Green_function_python(PyObject *self, PyObject *args) {
       vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
       vector<matrix<complex<double>>> g =
           QCM::CPT_Green_function(z, k, (bool)spin_down, label);
-      size_t d = QCM::Green_function_dimension();
+      size_t d = QCM::Green_function_dimension("");
       npy_intp dims[3];
       dims[0] = g.size();
       dims[1] = dims[2] = d;
@@ -860,7 +875,7 @@ static PyObject *CPT_Green_function_grid_python(PyObject *self, PyObject *args) 
           "failed to read parameters in call to CPT_Green_function_grid (python)");
 
     matrix<complex<double>> g = QCM::CPT_Green_function(iw, ik, label);
-    size_t d = QCM::Green_function_dimension();
+    size_t d = QCM::Green_function_dimension("");
     npy_intp dims[2];
     dims[0] = dims[1] = d;
     PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
@@ -906,7 +921,7 @@ static PyObject *CPT_Green_function_inverse_python(PyObject *self,
     vector<matrix<complex<double>>> g =
         QCM::CPT_Green_function_inverse(z, k, (bool)spin_down, label);
 
-    size_t d = QCM::Green_function_dimension();
+    size_t d = QCM::Green_function_dimension("");
     npy_intp dims[3];
     dims[0] = g.size();
     dims[1] = dims[2] = d;
@@ -1061,7 +1076,7 @@ static PyObject *tk_python(PyObject *self, PyObject *args) {
     if (ndim == 1) {
       vector3D<double> k = vector_from_Py(k_pyobj);
       auto g = QCM::tk(k, (bool)spin_down, label);
-      size_t d = QCM::Green_function_dimension();
+      size_t d = QCM::Green_function_dimension("");
       npy_intp dims[2];
       dims[0] = dims[1] = d;
       PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
@@ -1072,7 +1087,7 @@ static PyObject *tk_python(PyObject *self, PyObject *args) {
     } else {
       vector<vector3D<double>> k = many_vectors_from_Py(k_pyobj);
       auto g = QCM::tk(k, (bool)spin_down, label);
-      size_t d = QCM::Green_function_dimension();
+      size_t d = QCM::Green_function_dimension("");
       npy_intp dims[3];
       dims[0] = g.size();
       dims[1] = dims[2] = d;
@@ -1136,7 +1151,15 @@ returns: integer
 //------------------------------------------------------------------------------
 static PyObject *Green_function_dimension_python(PyObject *self,
                                                  PyObject *args) {
-  return Py_BuildValue("i", QCM::Green_function_dimension());
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    return Py_BuildValue("i", QCM::Green_function_dimension(string(model_name)));
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -1217,7 +1240,7 @@ static PyObject *hybridization_function_python(PyObject *self, PyObject *args) {
 
     auto g =
         QCM::hybridization_function(z, (bool)spin_down, (size_t)clus, label);
-    size_t d = qcm_model->GF_dims[clus];
+    size_t d = lattice_model_instances.at(label)->model->GF_dims[clus];
 
     npy_intp dims[2];
     dims[0] = dims[1] = d;
@@ -1254,8 +1277,6 @@ static PyObject *lattice_model_python(PyObject *self, PyObject *args) {
   try {
     if (!PyArg_ParseTuple(args, "sO|Os", &s1, &super_pyobj, &unit_pyobj, &s2))
       qcm_throw("failed to read parameters in call to lattice_model (python)");
-    if (qcm_model == nullptr)
-      qcm_throw("no cluster has been added to the model!");
 
     vector<int64_t> superlattice = intvectors_from_Py(super_pyobj);
     vector<int64_t> unit_cell;
@@ -1290,10 +1311,16 @@ returns: integer
 ){";
 //------------------------------------------------------------------------------
 static PyObject *mixing_python(PyObject *self, PyObject *args) {
-  if (!PyArg_ParseTuple(args, ""))
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
     return nullptr;
-  int result = QCM::mixing();
-  return Py_BuildValue("i", result);
+  try {
+    int result = QCM::mixing(string(model_name));
+    return Py_BuildValue("i", result);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -1309,7 +1336,16 @@ returns:
 )";
 //------------------------------------------------------------------------------
 static PyObject *model_size_python(PyObject *self, PyObject *args) { // A REVOIR SYSTEMS *****
-  return Py_BuildValue("ii", qcm_model->sites.size(), qcm_model->n_band);
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    auto mod = QCM::resolve_lattice_model(string(model_name));
+    return Py_BuildValue("ii", mod->sites.size(), mod->n_band);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -1322,7 +1358,16 @@ returns:
 )";
 //------------------------------------------------------------------------------
 static PyObject *model_is_closed_python(PyObject *self, PyObject *args) {
-  return Py_BuildValue("i", (int)qcm_model->is_closed);
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    auto mod = QCM::resolve_lattice_model(string(model_name));
+    return Py_BuildValue("i", (int)mod->is_closed);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -1376,11 +1421,12 @@ returns: void
 //------------------------------------------------------------------------------
 static PyObject *new_model_instance_python(PyObject *self, PyObject *args) {
   int label = 0;
+  char *model_name = (char *)"";
   try {
-    if (!PyArg_ParseTuple(args, "|i", &label))
+    if (!PyArg_ParseTuple(args, "|is", &label, &model_name))
       qcm_throw(
           "failed to read parameters in call to new_model_instance (python)");
-    QCM::new_model_instance(label);
+    QCM::new_model_instance(string(model_name), label);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -1398,9 +1444,10 @@ returns: void
 //------------------------------------------------------------------------------
 static PyObject *set_parameters_python(PyObject *self, PyObject *args) {
   PyObject *py_values = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "O", &py_values))
+    if (!PyArg_ParseTuple(args, "O|s", &py_values, &model_name))
       qcm_throw("failed to read parameters in call to set_parameters (python)");
     if (!PySequence_Check(py_values))
       qcm_throw("argument 2 of 'set_parameters' should be a list");
@@ -1432,7 +1479,7 @@ static PyObject *set_parameters_python(PyObject *self, PyObject *args) {
                   "3-tuple");
       }
     }
-    QCM::set_parameters(values, equiv);
+    QCM::set_parameters(string(model_name), values, equiv);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -1451,24 +1498,26 @@ returns: void
 //------------------------------------------------------------------------------
 static PyObject *set_target_sectors_python(PyObject *self, PyObject *args) {
   PyObject *py_sectors = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "O", &py_sectors))
+    if (!PyArg_ParseTuple(args, "O|s", &py_sectors, &model_name))
       qcm_throw(
           "failed to read parameters in call to set_target_sectors (python)");
     if (!PySequence_Check(py_sectors))
       qcm_throw("argument 1 of 'set_target_sectors' should be a sequence");
 
+    auto mod = QCM::resolve_lattice_model(string(model_name));
     size_t n = PySequence_Size(py_sectors);
-    if (n != qcm_model->nsys)
+    if (n != mod->nsys)
       qcm_throw("The number of strings in argument of 'set_target_sectors' (" +
                 to_string(n) +
                 ") should be the number of systems in the repeated unit (" +
-                to_string(qcm_model->nsys) + ")");
-    qcm_model->sector_strings.resize(n);
+                to_string(mod->nsys) + ")");
+    mod->sector_strings.resize(n);
     for (size_t i = 0; i < n; i++) {
       PyObject *item = PySequence_GetItem(py_sectors, i);
-      qcm_model->sector_strings[i] = Py2string(item);
+      mod->sector_strings[i] = Py2string(item);
       Py_DECREF(item);
     }
   } catch (const std::exception &e) {
@@ -1486,16 +1535,24 @@ returns: a dictionary of string/real pairs
 ){";
 //------------------------------------------------------------------------------
 static PyObject *parameters_python(PyObject *self, PyObject *args) {
-  map<string, double> gs = QCM::parameters();
-  PyObject *lst = PyDict_New();
-  for (auto &x : gs) {
-    PyObject *key = Py_BuildValue("s#", x.first.c_str(), x.first.length());
-    PyObject *val = Py_BuildValue("d", x.second);
-    PyDict_SetItem(lst, key, val);
-    Py_DECREF(key);
-    Py_DECREF(val);
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    map<string, double> gs = QCM::parameters(string(model_name));
+    PyObject *lst = PyDict_New();
+    for (auto &x : gs) {
+      PyObject *key = Py_BuildValue("s#", x.first.c_str(), x.first.length());
+      PyObject *val = Py_BuildValue("d", x.second);
+      PyDict_SetItem(lst, key, val);
+      Py_DECREF(key);
+      Py_DECREF(val);
+    }
+    return lst;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
   }
-  return lst;
 }
 
 //==============================================================================
@@ -1536,8 +1593,19 @@ Print the parameter set to the screen
 ){";
 //------------------------------------------------------------------------------
 static PyObject *print_parameter_set_python(PyObject *self, PyObject *args) {
-  qcm_model->param_set->print(cout);
-  return Py_BuildValue("");
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
+  try {
+    auto mod = QCM::resolve_lattice_model(string(model_name));
+    if (mod->param_set == nullptr)
+      qcm_throw("The parameter set has not been defined yet");
+    mod->param_set->print(cout);
+    return Py_BuildValue("");
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -1551,12 +1619,16 @@ returns the content of the parameter set
 ){";
 //------------------------------------------------------------------------------
 static PyObject *parameter_set_python(PyObject *self, PyObject *args) {
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
+    return nullptr;
   try {
-    if (qcm_model->param_set == nullptr)
+    auto mod = QCM::resolve_lattice_model(string(model_name));
+    if (mod->param_set == nullptr)
       qcm_throw("The parameter set has not been defined yet");
 
     PyObject *lst = PyDict_New();
-    for (auto &x : qcm_model->param_set->param) {
+    for (auto &x : mod->param_set->param) {
       string name;
       if (x.second->ref) {
         name = x.second->ref->name;
@@ -1831,11 +1903,12 @@ returns: void
 static PyObject *print_model_python(PyObject *self, PyObject *args,
                                     PyObject *keywds) {
   char *s1 = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "s", &s1))
+    if (!PyArg_ParseTuple(args, "s|s", &s1, &model_name))
       qcm_throw("failed to read parameters in call to print_model (python)");
-    QCM::print_model(string(s1));
+    QCM::print_model(string(model_name), string(s1));
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -1889,7 +1962,7 @@ static PyObject *projected_Green_function_python(PyObject *self,
 
     auto g = QCM::projected_Green_function(z, (bool)spin_down, label);
 
-    size_t d = QCM::Green_function_dimension();
+    size_t d = QCM::Green_function_dimension("");
 
     npy_intp dims[2];
     dims[0] = dims[1] = d;
@@ -1914,10 +1987,16 @@ number n of lattice orbitals, depending on the mixing state: n, 2n or 4n.
 //------------------------------------------------------------------------------
 static PyObject *reduced_Green_function_dimension_python(PyObject *self,
                                                          PyObject *args) {
-  if (!PyArg_ParseTuple(args, ""))
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
     return nullptr;
-  size_t d = QCM::reduced_Green_function_dimension();
-  return Py_BuildValue("i", d);
+  try {
+    size_t d = QCM::reduced_Green_function_dimension(string(model_name));
+    return Py_BuildValue("i", d);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -2086,10 +2165,11 @@ returns : void
 static PyObject *set_parameter_python(PyObject *self, PyObject *args) {
   char *s1 = nullptr;
   double v = 0.0;
+  char *model_name = (char *)"";
   try {
-    if (!PyArg_ParseTuple(args, "sd", &s1, &v))
+    if (!PyArg_ParseTuple(args, "sd|s", &s1, &v, &model_name))
       qcm_throw("failed to read parameters in call to set_parameter (python)");
-    QCM::set_parameter(string(s1), v);
+    QCM::set_parameter(string(model_name), string(s1), v);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -2110,10 +2190,11 @@ returns : void
 static PyObject *set_multiplier_python(PyObject *self, PyObject *args) {
   char *s1 = nullptr;
   double v = 0.0;
+  char *model_name = (char *)"";
   try {
-    if (!PyArg_ParseTuple(args, "sd", &s1, &v))
+    if (!PyArg_ParseTuple(args, "sd|s", &s1, &v, &model_name))
       qcm_throw("failed to read parameters in call to set_multiplier (python)");
-    QCM::set_multiplier(string(s1), v);
+    QCM::set_multiplier(string(model_name), string(s1), v);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -2128,10 +2209,16 @@ returns the spatial dimension (0,1,2 or 3) of the model
 ){";
 //------------------------------------------------------------------------------
 static PyObject *spatial_dimension_python(PyObject *self, PyObject *args) {
-  if (!PyArg_ParseTuple(args, ""))
+  char *model_name = (char *)"";
+  if (!PyArg_ParseTuple(args, "|s", &model_name))
     return nullptr;
-  int d = QCM::spatial_dimension();
-  return Py_BuildValue("i", d);
+  try {
+    int d = QCM::spatial_dimension(string(model_name));
+    return Py_BuildValue("i", d);
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
 }
 
 //==============================================================================
@@ -2171,13 +2258,14 @@ returns: None
 //------------------------------------------------------------------------------
 static PyObject *set_basis_python(PyObject *self, PyObject *args) {
   PyArrayObject *basis_pyobj = nullptr;
+  char *model_name = (char *)"";
 
   try {
-    if (!PyArg_ParseTuple(args, "O", &basis_pyobj))
+    if (!PyArg_ParseTuple(args, "O|s", &basis_pyobj, &model_name))
       qcm_throw("failed to read parameters in call to set_basis (python)");
 
     vector<double> basis = vectors_from_Py(basis_pyobj);
-    QCM::set_basis(basis);
+    QCM::set_basis(string(model_name), basis);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -2207,14 +2295,15 @@ static PyObject *interaction_operator_python(PyObject *self, PyObject *args,
   int orb2 = 1;
   char *name = nullptr;
   char *type = nullptr;
+  char *model_name = (char *)"";
   PyArrayObject *link_pyobj = nullptr;
 
   const char *kwlist[] = {"",     "link", "amplitude", "orb1",
-                          "orb2", "type", NULL};
+                          "orb2", "type", "model_name", NULL};
   try {
     if (!PyArg_ParseTupleAndKeywords(
-            args, keywds, "s|Odiis", const_cast<char **>(kwlist), &name,
-            &link_pyobj, &amplitude, &orb1, &orb2, &type))
+            args, keywds, "s|Odiiss", const_cast<char **>(kwlist), &name,
+            &link_pyobj, &amplitude, &orb1, &orb2, &type, &model_name))
       qcm_throw(
           "failed to read parameters in call to interaction_operator (python)");
 
@@ -2226,7 +2315,7 @@ static PyObject *interaction_operator_python(PyObject *self, PyObject *args,
     if (link_pyobj != nullptr and (PyObject *) link_pyobj != Py_None)
       link = intvector_from_Py(link_pyobj);
 
-    QCM::interaction_operator(string(name), link, amplitude, orb1, orb2,
+    QCM::interaction_operator(string(model_name), string(name), link, amplitude, orb1, orb2,
                               the_type);
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -2260,19 +2349,20 @@ static PyObject *hopping_operator_python(PyObject *self, PyObject *args,
   int orb2 = 1;
   int tau = 1;
   int sigma = 0;
+  char *model_name = (char *)"";
   PyArrayObject *link_pyobj = nullptr;
 
-  const char *kwlist[] = {"", "", "", "orb1", "orb2", "tau", "sigma", NULL};
+  const char *kwlist[] = {"", "", "", "orb1", "orb2", "tau", "sigma", "model_name", NULL};
   try {
     if (!PyArg_ParseTupleAndKeywords(
-            args, keywds, "sOd|iiii", const_cast<char **>(kwlist), &name,
-            &link_pyobj, &amplitude, &orb1, &orb2, &tau, &sigma))
+            args, keywds, "sOd|iiiis", const_cast<char **>(kwlist), &name,
+            &link_pyobj, &amplitude, &orb1, &orb2, &tau, &sigma, &model_name))
       qcm_throw(
           "failed to read parameters in call to hopping_operator (python)");
 
     vector3D<int64_t> link = intvector_from_Py(link_pyobj);
 
-    QCM::hopping_operator(string(name), link, amplitude, orb1, orb2, tau,
+    QCM::hopping_operator(string(model_name), string(name), link, amplitude, orb1, orb2, tau,
                           sigma);
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -2304,19 +2394,20 @@ static PyObject *current_operator_python(PyObject *self, PyObject *args, PyObjec
   int orb2 = 1;
   int dir = 0;
   int pau = 1;
+  char *model_name = (char *)"";
   PyArrayObject *link_pyobj = nullptr;
 
-  const char *kwlist[] = {"", "", "", "orb1", "orb2", "dir", "real", NULL};
+  const char *kwlist[] = {"", "", "", "orb1", "orb2", "dir", "real", "model_name", NULL};
   try {
     if (!PyArg_ParseTupleAndKeywords(
-            args, keywds, "sOd|iiii", const_cast<char **>(kwlist), &name,
-            &link_pyobj, &amplitude, &orb1, &orb2, &dir, &pau))
+            args, keywds, "sOd|iiiis", const_cast<char **>(kwlist), &name,
+            &link_pyobj, &amplitude, &orb1, &orb2, &dir, &pau, &model_name))
       qcm_throw(
           "failed to read parameters in call to current_operator (python)");
 
     vector3D<int64_t> link = intvector_from_Py(link_pyobj);
 
-    QCM::current_operator(string(name), link, amplitude, orb1, orb2, dir, pau);
+    QCM::current_operator(string(model_name), string(name), link, amplitude, orb1, orb2, dir, pau);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -2347,20 +2438,21 @@ static PyObject *anomalous_operator_python(PyObject *self, PyObject *args,
   complex<double> amplitude = 1.0;
   int orb1 = 1;
   int orb2 = 1;
+  char *model_name = (char *)"";
   PyArrayObject *link_pyobj = nullptr;
 
-  const char *kwlist[] = {"", "", "", "orb1", "orb2", "type", NULL};
+  const char *kwlist[] = {"", "", "", "orb1", "orb2", "type", "model_name", NULL};
   try {
     if (!PyArg_ParseTupleAndKeywords(
-            args, keywds, "sOD|iis", const_cast<char **>(kwlist), &name,
-            &link_pyobj, &amplitude, &orb1, &orb2, &type))
+            args, keywds, "sOD|iiss", const_cast<char **>(kwlist), &name,
+            &link_pyobj, &amplitude, &orb1, &orb2, &type, &model_name))
       qcm_throw("failed to read parameters in call to anomalous_operator (python)");
 
     string the_type("singlet");
     if (type != nullptr)
       the_type = string(type);
     vector3D<int64_t> link = intvector_from_Py(link_pyobj);
-    QCM::anomalous_operator(string(name), link, amplitude, orb1, orb2,
+    QCM::anomalous_operator(string(model_name), string(name), link, amplitude, orb1, orb2,
                             the_type);
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -2391,13 +2483,14 @@ static PyObject *explicit_operator_python(PyObject *self, PyObject *args,
   char *type = nullptr;
   int tau = 1;
   int sigma = 0;
+  char *model_name = (char *)"";
   PyObject *elem_obj = nullptr;
 
-  const char *kwlist[] = {"", "", "tau", "sigma", "type", NULL};
+  const char *kwlist[] = {"", "", "tau", "sigma", "type", "model_name", NULL};
   try {
-    if (!PyArg_ParseTupleAndKeywords(args, keywds, "sO|iis",
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "sO|iiss",
                                      const_cast<char **>(kwlist), &name,
-                                     &elem_obj, &tau, &sigma, &type))
+                                     &elem_obj, &tau, &sigma, &type, &model_name))
       qcm_throw("failed to read parameters in call to explicit_operator (python)");
     if (!PySequence_Check(elem_obj))
       qcm_throw(
@@ -2431,7 +2524,7 @@ static PyObject *explicit_operator_python(PyObject *self, PyObject *args,
       get<2>(elem[i]) = complex<double>(z.real, z.imag);
       Py_DECREF(PyObj2);
     }
-    QCM::explicit_operator(string(name), the_type, elem, tau, sigma);
+    QCM::explicit_operator(string(model_name), string(name), the_type, elem, tau, sigma);
   } catch (const std::exception &e) {
     qcm_catch(e);
     return nullptr;
@@ -2462,22 +2555,23 @@ static PyObject *density_wave_python(PyObject *self, PyObject *args,
   complex<double> amplitude = 1.0;
   int orb = 0;
   double phase = 0.0;
+  char *model_name = (char *)"";
   PyArrayObject *link_pyobj = nullptr;
   PyArrayObject *Q_pyobj = nullptr;
 
   const char *kwlist[] = {"",          "",    "",      "link",
-                          "amplitude", "orb", "phase", NULL};
+                          "amplitude", "orb", "phase", "model_name", NULL};
   try {
     if (!PyArg_ParseTupleAndKeywords(
-            args, keywds, "ssO|ODid", const_cast<char **>(kwlist), &name, &type,
-            &Q_pyobj, &link_pyobj, &amplitude, &orb, &phase))
+            args, keywds, "ssO|ODids", const_cast<char **>(kwlist), &name, &type,
+            &Q_pyobj, &link_pyobj, &amplitude, &orb, &phase, &model_name))
       qcm_throw("failed to read parameters in call to density_wave (python)");
 
     vector3D<int64_t> link(0, 0, 0);
     if (link_pyobj != nullptr and (PyObject *) link_pyobj != Py_None)
       link = intvector_from_Py(link_pyobj);
 
-    QCM::density_wave(string(name), link, amplitude, orb,
+    QCM::density_wave(string(model_name), string(name), link, amplitude, orb,
                       vector_from_Py(Q_pyobj), phase, string(type));
   } catch (const std::exception &e) {
     qcm_catch(e);
@@ -2561,7 +2655,7 @@ static PyObject *V_matrix_python(PyObject *self, PyObject *args) {
       qcm_throw("Argument 2 of 'V_matrix' should be of dimension 1");
     vector3D<double> k = vector_from_Py(k_pyobj);
     auto g = QCM::V_matrix(z, k, (bool)spin_down, label);
-    size_t d = QCM::Green_function_dimension();
+    size_t d = QCM::Green_function_dimension("");
     npy_intp dims[2];
     dims[0] = d;
     dims[1] = d;

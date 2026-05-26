@@ -47,8 +47,8 @@ model.set_parameters("""
 
 F = 'test_vca.pdf'
 
-# f, w = pyqcm.legendre_frequency_grid(1, 10, 10, 10, 10)
-# pyqcm.discrete_integration_grid(f, w)
+f, w = pyqcm.legendre_frequency_grid(1, 10, 10, 10, 10)
+pyqcm.discrete_integration_grid(f, w)
 
 
 pyqcm.banner('testing vca()', c='#', skip=1)

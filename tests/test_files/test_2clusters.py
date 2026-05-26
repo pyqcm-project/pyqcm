@@ -56,7 +56,7 @@ model.write_definition('model_2clusters.py')
 #--------------------------------------------------------------------------------
 # various Green function related quantites
 
-I = pyqcm.model_instance(model)  
+I = model.model_instance()  
 print('\nstrict hopping matrix of cluster 1 :')              
 A = I.cluster_hopping_matrix(clus=0)
 print(np.real(A))

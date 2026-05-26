@@ -48,7 +48,7 @@ V_stop = 2
 V_step = -0.5
 
 def F():
-    return pyqcm.model_instance(model)
+    return model.model_instance()
 
 ############################# - Self-consistency approach - #############################
 alpha = 0.0

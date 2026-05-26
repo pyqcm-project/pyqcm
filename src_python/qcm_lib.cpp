@@ -173,7 +173,6 @@ PyMODINIT_FUNC PyInit_qcm(void) {
   library.
   */
 void QCM::qcm_init() {
-  qcm_model = make_shared<lattice_model>();
   QCM::global_parameter_init();
 
 #ifdef _OPENMP

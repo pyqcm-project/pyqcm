@@ -25,7 +25,7 @@ U = [1e-9, 2, 4, 6]
 I = []
 for i,u in enumerate(U):
     model.set_parameter('U', u)
-    I.append(pyqcm.model_instance(model))
+    I.append(model.model_instance())
 
 for i,u in enumerate(U):
     I[i].spectral_function(w=6, path='line', plt_ax=plt.gca(), file=f"test_instances_U{u}.pdf")

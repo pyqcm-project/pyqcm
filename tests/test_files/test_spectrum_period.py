@@ -26,7 +26,7 @@ model.set_parameters("""
 
 for f in range(1,12):
     pyqcm.set_global_parameter('max_iter_BL', f)
-    I = pyqcm.model_instance(model)  
+    I = model.model_instance()  
 
     I.spectral_function(w=6, nk=32, path='halfline', period = 'G', file="spectrumG_{:d}_{:d}f.pdf".format(L, f))
 

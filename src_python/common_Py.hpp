@@ -11,13 +11,15 @@
 #include "QCM.hpp"
 #include "float.h"
 #include "lattice_model.hpp"
+#include "lattice_model_instance.hpp"
 #include "numpy/ndarrayobject.h"
 #include "parameter_set.hpp"
 #include "parser.hpp"
 #include "qcm_ED.hpp"
 #include <string>
 
-extern shared_ptr<lattice_model> qcm_model;
+extern map<string, shared_ptr<lattice_model>> qcm_models;
+extern map<int, unique_ptr<lattice_model_instance>> lattice_model_instances;
 
 void check_signals();
 string Py2string(PyObject *PyObj);

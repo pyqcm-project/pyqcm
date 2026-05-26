@@ -52,12 +52,12 @@ elif mixing == 0:
     mu = 1
     """)
 
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 I.spectral_function(w = 6, nk = 32, path='line', file='test_mixing_{:d}.pdf'.format(mixing))
 
 I.cluster_spectral_function(w = 4, plt_ax=plt.gca())
 pyqcm.set_global_parameter('continued_fraction')
 model.set_parameter('U', 1)
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 I.cluster_spectral_function(w = 4, plt_ax=plt.gca(), color='r')
 plt.savefig("test_mixing_cf.pdf")

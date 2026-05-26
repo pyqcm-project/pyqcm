@@ -99,7 +99,7 @@ struct lattice_model{
 	shared_ptr<lattice_hybrid> hybrid; //!< external hybridization
 
 
-	static bool model_consolidated;
+	bool model_consolidated;
 	
 	lattice_model();
 	double Potthoff_functional();

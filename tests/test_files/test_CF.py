@@ -65,20 +65,20 @@ mu = 2
 w = 0.5+0.01j
 
 pyqcm.set_global_parameter('GF_method', 'L')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print(I.cluster_Green_function(w))
  
 pyqcm.set_global_parameter('GF_method', 'F')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print(I.cluster_Green_function(w))
 
 pyqcm.set_global_parameter('GF_method', 'M')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print(I.cluster_Green_function(w))
 
 # pyqcm.set_global_parameter('combine_mcf')
 # pyqcm.set_global_parameter('GF_method', 'M')
-# I = pyqcm.model_instance(model)
+# I = model.model_instance()
 # print(I.cluster_Green_function(w))
 
 import matplotlib.pyplot as plt
@@ -88,14 +88,14 @@ w =  -0.5+0.01j
 
 # Lehman representation, band Lanczos
 pyqcm.set_global_parameter('GF_method', 'L')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print("GF_method = 'L'")
 print(I.cluster_Green_function(w))
 
 # MCF representation, band Lanczos
 pyqcm.set_global_parameter('GF_method', 'L')
 pyqcm.set_global_parameter('combine_mcf')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print("GF_method = 'L', combined_mfc = True")
 print(I.cluster_Green_function(w))
 W, A, B = I.combined_mcf(pr=True)
@@ -103,20 +103,20 @@ pyqcm.set_global_parameter('combine_mcf', False)
 
 # CF representation
 pyqcm.set_global_parameter('GF_method', 'F')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print("GF_method = 'F'")
 print(I.cluster_Green_function(w))
 
 # MCF representation (Ge and Gh separate)
 pyqcm.set_global_parameter('GF_method', 'M')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print("GF_method = 'M'")
 print(I.cluster_Green_function(w))
 
 # MCF representation (Ge + Gh combined into one MCF)
 pyqcm.set_global_parameter('combine_mcf')
 pyqcm.set_global_parameter('GF_method', 'M')
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 print("GF_method = 'M', combined_mfc = True")
 print(I.cluster_Green_function(w))
 W, A, B = I.combined_mcf(pr=True)

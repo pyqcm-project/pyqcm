@@ -65,8 +65,8 @@ parameter_set::parameter_set()
 parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<string, double>> values, vector<tuple<string, double, string>> equiv)
 : model(_model)
 {
-  if(parameter_set_defined){
-    qcm_throw("parameter_set() can only be called once!");
+  if(model->param_set != nullptr){
+    qcm_throw("parameter_set() can only be called once per lattice model!");
   }
   parameter_set_defined = true;
 

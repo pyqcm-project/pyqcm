@@ -37,7 +37,7 @@ model.set_parameters("""
 """)
 
 import matplotlib.pyplot as plt
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 w = np.arange(-5, 5, 0.1)
 
 live = False

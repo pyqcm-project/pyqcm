@@ -19,6 +19,7 @@
 #include <vector>
 #include <complex>
 #include <map>
+#include <memory>
 #include <functional>
 #include "vector3D.hpp"
 #include "qcm_ED.hpp"
@@ -27,11 +28,14 @@ using namespace std;
 
 struct lattice_matrix_element;
 struct System;
+struct lattice_model;
 
 /**
  Interface per se
  */
 namespace QCM{
+  //! Looks up a registered lattice model by name. Empty name → single model (else throws).
+  std::shared_ptr<lattice_model> resolve_lattice_model(const string& name);
   //! Throws if no model instance with this label exists.
   void check_instance(int label);
   //! Resets the whole system, allowing the model to be redefined.
@@ -53,11 +57,11 @@ namespace QCM{
   //! Returns the contribution of a frequency to the average of an operator.
   double spectral_average(const string& name, const complex<double> w, int label);
   //! Returns the integer code for the mixing state (0=normal, 1=anomalous, 2=spin-flip, 3=full Nambu, 4=up/down separate).
-  int mixing();
+  int mixing(const string& model_name = "");
   //! Returns the spatial dimension (0, 1, 2 or 3) of the model.
-  int spatial_dimension();
+  int spatial_dimension(const string& model_name = "");
   //! Returns the values of all parameters in the parameter set.
-  map<string,double> parameters();
+  map<string,double> parameters(const string& model_name = "");
   //! Returns the values of all parameters for a given instance.
   map<string,double> instance_parameters(int label);
   //! Computes the cluster Green function at a given frequency.
@@ -67,7 +71,7 @@ namespace QCM{
   //! Returns the cluster one-body (hopping) matrix.
   matrix<complex<double>> cluster_hopping_matrix(size_t i, bool spin_down, int label);
   //! Symmetrizes a dim_GF matrix with respect to cluster translations at wavevector k.
-  matrix<complex<double>> compact_tiling(const matrix<complex<double>>& A, const vector3D<double>& k);
+  matrix<complex<double>> compact_tiling(const string& model_name, const matrix<complex<double>>& A, const vector3D<double>& k);
   //! Returns the combined matrix continued fraction (W, A, B) for the cluster Green function at k.
   ED::CombinedMCF_data get_combined_mcf_k(const vector3D<double>& k, bool spin_down, int label);
   //! Computes the CPT Green function at a given frequency and wavevector.
@@ -91,9 +95,9 @@ namespace QCM{
   //! Computes site and bond profiles in all clusters of the repeated unit.
   pair<vector<array<double,9>>, vector<array<complex<double>, 11>>> site_and_bond_profile(int label);
   //! Returns the dimension of the CPT Green function matrix.
-  size_t Green_function_dimension();
+  size_t Green_function_dimension(const string& model_name = "");
   //! Returns the reduced Green function dimension n (n, 2n or 4n depending on mixing state).
-  size_t reduced_Green_function_dimension();
+  size_t reduced_Green_function_dimension(const string& model_name = "");
   //! Computes the Berry curvature on a 2D region of the Brillouin zone (works in 2D only).
   vector<double> Berry_curvature(vector3D<double>& k1, vector3D<double>& k2, int nk, int orb, bool rec, int dir, int label);
   //! Computes the density of states at a given frequency.
@@ -121,31 +125,31 @@ namespace QCM{
   //! Computes a Lehmann representation of the periodized Green function at given wavevectors.
   vector<pair<vector<double>, vector<double>>> Lehmann_Green_function(vector<vector3D<double>> &k, int orb, bool spin_down, int label);
   //! Returns information about each cluster: (name, n_sites, n_bath, dim_GF, n_sym).
-  vector<tuple<string, int, int, int, int>> cluster_info();
+  vector<tuple<string, int, int, int, int>> cluster_info(const string& model_name = "");
   //! Returns information about each system in the lattice.
-  vector<tuple<string, int, int, int>> systems_info();
+  vector<tuple<string, int, int, int>> systems_info(const string& model_name = "");
   //! Computes the dispersion relation (band energies) for an array of wavevectors.
   vector<vector<double>> dispersion(const vector<vector3D<double>> &k, bool spin_down, int label);
   //! Computes the dispersion relation in the orbital basis for an array of wavevectors.
   vector<matrix<Complex>> epsilon(const vector<vector3D<double>> &k, bool spin_down, int label);
-  //! Adds a cluster to the repeated unit.
-  void add_cluster(const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref=0, bool conj=false);
+  //! Adds a cluster to the repeated unit of the named lattice model. Creates the model entry if it does not yet exist.
+  void add_cluster(const string& model_name, const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref=0, bool conj=false);
   //! Adds a system (group of clusters) to the lattice.
-  void add_system(const string &name, const int clus=0);
+  void add_system(const string& model_name, const string &name, const int clus=0);
   //! Defines an anomalous (pairing) operator.
-  void anomalous_operator(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb1, int orb2, const string& type);
+  void anomalous_operator(const string& model_name, const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb1, int orb2, const string& type);
   //! Defines a density-wave operator.
-  void density_wave(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type);
+  void density_wave(const string& model_name, const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type);
   //! Defines an explicit operator from a list of matrix elements.
-  void explicit_operator(const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau=1, int sigma=0);
+  void explicit_operator(const string& model_name, const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau=1, int sigma=0);
   //! Initializes the global parameter table.
   void global_parameter_init();
   //! Defines a hopping (one-body) operator.
-  void hopping_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma);
+  void hopping_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma);
   //! Defines a current operator.
-  void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool re=true);
+  void current_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool re=true);
   //! Defines an interaction operator (Hubbard, Hund, Heisenberg, or X/Y/Z).
-  void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);
+  void interaction_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type);
   //! Performs an adaptive Brillouin-zone integral of a vector-valued function.
   void k_integral(int dim, function<void (vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy, bool verb=false);
   //! Performs a fixed-grid Brillouin-zone integral of a vector-valued function.
@@ -157,25 +161,25 @@ namespace QCM{
   //! Initiates the lattice model.
   void new_lattice_model(const string &name, vector<int64_t> &superlattice, vector<int64_t> &lattice, const string &latt_hybrid="");
   //! Creates a new instance of the lattice model with values associated to terms of the Hamiltonian.
-  void new_model_instance(int label);
+  void new_model_instance(const string& model_name, int label);
   //! Prints a description of the model into a file (optionally with Asymptote markup).
-  void print_model(const string& filename, bool asy_operators=false, bool asy_labels=false, bool asy_orb=false, bool asy_neighbors=false, bool asy_working_basis=false);
+  void print_model(const string& model_name, const string& filename, bool asy_operators=false, bool asy_labels=false, bool asy_orb=false, bool asy_neighbors=false, bool asy_working_basis=false);
   //! Initializes the qcm library.
   void qcm_init();
   //! Sets the working basis (a Dx3 real matrix).
-  void set_basis(vector<double> &basis);
+  void set_basis(const string& model_name, vector<double> &basis);
   //! Sets the value of a parameter in the parameter set.
-  void set_parameter(const string& name, double value);
+  void set_parameter(const string& model_name, const string& param_name, double value);
   //! Sets the multiplier of a dependent parameter.
-  void set_multiplier(const string& name, double value);
+  void set_multiplier(const string& model_name, const string& param_name, double value);
   //! Sets the values and dependences of multiple parameters at once.
-  void set_parameters(vector<pair<string,double>>&, vector<tuple<string, double, string>>&);
+  void set_parameters(const string& model_name, vector<pair<string,double>>&, vector<tuple<string, double, string>>&);
   //! Performs an adaptive integral over frequencies and the Brillouin zone.
   void wk_integral(int dim, function<void (Complex w, vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy,bool verb=false);
   //! Forces eager (non-lazy) computation of cluster Green functions in all clusters.
   void Green_function_solve(int label);
   //! Defines the set of CDMFT variational parameters.
-  void CDMFT_variational_set(vector<vector<string>>& varia);
+  void CDMFT_variational_set(const string& model_name, vector<vector<string>>& varia);
   //! Sets the CDMFT host function from a list of frequencies and weights.
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label);
   //! Sets the CDMFT host function from precomputed matrix data.

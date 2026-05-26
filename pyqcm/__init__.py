@@ -258,13 +258,9 @@ class lattice_model:
 
     """
 
-    defined = False
     is_closed = False
 
     def __init__(self, name, clus, superlattice, lattice=None, hybrid_file=""):
-        if lattice_model.defined:
-            raise ValueError("Only one lattice model can be defined at a time!")
-        lattice_model.defined = True
         self.name = name
         if not is_sequence(clus):
             self.clus = (clus,)
@@ -297,12 +293,12 @@ class lattice_model:
                 ref = x.ref.index
             else:
                 ref = -1
-            qcm.add_cluster(x.pos, x.sites, ref, x.conj)
+            qcm.add_cluster(name, x.pos, x.sites, ref, x.conj)
             if x.sys is None: continue
             for s in x.sys:
                 if s.n_bath > 0:
                     self.has_bath = True
-                qcm.add_system(s.name, c)
+                qcm.add_system(name, s.name, c)
                 x.sys_start = len(self.systems)
                 self.systems.append(s)
                 self.sys_clus.append(c)
@@ -337,12 +333,12 @@ class lattice_model:
             else:
                 kwargs["tau"] = 0
 
-        orb1, orb2 = orbital_pair_manager(orbitals)
+        orb1, orb2 = orbital_pair_manager(orbitals, self.name)
 
         for orb_no1 in orb1:
             for orb_no2 in orb2:
                 qcm.hopping_operator(
-                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
+                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, model_name=self.name, **kwargs
                 )
 
         self.operator_calls.append(('hopping_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
@@ -368,6 +364,7 @@ class lattice_model:
                             orb2=orb_no2,
                             dir=dir[self.current_dir],
                             real=pau,
+                            model_name=self.name,
                         )
                 self.currents.add("I" + name)
 
@@ -397,12 +394,12 @@ class lattice_model:
                     'use the "type" keyword instead (one of "singlet", "dx", "dy", "dz")'
                 )
 
-        orb1, orb2 = orbital_pair_manager(orbitals)
+        orb1, orb2 = orbital_pair_manager(orbitals, self.name)
 
         for orb_no1 in orb1:
             for orb_no2 in orb2:
                 qcm.anomalous_operator(
-                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
+                    name, link, amplitude, orb1=orb_no1, orb2=orb_no2, model_name=self.name, **kwargs
                 )
         self.operator_calls.append(('anomalous_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
 
@@ -425,7 +422,7 @@ class lattice_model:
                 'names of operators must not include the character "_" (underline)'
             )
 
-        qcm.explicit_operator(name, elem, **kwargs)
+        qcm.explicit_operator(name, elem, model_name=self.name, **kwargs)
         self.operator_calls.append(('explicit_operator', (name, elem), kwargs))
 
     # -----------------------------------------------------------------------------------------------
@@ -449,7 +446,7 @@ class lattice_model:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
             )
-        qcm.density_wave(name, t, Q, **kwargs)
+        qcm.density_wave(name, t, Q, model_name=self.name, **kwargs)
         self.operator_calls.append(('density_wave', (name, t, Q), kwargs))
 
     # -----------------------------------------------------------------------------------------------
@@ -463,7 +460,7 @@ class lattice_model:
 
         """
 
-        qcm.set_basis(B)
+        qcm.set_basis(B, self.name)
 
     # -----------------------------------------------------------------------------------------------
     def interaction_operator(self, name, link=None, orbitals=None, **kwargs):
@@ -480,7 +477,7 @@ class lattice_model:
 
         """
 
-        orb1, orb2 = orbital_pair_manager(orbitals)
+        orb1, orb2 = orbital_pair_manager(orbitals, self.name)
         if "_" in name:
             raise ValueError(
                 'names of operators must not include the character "_" (underline)'
@@ -488,7 +485,7 @@ class lattice_model:
         for orb_no1 in orb1:
             for orb_no2 in orb2:
                 qcm.interaction_operator(
-                    name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs
+                    name, orb1=orb_no1, orb2=orb_no2, link=link, model_name=self.name, **kwargs
                 )
         self.operator_calls.append(('interaction_operator', (name,), {'link': link, 'orbitals': orbitals, **kwargs}))
 
@@ -544,7 +541,7 @@ class lattice_model:
             if valid == False:
                 raise ValueError("String {:s} does not represent a valid set of sectors".format(s))
        
-        qcm.set_target_sectors(sec)
+        qcm.set_target_sectors(sec, self.name)
         self.target_sectors = sec
 
     # -----------------------------------------------------------------------------------------------
@@ -586,11 +583,11 @@ class lattice_model:
                     raise ParseError(p)
                 elems.append(tuple(elem))
             try:
-                qcm.set_parameters(elems)
+                qcm.set_parameters(elems, self.name)
             except Exception as e:
                 raise ValueError("cannot set parameters in qcm") from e
         else:
-            qcm.set_parameters(params)
+            qcm.set_parameters(params, self.name)
 
         return params
 
@@ -612,12 +609,12 @@ class lattice_model:
             )
             try:
                 for i, x in enumerate(name):
-                    qcm.set_parameter(x, value[i])
+                    qcm.set_parameter(x, value[i], self.name)
             except Exception as e:
                 raise ValueError("Error in set_parameter()") from e
         else:
             try:
-                qcm.set_parameter(name, value)
+                qcm.set_parameter(name, value, self.name)
             except Exception as e:
                 raise ValueError("Error in set_parameter()") from e
 
@@ -639,12 +636,12 @@ class lattice_model:
             )
             try:
                 for i, x in enumerate(name):
-                    qcm.set_multiplier(x, value[i])
+                    qcm.set_multiplier(x, value[i], self.name)
             except Exception as e:
                 raise ValueError("Error in set_multiplier()") from e
         else:
             try:
-                qcm.set_multiplier(name, value)
+                qcm.set_multiplier(name, value, self.name)
             except Exception as e:
                 raise ValueError("Error in set_multiplier()") from e
 
@@ -656,7 +653,7 @@ class lattice_model:
         :param bool CR: if True, puts each parameter on a line.
         :param bool constr: if True, also includes constrained parameters
         """
-        par = qcm.parameter_set()
+        par = qcm.parameter_set(self.name)
         S = ""
         sep = ", "
         if CR:
@@ -685,7 +682,7 @@ class lattice_model:
         :returns: a dict {string,float} OR a numpy array of values
 
         """
-        par = qcm.parameters()
+        par = qcm.parameters(self.name)
         if param == None:
             return par
         else:
@@ -710,7 +707,7 @@ class lattice_model:
         if opt = 'report', returns a string with parameter values and dependencies.
 
         """
-        P = qcm.parameter_set()
+        P = qcm.parameter_set(self.name)
         if opt == "independent":
             P2 = {}
             for x in P:
@@ -718,7 +715,7 @@ class lattice_model:
                     P2[x] = P[x][0]
             return P2
         elif opt == "report":
-            qcm.print_parameter_set()
+            qcm.print_parameter_set(self.name)
             return
         else:
             return P
@@ -731,7 +728,7 @@ class lattice_model:
 
         :returns: None
         """
-        qcm.print_model(filename)
+        qcm.print_model(filename, self.name)
 
     # -----------------------------------------------------------------------------------------------
     def set_params_from_file(self, out_file, n=0, pr=False):
@@ -743,7 +740,7 @@ class lattice_model:
         :returns: a dict of the line read in out_file
 
         """
-        par = qcm.parameter_set()
+        par = qcm.parameter_set(self.name)
         try:
             D = np.genfromtxt(out_file, names=True, dtype=None, encoding="utf8")
         except Exception as e:
@@ -792,15 +789,27 @@ class lattice_model:
         * 4 -- up and down spins different.  GF matrix is n x n, but computed twice, with spin_down = false and true
 
         """
-        self.mixing = qcm.mixing()
-        self.dimGF_red = qcm.reduced_Green_function_dimension()
-        self.dimGF = qcm.Green_function_dimension()
+        self.mixing = qcm.mixing(self.name)
+        self.dimGF_red = qcm.reduced_Green_function_dimension(self.name)
+        self.dimGF = qcm.Green_function_dimension(self.name)
         self.nmixed = self.dimGF // self.nsites
         self.dimGFC = np.zeros(self.nclus, dtype=int)
-        self.nband = qcm.model_size()[1]
+        self.nband = qcm.model_size(self.name)[1]
         for i in range(self.nclus):
             self.dimGFC[i] = self.clus[i].nsites * self.nmixed
         self.is_closed = True
+
+    # -----------------------------------------------------------------------------------------------
+    def model_instance(self):
+        """
+        Creates and returns a new :class:`model_instance` bound to this lattice model.
+
+        Equivalent to ``pyqcm.model_instance(self)``, but called as a method so the
+        lattice model does not need to be passed explicitly.
+
+        :returns: a new :class:`model_instance` for this lattice model.
+        """
+        return model_instance(self)
 
     # -----------------------------------------------------------------------------------------------
     def compact_tiling(self, A, k):
@@ -820,7 +829,7 @@ class lattice_model:
         :returns: symmetrized matrix (ndarray of shape ``(d, d)``, complex)
 
         """
-        return qcm.compact_tiling(A, k)
+        return qcm.compact_tiling(A, k, self.name)
 
     # -----------------------------------------------------------------------------------------------
     def write_definition(self, filename=None, str=False):
@@ -960,7 +969,7 @@ class model_instance:
         self.label = model_instance.count
         model_instance.count += 1
         self.model = model
-        qcm.new_model_instance(self.label)
+        qcm.new_model_instance(self.label, self.model.name)
         if not self.model.is_closed: self.model.finalize()
         self.is_complex = qcm.complex_HS(self.label)
 
@@ -994,7 +1003,7 @@ class model_instance:
         Resets the model instance to the current parameters, with the same label
 
         """
-        qcm.new_model_instance(self.label)
+        qcm.new_model_instance(self.label, self.model.name)
         self.is_complex = qcm.complex_HS(self.label)
 
     # -----------------------------------------------------------------------------------------------
@@ -2601,14 +2610,14 @@ def orbital_manager(orbitals, from_zero=False, spin_split=False):
 
 
 # ---------------------------------------------------------------------------------------------------
-def orbital_pair_manager(orbitals):
+def orbital_pair_manager(orbitals, model_name=""):
     """ """
 
     if orbitals is not None:
         return [orbitals[0]], [orbitals[1]]
 
     else:
-        nbands = qcm.model_size()[1]
+        nbands = qcm.model_size(model_name)[1]
         orb_list = [i for i in range(1, nbands + 1)]
         return orb_list, orb_list
 
@@ -2963,7 +2972,6 @@ def reset_model():
     """
     global cluster_model_names
     banner("RESETTING THE MODEL", c="#", skip=1)
-    lattice_model.defined = False
     cluster_model_names = set()
     qcm.great_reset()
 

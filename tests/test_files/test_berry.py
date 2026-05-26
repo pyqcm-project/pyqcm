@@ -32,7 +32,7 @@ model.set_parameters("""
     t_1=1.0*t
 """)
                      
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 
 k = np.array([0.695,0,-1e-8])
 

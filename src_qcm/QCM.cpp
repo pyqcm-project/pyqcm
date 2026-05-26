@@ -31,11 +31,42 @@
 //==============================================================================
 // global variables
 
-shared_ptr<lattice_model> qcm_model = nullptr; // pointer to the unique lattice model of the library
+map<string, shared_ptr<lattice_model>> qcm_models; // registry of named lattice models
 map<int, unique_ptr<lattice_model_instance>> lattice_model_instances; // list of instances
 
 extern map<string, shared_ptr<model>> models;
 extern map<size_t, shared_ptr<model_instance_base>> model_instances;
+
+namespace QCM {
+  // Resolves a model name to a registered lattice_model.
+  // If 'name' is empty, falls back to the single registered model (error if
+  // none or more than one). Throws if the name is not found.
+  shared_ptr<lattice_model> resolve_lattice_model(const string& name)
+  {
+    if(name.empty()){
+      if(qcm_models.empty()) qcm_throw("no lattice model has been created yet.");
+      if(qcm_models.size() > 1)
+        qcm_throw("more than one lattice model is defined; you must specify the model name.");
+      return qcm_models.begin()->second;
+    }
+    auto it = qcm_models.find(name);
+    if(it == qcm_models.end())
+      qcm_throw("the lattice model \""+name+"\" does not exist.");
+    return it->second;
+  }
+}
+
+using QCM::resolve_lattice_model;
+
+// Returns the model entry for 'name', creating an empty lattice_model if it
+// does not yet exist. Used by add_cluster() so that the first cluster added
+// implicitly creates the model. The name "" is allowed.
+static shared_ptr<lattice_model> get_or_create_lattice_model(const string& name)
+{
+  auto& mod = qcm_models[name];
+  if(!mod) mod = make_shared<lattice_model>();
+  return mod;
+}
 
 vector<double> grid_freqs; // optional imaginary frequency grid for discrete integrals
 vector<double> grid_weights; // weights associated with grid_freqs
@@ -83,17 +114,16 @@ void great_reset(){
   lattice_model_instances.clear();
   for(auto& x:models) x.second.reset();
   models.clear();
-  qcm_model->sector_strings.clear();
-  qcm_model->param_set.reset();
+  for(auto& x: qcm_models) x.second.reset();
+  qcm_models.clear();
   parameter_set::parameter_set_defined = false;
-  lattice_model::model_consolidated = false;
-  qcm_model.reset();
-  qcm_model = make_shared<lattice_model>();
 }
 
 
 void erase_lattice_model_instance(size_t label){
-    size_t nsys = qcm_model->nsys;
+    auto it = lattice_model_instances.find(label);
+    if(it == lattice_model_instances.end()) return;
+    size_t nsys = it->second->model->nsys;
     for(size_t i=0; i < nsys; i++){
       model_instances.erase(label*nsys+i);
     }
@@ -120,11 +150,12 @@ void erase_lattice_model_instance(size_t label){
 
 
 
-  void print_model(const string& filename, bool asy_operators, bool asy_labels, bool asy_orb, bool asy_neighbors, bool asy_working_basis)
+  void print_model(const string& name, const string& filename, bool asy_operators, bool asy_labels, bool asy_orb, bool asy_neighbors, bool asy_working_basis)
   {
+    auto mod = resolve_lattice_model(name);
     ofstream fout(filename);
     if (!fout.good()) qcm_throw("failed to open file " + filename);
-    qcm_model->print(fout, asy_operators, asy_labels, asy_orb, asy_neighbors, asy_working_basis);
+    mod->print(fout, asy_operators, asy_labels, asy_orb, asy_neighbors, asy_working_basis);
     fout.close();
   }
   
@@ -135,55 +166,60 @@ void erase_lattice_model_instance(size_t label){
    sets the model parameters to the values specified by the parameter_set No 'prm_label'
    @param label label to be given to the new instance, to identify it in memory (the library is stateful)
    */
-  void new_model_instance(int label)
+  void new_model_instance(const string& model_name, int label)
   {
-    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    lattice_model_instances[label] = unique_ptr<lattice_model_instance>(new lattice_model_instance(qcm_model, label));
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    lattice_model_instances[label] = unique_ptr<lattice_model_instance>(new lattice_model_instance(mod, label));
   }
-  
 
-  
-  
+
+
+
   /**
    defines a new parameter set
    @param val array of pairs (name, value) for the independent parameters
    @param equiv array of 3-tuples (name, multiplier, reference parameter) for the dependent parameters
 \   */
-  void set_parameters(vector<pair<string,double>>& val, vector<tuple<string, double, string>>& equiv)
+  void set_parameters(const string& model_name, vector<pair<string,double>>& val, vector<tuple<string, double, string>>& equiv)
   {
-    qcm_model->param_set = make_shared<parameter_set>(qcm_model, val, equiv);
+    auto mod = resolve_lattice_model(model_name);
+    mod->param_set = make_shared<parameter_set>(mod, val, equiv);
   }
 
-  
+
   /**
-   sets the value of the  parameter 'name' in the parameter set with label 'label' to 'value'
+   sets the value of the  parameter 'param_name' in the parameter set of lattice model 'model_name'
    */
-  void set_parameter(const string& name, double value)
+  void set_parameter(const string& model_name, const string& param_name, double value)
   {
-    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    qcm_model->param_set->set_value(name, value);
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    mod->param_set->set_value(param_name, value);
   }
-  
-  
-  
+
+
+
   /**
-   sets the value of the  parameter 'name' in the parameter set with label 'label' to 'value'
+   sets the multiplier of the parameter 'param_name' in the parameter set of lattice model 'model_name'
    */
-  void set_multiplier(const string& name, double value)
+  void set_multiplier(const string& model_name, const string& param_name, double value)
   {
-    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    qcm_model->param_set->set_multiplier(name, value);
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    mod->param_set->set_multiplier(param_name, value);
   }
-  
-  
-  
+
+
+
   /**
-   outputs a map of the parameters for model instance 'label'
+   outputs a map of the parameters of lattice model 'model_name'
    */
-  map<string,double> parameters()
+  map<string,double> parameters(const string& model_name)
   {
-    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    return qcm_model->param_set->value_map();
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    return mod->param_set->value_map();
   }
   
   
@@ -208,8 +244,9 @@ void erase_lattice_model_instance(size_t label){
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    if(qcm_model->term.find(op) == qcm_model->term.end()) qcm_throw("The lattice operator "+op+" does not exist.");
-    return lattice_model_instances.at(label)->momentum_profile_per(*qcm_model->term.at(op), k_set);
+    auto& mod = *lattice_model_instances.at(label)->model;
+    if(mod.term.find(op) == mod.term.end()) qcm_throw("The lattice operator "+op+" does not exist.");
+    return lattice_model_instances.at(label)->momentum_profile_per(*mod.term.at(op), k_set);
   }
   
   
@@ -491,14 +528,15 @@ void erase_lattice_model_instance(size_t label){
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    vector3D<double> K = qcm_model->superdual.to(qcm_model->physdual.from(k));
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     Green_function_k M(G, K);
     lattice_model_instances.at(label)->periodized_Green_function(M);
     return M.g;
   }
-  
-  
+
+
   /**
    returns the band Green function at a given frequency and wavevector
  * @param spin_down true if the spin-down sector is covered (mixing = 4)
@@ -508,11 +546,12 @@ void erase_lattice_model_instance(size_t label){
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    vector3D<double> K = qcm_model->superdual.to(qcm_model->physdual.from(k));
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    vector3D<double> K = mod.superdual.to(mod.physdual.from(k));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     Green_function_k M(G, K);
     lattice_model_instances.at(label)->periodized_Green_function(M);
-    
+
     return lattice_model_instances.at(label)->band_Green_function(M);
   }
   
@@ -528,8 +567,9 @@ void erase_lattice_model_instance(size_t label){
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
     vector<vector3D<double>> K(k.size());
-    for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
+    for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     vector<matrix<Complex>> R;
     R.reserve(K.size());
@@ -540,7 +580,7 @@ void erase_lattice_model_instance(size_t label){
     }
     return R;
   }
-  
+
 
   /**
    returns the periodized Green function at a given frequency and for an array of wavevectors
@@ -551,8 +591,9 @@ void erase_lattice_model_instance(size_t label){
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
     vector<vector3D<double>> K(k.size());
-    for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
+    for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
     Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
     vector<matrix<Complex>> R;
     R.reserve(K.size());
@@ -563,8 +604,8 @@ void erase_lattice_model_instance(size_t label){
     }
     return R;
   }
-  
-  
+
+
 /**
  returns the periodized Green function at a given frequency and for an array of wavevectors
 * @param spin_down true if the spin-down sector is covered (mixing = 4)
@@ -574,8 +615,9 @@ vector<complex<double>> periodized_Green_function_element(int r, int c, const co
   #ifdef QCM_DEBUG
 check_instance(label);
 #endif
+  lattice_model& mod = *lattice_model_instances.at(label)->model;
   vector<vector3D<double>> K(k.size());
-  for(size_t i = 0; i< K.size(); i++) K[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
+  for(size_t i = 0; i< K.size(); i++) K[i] = mod.superdual.to(mod.physdual.from(k[i]));
   Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, spin_down);
   vector<Complex> R;
   R.reserve(K.size());
@@ -628,9 +670,9 @@ check_instance(label);
              The inter-cluster Bloch phase is exp(i * k * neighbor * 2*pi) where
              neighbor is the wrapping vector in primitive lattice units.
    */
-  matrix<complex<double>> compact_tiling(const matrix<complex<double>>& A, const vector3D<double>& k)
+  matrix<complex<double>> compact_tiling(const string& model_name, const matrix<complex<double>>& A, const vector3D<double>& k)
   {
-    lattice_model& mod = *qcm_model;
+    lattice_model& mod = *resolve_lattice_model(model_name);
     return mod.compact_tiling(A, k);
   }
 
@@ -811,41 +853,42 @@ check_instance(label);
   /**
    returns the dimensions
    */
-  size_t Green_function_dimension()
+  size_t Green_function_dimension(const string& model_name)
   {
-    return qcm_model->dim_GF;
+    return resolve_lattice_model(model_name)->dim_GF;
   }
-  
-  
+
+
   /**
    * returns the dimension of the periodized Green function.
    * Essentially: the number of bands, times the mixing number (2 or 4)
    */
-  size_t reduced_Green_function_dimension()
+  size_t reduced_Green_function_dimension(const string& model_name)
   {
+    auto mod = resolve_lattice_model(model_name);
     char periodization = global_char("periodization");
-    if(periodization == 'N') return qcm_model->dim_GF;
-    else return qcm_model->dim_reduced_GF;
+    if(periodization == 'N') return mod->dim_GF;
+    else return mod->dim_reduced_GF;
   }
-  
-  
+
+
   /**
    * returns the spatial dimension of the model: 0, 1, 2 or 3
    */
-  int spatial_dimension()
+  int spatial_dimension(const string& model_name)
   {
-    return qcm_model->spatial_dimension;
+    return resolve_lattice_model(model_name)->spatial_dimension;
   }
-  
-  
-  
+
+
+
   /**
    returns the mixing
    0: normal, 1: anomalous, 2: spin-flip, 3:anomalous and spin-flip, 4: up and down spin separate
    */
-  int mixing()
+  int mixing(const string& model_name)
   {
-    return qcm_model->mixing;
+    return resolve_lattice_model(model_name)->mixing;
   }
   
   
@@ -895,196 +938,169 @@ check_instance(label);
    * @param ref if cluster is equivalent to another cluster, index of that cluster. If not, -1.
    * @param conj true if cluster is equivalent to the complex conjugate of its master
    */
-  void add_cluster(const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref, bool conj)
+  void add_cluster(const string& model_name, const vector3D<int64_t> &cpos, const vector<vector3D<int64_t>> &pos, int ref, bool conj)
   {
-    if(qcm_model->is_closed){
+    auto mod = get_or_create_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created. Ignoring.");
       return;
     }
-    for(size_t i=0; i<pos.size(); i++) qcm_model->sites.push_back({qcm_model->clusters.size(), i, 0, pos[i]+cpos});
-    if(ref == -1) ref = qcm_model->clusters.size();
-    qcm_model->clusters.push_back({pos.size(), qcm_model->sites.size(), cpos, ref, 0, conj, 0, 0});
+    for(size_t i=0; i<pos.size(); i++) mod->sites.push_back({mod->clusters.size(), i, 0, pos[i]+cpos});
+    if(ref == -1) ref = mod->clusters.size();
+    mod->clusters.push_back({pos.size(), mod->sites.size(), cpos, ref, 0, conj, 0, 0});
     // n_sites, n_bath, offset, name, position, ref, mixing, sys_start, nsys
   }
-  
-  
+
+
   /**
    * Adds a system to the lattice model (or repeated unit)
+   * @param model_name name of the lattice model the system belongs to
    * @param name name of the cluster model
    * @param clus cluster this model is associated to (starts at 0)
    */
-  void add_system(const string &name, const int clus)
+  void add_system(const string& model_name, const string &name, const int clus)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created. Ignoring.");
       return;
     }
-    if(clus > qcm_model->clusters.size())
+    if(clus > mod->clusters.size())
       qcm_throw("This system cannot be added to the cluster (out of range, or maybe clusters not yet added to lattice model)");
-  
+
     auto tmp = ED::model_size(name);
-    if(get<0>(tmp) != qcm_model->clusters[clus].n_sites) qcm_throw("The number of sites of cluster "+name+" is inconsistent with the cluster model");
-    if(get<1>(tmp) > 0) qcm_model->bath_exists = true;
+    if(get<0>(tmp) != mod->clusters[clus].n_sites) qcm_throw("The number of sites of cluster "+name+" is inconsistent with the cluster model");
+    if(get<1>(tmp) > 0) mod->bath_exists = true;
     // n_sites, n_bath, name, clus, mixing, n_sym
-    qcm_model->systems.push_back({get<0>(tmp), get<1>(tmp), name, clus, 0, get<2>(tmp)});
+    mod->systems.push_back({get<0>(tmp), get<1>(tmp), name, clus, 0, get<2>(tmp)});
   }
-  
-  
+
+
 
   /**
-   * defines a new lattice model
-   * In the current version, there is a single lattice model in memory
-   * @param name name of the model (for reference purposes)
+   * Finalizes the geometry of a lattice model. Must be called after all
+   * clusters and systems have been added (via add_cluster/add_system).
+   * @param name name of the model (must match the name used in add_cluster)
    * @param superlattice array of D superlattice vectors, defining the superlattice of the model and the spatial dimension D
    * @param unit_cell array of D lattice vectors, defining the unit cell of the model (determines the number of bands)
    * @param latt_hybrid name of HDF5 file containing the lattice hybridization data
    */
   void new_lattice_model(const string &name, vector<int64_t> &superlattice, vector<int64_t> &unit_cell, const string &latt_hybrid)
   {
-    if(qcm_model==nullptr) qcm_throw("no cluster has been added to the model!");
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(name);
+    if(mod->is_closed){
       qcm_warning("model already created. Ignoring.");
       return;
     }
-    qcm_model->name = name;
-    qcm_model->superlattice = lattice3D(superlattice);
-    qcm_model->unit_cell = lattice3D(unit_cell);
-    qcm_model->phys.trivial();
-    qcm_model->hybrid_file = latt_hybrid;
-    qcm_model->hybrid = nullptr;
-    qcm_model->pre_operator_consolidate();
+    if(mod->clusters.empty())
+      qcm_throw("no cluster has been added to model \""+name+"\"!");
+    mod->name = name;
+    mod->superlattice = lattice3D(superlattice);
+    mod->unit_cell = lattice3D(unit_cell);
+    mod->phys.trivial();
+    mod->hybrid_file = latt_hybrid;
+    mod->hybrid = nullptr;
+    mod->pre_operator_consolidate();
   }
-  
-  
+
+
   /**
    * defines the physical basis of the unit cell of the model.
    * By default, the cartesian basis is used and this function does not always need to be called.
+   * @param model_name name of the lattice model
    * @param basis flattened array of the basis vectors (0, 3, 6, or 9 components). These are the components of the Bravais lattice vectors in the 'physical' basis, i.e., as they appear in space.
    */
-  void set_basis(vector<double> &basis)
+  void set_basis(const string& model_name, vector<double> &basis)
   {
-    qcm_model->phys = basis3D(basis);
-    qcm_model->phys.inverse();
-    qcm_model->phys.dual(qcm_model->physdual);
-    qcm_model->physdual.init();
+    auto mod = resolve_lattice_model(model_name);
+    mod->phys = basis3D(basis);
+    mod->phys.inverse();
+    mod->phys.dual(mod->physdual);
+    mod->physdual.init();
   }
-  
-  
+
+
   /**
    * defines an interaction operator
+   * @param model_name name of the lattice model
    * @param name name of the operator
-   * @param link bond vector on which the operator is defined
-   * @param amplitude default amplitude of the operator, that multiplies all matrix elements and its given value
-   * @param orb1 index of the first orbital (from 1 to nband)
-   * @param orb2 index of the second orbital (from 1 to nband)
-   * @param type type of interaction operator
    */
-  void interaction_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type)
+  void interaction_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, const string &type)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->interaction_operator(name, link, amplitude, orb1-1, orb2-1, type);
+    mod->interaction_operator(name, link, amplitude, orb1-1, orb2-1, type);
   }
-  
-  
+
+
   /**
    * Defines a hopping operator on the lattice.
-   * The operator, given two sites labelled 1 and 2, is defined as: 
-   * $c^\dagger_{is}\tau^a_{ij}\sigma^b_{ss'}c_{js'}$
-   * @param name name given to the operator
-   * @param link bond vector on which the operator is defined
-   * @param amplitude default amplitude of the operator, that multiplies all matrix elements and its given value
-   * @param orb1 index of the first orbital (from 1 to nband)
-   * @param orb2 index of the second orbital (from 1 to nband)
-   * @param tau label (0,1,2,3) of the Pauli matrix defining the orbital component (a in the formula above)
-   * @param sigma label (0,1,2,3) of the Pauli matrix defining the spin component (b in the formula above)
    */
-  void hopping_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma)
+  void hopping_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->hopping_operator(name, link, amplitude, orb1-1, orb2-1, tau, sigma);
+    mod->hopping_operator(name, link, amplitude, orb1-1, orb2-1, tau, sigma);
   }
-  
-  
-    /**
+
+
+  /**
    * Defines a current operator on the lattice.
-   * The operator, given two sites labelled 1 and 2, is defined as: 
-   * $(r_1-r_2)c^\dagger_{is}\tau^2_{ij}c_{js}$
-   * @param name name given to the operator
-   * @param link bond vector on which the operator is defined
-   * @param amplitude default amplitude of the operator, that multiplies all matrix elements and its given value
-   * @param orb1 index of the first orbital (from 1 to nband)
-   * @param orb2 index of the second orbital (from 1 to nband)
-   * @param dir component of the current (0,1,2) standing for (x,y,z)
-   * @param pau true if from real hopping, false if from imaginary hopping
    */
-  void current_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool pau)
+  void current_operator(const string& model_name, const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int dir, bool pau)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->current_operator(name, link, amplitude, orb1-1, orb2-1, dir, pau);
+    mod->current_operator(name, link, amplitude, orb1-1, orb2-1, dir, pau);
   }
 
 
   /**
    * Defines an anomalous operator on the lattice.
-   * @param name name given to the operator
-   * @param link bond vector on which the operator is defined
-   * @param amplitude default amplitude of the operator, that multiplies all matrix elements and its given value
-   * @param orb1 index of the first orbital (from 1 to nband)
-   * @param orb2 index of the second orbital (from 1 to nband)
-   * @param type type of pairing: singlet, dx, dy, dz
    */
-  void anomalous_operator(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb1, int orb2, const string& type)
+  void anomalous_operator(const string& model_name, const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb1, int orb2, const string& type)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->anomalous_operator(name, link, amplitude, orb1-1, orb2-1, type);
+    mod->anomalous_operator(name, link, amplitude, orb1-1, orb2-1, type);
   }
-  
+
   /**
    * Defines a density wave on the lattice.
-   * @param name name given to the operator
-   * @param link bond vector on which the operator is defined
-   * @param amplitude default amplitude of the operator, that multiplies all matrix elements and its given value
-   * @param orb index of the first site of the pair (from 1 to nband, the number of lattice orbitals). 0 if all orbitals.
-   * @param Q wavevector ($\times\pi$) of the density wave
-   * @param phase constant phase (see general documentation for the formula)
-   * @param type type of pairing: cdw, X, Z, singlet, dx, dy, dz
    */
-  void density_wave(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type)
+  void density_wave(const string& model_name, const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->density_wave(name, link, amplitude, orb-1, Q, phase, type);
+    mod->density_wave(name, link, amplitude, orb-1, Q, phase, type);
   }
 
   /**
    * Defines an operator on the lattice with explicit lattice elements
-   * @param name name given to the operator
-   * @param type type of pairing: Hubbard, Hund, Heisenberg, X, Y, Z, singlet, dx, dy, dz (by default: hopping)
-   * @param elem a liste of pairs (site, bond)
-   * @param tau label (0,1,2,3) of the Pauli matrix defining the orbital component (a in the formula above)
-   * @param sigma label (0,1,2,3) of the Pauli matrix defining the spin component (b in the formula above)
    */
-  void explicit_operator(const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau, int sigma)
+  void explicit_operator(const string& model_name, const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau, int sigma)
   {
-    if(qcm_model->is_closed){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->is_closed){
       qcm_warning("model already created and closed. Ignoring operator creation.");
       return;
     }
-    qcm_model->explicit_operator(name, type, elem, tau, sigma);
+    mod->explicit_operator(name, type, elem, tau, sigma);
   }
 
   
@@ -1092,14 +1108,15 @@ check_instance(label);
    * returns some information about the clusters in an array of 4-tuples
    * for each cluster of the repeated unit: 1. the number of sites, 2. the number of systems, 3. the index of the first system, 4. the dimension of the Green function
    */
-  vector<tuple<string, int, int, int, int>> cluster_info()
+  vector<tuple<string, int, int, int, int>> cluster_info(const string& model_name)
   {
-    vector<tuple<string, int, int, int, int>> info(qcm_model->clusters.size());
+    auto mod = resolve_lattice_model(model_name);
+    vector<tuple<string, int, int, int, int>> info(mod->clusters.size());
     for(int i=0; i<info.size(); i++){
-      get<0>(info[i]) = (int)qcm_model->clusters[i].n_sites;
-      get<1>(info[i]) = (int)qcm_model->clusters[i].nsys;
-      get<2>(info[i]) = (int)qcm_model->clusters[i].sys_start;
-      get<3>(info[i]) = (int)qcm_model->clusters[i].n_sites*qcm_model->n_mixed;
+      get<0>(info[i]) = (int)mod->clusters[i].n_sites;
+      get<1>(info[i]) = (int)mod->clusters[i].nsys;
+      get<2>(info[i]) = (int)mod->clusters[i].sys_start;
+      get<3>(info[i]) = (int)mod->clusters[i].n_sites*mod->n_mixed;
     }
     return info;
   }
@@ -1110,14 +1127,15 @@ check_instance(label);
    * returns some information about the systems in an array of 4-tuples
    * for each system: 1. the name, 2. the number of sites, 3. the number of bath orbitals, 4. the label of the cluster
    */
-  vector<tuple<string, int, int, int>> systems_info()
+  vector<tuple<string, int, int, int>> systems_info(const string& model_name)
   {
-    vector<tuple<string, int, int, int>> info(qcm_model->systems.size());
+    auto mod = resolve_lattice_model(model_name);
+    vector<tuple<string, int, int, int>> info(mod->systems.size());
     for(int i=0; i<info.size(); i++){
-      get<0>(info[i]) = qcm_model->systems[i].name;
-      get<1>(info[i]) = (int)qcm_model->systems[i].n_sites;
-      get<2>(info[i]) = (int)qcm_model->systems[i].n_bath;
-      get<3>(info[i]) = (int)qcm_model->systems[i].clus;
+      get<0>(info[i]) = mod->systems[i].name;
+      get<1>(info[i]) = (int)mod->systems[i].n_sites;
+      get<2>(info[i]) = (int)mod->systems[i].n_bath;
+      get<3>(info[i]) = (int)mod->systems[i].clus;
     }
     return info;
   }
@@ -1149,7 +1167,8 @@ check_instance(label);
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    for(size_t i = 0; i< k.size(); i++) k[i] = qcm_model->superdual.to(qcm_model->physdual.from(k[i]));
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    for(size_t i = 0; i< k.size(); i++) k[i] = mod.superdual.to(mod.physdual.from(k[i]));
     return lattice_model_instances[label]->Lehmann_Green_function(k, orb, spin_down);
   }
 
@@ -1161,9 +1180,10 @@ check_instance(label);
     lattice_model_instances.at(label)->Green_function_solve();  
   }
 
-  void CDMFT_variational_set(vector<vector<string>>& varia){
-    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
-    qcm_model->param_set->CDMFT_variational_set(varia);
+  void CDMFT_variational_set(const string& model_name, vector<vector<string>>& varia){
+    auto mod = resolve_lattice_model(model_name);
+    if(mod->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    mod->param_set->CDMFT_variational_set(varia);
   }
 
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label)

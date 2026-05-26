@@ -17,7 +17,7 @@ bracket = (2, 6)
 
 def task(mu):
 	model.set_parameter('mu', mu)
-	I = pyqcm.model_instance(model)
+	I = model.model_instance()
 	n = I.averages()['mu']
 	print('mu = {:g}, n = {:g}'.format(I.parameters()['mu'], n))
 	return n-target

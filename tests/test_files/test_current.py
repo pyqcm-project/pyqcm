@@ -24,7 +24,7 @@ Iti = 0
 """.format(np.cos(phase), np.sin(phase)))
 
 P = model.parameters()
-I = pyqcm.model_instance(model)
+I = model.model_instance()
 ave = I.averages(pr=True)
 print('current = ', ave['It']*P['t'] + ave['Iti']*P['ti'] )
 
