@@ -608,6 +608,7 @@ class CDMFT:
                 pass
             else:
                 self.bias.value *= self.bias.factor
+            if self.bias.value < 1e-9 : self.bias.value = 1e-9
             self.model.set_parameter(self.bias.op, self.bias.value)
             print("====> bias field : ", self.bias.op, " = ", self.bias.value)
 
@@ -1585,12 +1586,12 @@ def optimize(
         )
     if method.lower() == "trf" and not callable(jac):
         raise ValueError('"trf" requires a callable jac')
-    if callable(jac):
-        print(
-            f"Jacobian active "
-            f"(cdmft_jacobian_delta = "
-            f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
-        )
+    # if callable(jac):
+    #     print(
+    #         f"Jacobian active "
+    #         f"(cdmft_jacobian_delta = "
+    #         f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
+    #     )
 
     _lo = -bounds if bounds is not None else -np.inf
     _hi = bounds if bounds is not None else np.inf

@@ -15,7 +15,7 @@ Some auxiliary classes are also defined:
 
 
 frequency grids
-===============
+---------------
 
 All frequency grids used in CDMFT are defined along the imaginary axis. The grid is built by passing a ``frequency_grid`` instance to ``CDMFT()`` via its ``grid`` argument; if none is supplied a default grid is constructed. The ``frequency_grid`` constructor takes a ``grid_type`` and a ``specs`` tuple. The available grid types are:
 
@@ -29,10 +29,12 @@ In addition, the constructor takes an ``opt`` argument that modifies the CDMFT d
  * ``opt='ifreq'`` : the CDMFT weights are scaled like :math:`1/\omega_n`.
 
 Subbaths
-========
+--------
 
 It is possible to associate more than one bath system to a given cluster. In defining the cluster, one must simply provide a liste of ``cluster_model`` objects instead of one. This feature is useless unless a bath system is defined in the ``cluster_model`` object. If :math:`N_s` cluster models are associated to a cluster (we call them *systems*), then we are faced with :math:`N_s` sets of bath parameters and as many different self-energies :math:`\Sigma_i`  and hybridization functions :math:`\Gamma_i` . The default behavior is to average these self-energies and hybridization functions when computing the *host*, from the projected Green function. This allows in principle a tighter correspondence between the host and the set of impurity models. This is newer feature (version > 2.19).
 
+Description of functions
+========================
 
 .. autoclass:: pyqcm.cdmft.CDMFT
     :members:
