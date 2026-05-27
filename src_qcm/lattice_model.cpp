@@ -116,7 +116,7 @@ void lattice_model::pre_operator_consolidate()
   nsys = systems.size();
   for(size_t s=0; s <nsys; s++) clusters[systems[s].clus].nsys++;
   clusters[0].sys_start = 0;
-  for(size_t c=1; c <clusters.size(); c++) clusters[c].sys_start = clusters[c-1].sys_start + clusters[c].nsys;
+  for(size_t c=1; c <clusters.size(); c++) clusters[c].sys_start = clusters[c-1].sys_start + clusters[c-1].nsys;
 
 
   add_chemical_potential();
