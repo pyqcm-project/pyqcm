@@ -3063,10 +3063,21 @@ def regular_frequency_grid(wc, n1, n2):
 
 def discrete_integration_grid(freqs, weights):
     """
-    Defines a frequency grid and associated weights for fixed-grid integration instead of using cubature
+    Defines a frequency grid and associated weights for fixed-grid integration instead of using cubature.
+
+    When set (i.e. ``len(freqs) > 0``), the following frequency-momentum
+    integrals are evaluated on this discrete grid (and on the k-grid set by
+    ``set_wavevector_grid`` or the global ``kgrid_side``) instead of via
+    adaptive cubature:
+
+      - lattice averages (``averages()``)
+      - the Potthoff functional (``Potthoff_functional()``)
+
+    Pass empty arrays to clear the grid and revert to adaptive cubature.
 
     :param array freqs: array of frequencies along the Matsubara axis
-    :param array weights: associated weights
+    :param array weights: associated weights (typically include the ``1/pi``
+        factor from the standard imaginary-frequency integral)
     """
 
     qcm.frequency_grid(freqs, weights)

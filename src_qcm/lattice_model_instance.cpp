@@ -13,6 +13,9 @@
   #include <omp.h>
 #endif
 
+extern vector<double> grid_freqs;   // optional imaginary frequency grid for discrete integrals
+extern vector<double> grid_weights; // weights associated with grid_freqs
+
 string strip_at(const string& s)
 {
   string name = s;
@@ -513,10 +516,39 @@ double lattice_model_instance::Potthoff_functional()
 	
 	vector<double> Iv(1);
 	Iv[0] = 0.0;
-  
-  // lambda function
-  auto F = [this] (Complex w, vector3D<double> &k, const int *nv, double *I) {SEF_integrand(w, k, nv, I);};
-  QCM::wk_integral(model->spatial_dimension, F, Iv, global_double("accur_SEF"), global_bool("verb_integrals"));
+
+  if(grid_freqs.size() > 0){
+    // ---- Discrete (omega, k) grid path ----
+    // Mirrors the averages() pattern: build the cluster Green function once per
+    // frequency, then parallelize the k-sum via k_integral_grid. The cluster
+    // GF is captured by value into the lambda and read concurrently inside the
+    // OpenMP parallel region (no shared mutable state).
+    int nkx, nky, nkz;
+    QCM::get_wavevector_grid(nkx, nky, nkz);
+    if(global_bool("verb_integrals"))
+      cout << "computing SEF integral from a grid of " << grid_freqs.size() << " frequencies and "
+           << nkx << "x" << nky << "x" << nkz << " k-points (dim=" << model->spatial_dimension << ")" << endl;
+    bool has_dn = (model->mixing == HS_mixing::up_down);
+    vector<double> Iw(1);
+    for(int iw = 0; iw < (int)grid_freqs.size(); iw++){
+      Complex wc(0, grid_freqs[iw]);
+      Green_function G_up = cluster_Green_function(wc, false, false);
+      Green_function G_dn;
+      if(has_dn) G_dn = cluster_Green_function(wc, false, true);
+
+      auto F_k = [this, G_up, G_dn, has_dn] (vector3D<double> &k, const int *nv, double *I) mutable {
+        SEF_integrand_k(G_up, has_dn ? &G_dn : nullptr, k, nv, I);
+      };
+      Iw[0] = 0.0;
+      QCM::k_integral_grid(model->spatial_dimension, nkx, nky, nkz, F_k, Iw);
+      Iv[0] += Iw[0] * grid_weights[iw];
+    }
+  }
+  else{
+    // ---- Adaptive cubature in (omega, k) ----
+    auto F = [this] (Complex w, vector3D<double> &k, const int *nv, double *I) {SEF_integrand(w, k, nv, I);};
+    QCM::wk_integral(model->spatial_dimension, F, Iv, global_double("accur_SEF"), global_bool("verb_integrals"));
+  }
 	double omega_trace = -Iv[0];
 	
 	
@@ -563,26 +595,49 @@ double lattice_model_instance::Potthoff_functional()
  @param I values of these components
  */
 void lattice_model_instance::SEF_integrand(Complex w, vector3D<double> &k, const int *nv, double *I){
-	
-	matrix<Complex> VG(model->dim_GF);
-	
+
   check_signals();
 	Green_function G = cluster_Green_function(w, false, false);
-	Green_function_k K(G,k);
+	if(model->mixing == HS_mixing::up_down){
+    Green_function G_down = cluster_Green_function(w, false, true);
+    SEF_integrand_k(G, &G_down, k, nv, I);
+  }
+  else SEF_integrand_k(G, nullptr, k, nv, I);
+}
+
+
+//==============================================================================
+/**
+ Per-k SEF integrand, given a precomputed cluster Green function. Used by the
+ discrete (omega, k) grid path to hoist the frequency-dependent (and
+ k-independent) cluster Green function build out of the parallel k-loop in
+ k_integral_grid: with G_up (and optionally G_down) supplied as read-only
+ inputs, the integrand contains no shared mutable state and is safe to call
+ concurrently.
+ @param G_up cluster Green function at the current frequency
+ @param G_down cluster Green function for the spin-down sector when mixing is
+        up_down, otherwise nullptr
+ @param k wavevector
+ @param nv number of components (1)
+ @param I output: log|det(V*G - 1)| at this (omega, k)
+ */
+void lattice_model_instance::SEF_integrand_k(Green_function &G_up, Green_function *G_down, vector3D<double> &k, const int *nv, double *I){
+
+	matrix<Complex> VG(model->dim_GF);
+
+	Green_function_k K(G_up, k);
   set_V(K);
-	G.G.mult_left(K.V, VG);
+	G_up.G.mult_left(K.V, VG);
 	VG.add(Complex(-1.0,0));
 	I[0] = log(abs(VG.determinant()));
-	
-	if(model->mixing == HS_mixing::up_down){
+
+	if(G_down){
 		VG.zero();
-    Green_function G_down = cluster_Green_function(w, false, true);
-		Green_function_k K_down(G_down,k);
+		Green_function_k K_down(*G_down, k);
 		set_V(K_down);
-		G_down.G.mult_left(K_down.V, VG);
+		G_down->G.mult_left(K_down.V, VG);
 		VG.add(Complex(-1.0,0));
-		double I_down = log(abs(VG.determinant()));
-    I[0] += I_down;
+		I[0] += log(abs(VG.determinant()));
 	}
 	else if(model->mixing == HS_mixing::normal) I[0] *= 2.0;
 }

@@ -93,6 +93,8 @@ struct lattice_model_instance{
 	void potential_energy_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
 	void print_parameters(ostream& out, print_format format);
 	void SEF_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
+	//! per-k SEF integrand, given a precomputed cluster Green function (and optionally its spin-down counterpart for up_down mixing)
+	void SEF_integrand_k(Green_function &G_up, Green_function *G_down, vector3D<double> &k, const int *nv, double *I);
 	void self_energy(Green_function_k& M);
 	void set_Gcpt(Green_function_k &M);
 	void set_V(Green_function_k &M, bool nohybrid=false);
