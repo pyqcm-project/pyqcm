@@ -91,6 +91,8 @@ struct lattice_model_instance{
 	void inverse_Gcpt(const block_matrix<Complex> &Ginv, Green_function_k &M);
 	void periodized_Green_function(Green_function_k &M);
 	void potential_energy_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
+	//! per-k potential-energy integrand, given a precomputed cluster Green function (with self-energy) and optionally its spin-down counterpart for up_down mixing
+	void potential_energy_integrand_k(Green_function &G_up, Green_function *G_down, vector3D<double> &k, const int *nv, double *I);
 	void print_parameters(ostream& out, print_format format);
 	void SEF_integrand(Complex w, vector3D<double> &k, const int *nv, double *I);
 	//! per-k SEF integrand, given a precomputed cluster Green function (and optionally its spin-down counterpart for up_down mixing)

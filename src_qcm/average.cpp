@@ -547,9 +547,41 @@ double lattice_model_instance::potential_energy()
 
   // frequency integral
   vector<double> I(1);
-  // lambda function
-  auto F = [this] (Complex w, vector3D<double> &k, const int *nv, double *I) mutable {potential_energy_integrand(w, k, nv, I);};
-  QCM::wk_integral(model->spatial_dimension, F, I, 0.1*accur_OP, global_bool("verb_integrals"));
+  I[0] = 0.0;
+
+  if(grid_freqs.size() > 0){
+    // ---- Discrete (omega, k) grid path ----
+    // Mirrors the averages()/Potthoff_functional() pattern: build the cluster
+    // Green function (and its self-energy) once per frequency, then parallelize
+    // the k-sum via k_integral_grid. The cluster GF is captured by value into
+    // the lambda and read concurrently inside the OpenMP region (no shared
+    // mutable state).
+    int nkx, nky, nkz;
+    QCM::get_wavevector_grid(nkx, nky, nkz);
+    if(global_bool("verb_integrals"))
+      cout << "computing potential energy from a grid of " << grid_freqs.size() << " frequencies and "
+           << nkx << "x" << nky << "x" << nkz << " k-points (dim=" << model->spatial_dimension << ")" << endl;
+    bool has_dn = (model->mixing == HS_mixing::up_down);
+    vector<double> Iw(1);
+    for(int iw = 0; iw < (int)grid_freqs.size(); iw++){
+      Complex wc(0, grid_freqs[iw]);
+      Green_function G_up = cluster_Green_function(wc, true, false);
+      Green_function G_dn;
+      if(has_dn) G_dn = cluster_Green_function(wc, true, true);
+
+      auto F_k = [this, G_up, G_dn, has_dn] (vector3D<double> &k, const int *nv, double *I) mutable {
+        potential_energy_integrand_k(G_up, has_dn ? &G_dn : nullptr, k, nv, I);
+      };
+      Iw[0] = 0.0;
+      QCM::k_integral_grid(model->spatial_dimension, nkx, nky, nkz, F_k, Iw);
+      I[0] += Iw[0] * grid_weights[iw];
+    }
+  }
+  else{
+    // ---- Adaptive cubature in (omega, k) ----
+    auto F = [this] (Complex w, vector3D<double> &k, const int *nv, double *I) mutable {potential_energy_integrand(w, k, nv, I);};
+    QCM::wk_integral(model->spatial_dimension, F, I, 0.1*accur_OP, global_bool("verb_integrals"));
+  }
 
   set_global_double("cutoff_scale", prev_cutoff); // restores to previous value
   if(model->mixing == HS_mixing::full) I[0] *= 0.5; // full Nambu doubling overestimates by a factor of 2
@@ -595,6 +627,41 @@ void lattice_model_instance::potential_energy_integrand(Complex w, vector3D<doub
   if(model->mixing == HS_mixing::up_down) e += TrSigmaG(w, k, true);
   else if(model->mixing == HS_mixing::normal) e *= 2;
   
+  e -= tr_sigma_inf/(w-w_offset);
+  I[0] = real<double>(e);
+}
+
+
+//==============================================================================
+/** per-k integrand in the computation of the potential energy, given a precomputed
+ cluster Green function (with its self-energy already built). Used by the discrete
+ (omega, k) grid path to hoist the frequency-dependent (and k-independent) cluster
+ Green function and self-energy build out of the parallel k-loop in k_integral_grid:
+ with G_up (and optionally G_down) supplied as read-only inputs, the integrand
+ contains no shared mutable state and is safe to call concurrently.
+ @param G_up cluster Green function (with self-energy) at the current frequency
+ @param G_down cluster Green function for the spin-down sector when mixing is
+        up_down, otherwise nullptr
+ @param k wavevector
+ @param nv number of components (1)
+ @param I output: Re Tr(Sigma G) at this (omega, k)
+ */
+void lattice_model_instance::potential_energy_integrand_k(Green_function &G_up, Green_function *G_down, vector3D<double> &k, const int *nv, double *I)
+{
+  const double w_offset = 2.0;
+  Complex w = G_up.w;
+
+  Green_function_k K(G_up, k);
+  set_Gcpt(K);
+  Complex e = G_up.sigma.build_matrix().trace_product(K.Gcpt);
+
+  if(G_down){
+    Green_function_k K_dn(*G_down, k);
+    set_Gcpt(K_dn);
+    e += G_down->sigma.build_matrix().trace_product(K_dn.Gcpt);
+  }
+  else if(model->mixing == HS_mixing::normal) e *= 2;
+
   e -= tr_sigma_inf/(w-w_offset);
   I[0] = real<double>(e);
 }
