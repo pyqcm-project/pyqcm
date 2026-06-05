@@ -9,6 +9,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <optional>
 
 #include "qcm_ED.hpp"
 #include "lattice3D.hpp"
@@ -36,6 +37,13 @@ struct cluster{
 	bool conj; //!< true if one must take the complex conjugated Green function of the reference cluster, if any
 	int sys_start; //!< label of first system associated with the cluster
 	int nsys; //!< number of systems associated with the cluster
+};
+
+//! result of locating the second site of a bond (see lattice_model::find_second_site)
+struct neighbor_match{
+	int s2; //!< second site index
+	int ni; //!< neighbor index
+	int ni_opp; //!< opposite neighbor index
 };
 
 //! describes a system
@@ -116,7 +124,7 @@ struct lattice_model{
 	void density_wave(const string &name, vector3D<int64_t> &link, complex<double> amplitude, int orb, vector3D<double> Q, double phase, const string& type);
 	void explicit_operator(const string &name, const string &type, const vector<tuple<vector3D<int64_t>, vector3D<int64_t>, complex<double>>> &elem, int tau, int sigma);
 	matrix<Complex> compact_tiling(const matrix<Complex>& A, const vector3D<double>& k);
-	void find_second_site(int s1, const vector3D<int64_t>& link, int& s2, int& ni, int& ni_opp);
+	std::optional<neighbor_match> find_second_site(int s1, const vector3D<int64_t>& link);
 	void neighbor_census();
 	void prepare_tiling_data();
 	void hopping_operator(const string &name, vector3D<int64_t> &link, double amplitude, int orb1, int orb2, int tau, int sigma);

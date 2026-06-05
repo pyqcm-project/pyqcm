@@ -1659,13 +1659,14 @@ def plot_momentum_profile(self, op, nk=50, zone=((0,0),1), k_perp=0.0, plane='xy
 
 
 #---------------------------------------------------------------------------------------------------
-def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, ylim=None, **kwargs):
+def plot_host_hybrid(self, w, e, clus=0, sys=None, file=None, plt_ax=None, title=None, ylim=None, **kwargs):
     """
     Plots a comparison between the host function and the hybridization function
 
     :param [float] w: array of frequencies used
     :param (int,int) e: matrix element to plot (zero based)
     :param int clus: cluster label (starts at 0)
+    :param sys: if not None, lable of the specific system. If None, then used the remixed hybridization function
     :param str title: optional title for the plot, displayed when plt_ax is None
     :param str file: if not None, saves the plot in a file with that name
     :param matplotlib.axes.Axes plt_ax: optional matplotlib axis set, to be passed when one wants to collect a subplot of a larger set
@@ -1687,8 +1688,12 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, yli
         ax = plt_ax
 
     hyb = np.empty(H.shape, dtype=complex)
-    for i in range(w.shape[0]):
-        hyb[i,:,:] = self.hybridization_function(w[i]*1j, clus)
+    if sys == None:
+        for i in range(w.shape[0]):
+            hyb[i,:,:] = self.hybridization_function(w[i]*1j, clus)
+    else:
+        for i in range(w.shape[0]):
+            hyb[i,:,:] = self.hybridization_function_sys(w[i]*1j, sys)
 
     # print(-H[:,e[0],e[1]].real); exit()
     ax.plot(w, -H[:,e[0],e[1]].real,'b-',label='host (real)', lw=1, ms=2, **kwargs)
@@ -1707,6 +1712,7 @@ def plot_host_hybrid(self, w, e, clus=0, file=None, plt_ax=None, title=None, yli
             plt.close()
         else:
             plt.show()
+
 
 
 #---------------------------------------------------------------------------------------------------

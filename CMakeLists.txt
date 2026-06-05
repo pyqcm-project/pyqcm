@@ -85,7 +85,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 message(STATUS "Host processor : ${CMAKE_HOST_SYSTEM_PROCESSOR}")

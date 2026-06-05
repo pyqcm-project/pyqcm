@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <vector>
+#include <utility>
 
 #include "vector3D.hpp"
 #include "basis3D.hpp"
@@ -32,7 +33,7 @@ struct lattice3D
 	void trivial();
 	void init();
 	
-	void fold(const vector3D<int64_t> &r, vector3D<int64_t> &R, vector3D<int64_t> &S);
+	std::pair<vector3D<int64_t>, vector3D<int64_t>> fold(const vector3D<int64_t> &r);
 	void dual(basis3D &x);
 	vector3D<double> to(vector3D<int64_t> v);
 	vector3D<double> from(vector3D<double> v);

@@ -1234,6 +1234,46 @@ static PyObject *hybridization_function_python(PyObject *self, PyObject *args) {
 }
 
 //==============================================================================
+const char *hybridization_function_sys_help =
+    R"{(
+returns the hybridization function for system 'sys' and instance 'label'
+arguments:
+1. sys : label of the system, relative to the instance (0 to the number of systems -1)
+2. z : complex frequency
+3. spin_down (optional): true is the spin down sector is to be computed (applies if mixing = 4)
+4. label (optional) :  label of the model instance (default 0)
+returns: a complex-valued matrix
+){";
+//------------------------------------------------------------------------------
+static PyObject *hybridization_function_sys_python(PyObject *self, PyObject *args) {
+  int label = 0;
+  int sys = 0;
+  int spin_down = 0;
+  complex<double> z;
+  try {
+    if (!PyArg_ParseTuple(args, "D|pii", &z, &spin_down, &sys, &label))
+      qcm_throw("failed to read parameters in call to hybridization_function_sys "
+                "(python)");
+
+    auto g = ED::hybridization_function(z, (bool)spin_down,
+                                        (size_t)(qcm_model->nsys * label + sys));
+    size_t d = g.r;
+
+    npy_intp dims[2];
+    dims[0] = dims[1] = d;
+
+    PyObject *out = PyArray_SimpleNew(2, dims, NPY_COMPLEX128);
+    memcpy(PyArray_DATA((PyArrayObject *)out), g.data(),
+           g.size() * sizeof(complex<double>));
+    PyArray_ENABLEFLAGS((PyArrayObject *)out, NPY_ARRAY_OWNDATA);
+    return out;
+  } catch (const std::exception &e) {
+    qcm_catch(e);
+    return nullptr;
+  }
+}
+
+//==============================================================================
 const char *lattice_model_help =
     R"{(
 initiates the lattice model.

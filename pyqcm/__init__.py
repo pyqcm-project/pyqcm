@@ -1530,6 +1530,18 @@ class model_instance:
         """
         return qcm.hybridization_function(z, spin_down, clus, self.label)
 
+    def hybridization_function_sys(self, z, sys=0, spin_down=False):
+        """
+        Returns the hybridization function for system 'sys', relative to the current instance
+
+        :param int sys: label of the system, relative to the instance (0 to the number of systems-1)
+        :param complex z: frequency
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
+        :returns: a complex-valued matrix
+
+        """
+        return qcm.hybridization_function_sys(z, spin_down, sys, self.label)
+
     # -----------------------------------------------------------------------------------------------
     def momentum_profile(self, name, k):
         r"""

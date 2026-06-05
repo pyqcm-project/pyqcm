@@ -121,12 +121,11 @@ void lattice3D::init(){
  folds a position in the superlattice : r = R + S
  R belongs to the superlattice, and S is a remainder that belongs to the original lattice's unit cell.
  @param r [in] integer position, in the working basis
- @param R [out] integer position in the superlattice, in the working basis
- @param S [out] remainder in the unit cell, in the working basis
+ @returns a pair (R, S) where R is the integer position in the superlattice and S the remainder in the unit cell, both in the working basis
  */
-void lattice3D::fold(const vector3D<int64_t> &r, vector3D<int64_t> &R, vector3D<int64_t> &S)
+std::pair<vector3D<int64_t>, vector3D<int64_t>> lattice3D::fold(const vector3D<int64_t> &r)
 {
-	vector3D<int64_t> Q;
+	vector3D<int64_t> Q, R, S;
 	
 	// use Cramer's rule to find R such that r = (R.x e[0] + R.y e[1] + R.z e[2])/vol
 	R.x =  r.x*(e[1].y*e[2].z - e[2].y*e[1].z) - r.y*(e[1].x*e[2].z - e[2].x*e[1].z) + r.z*(e[1].x*e[2].y - e[1].y*e[2].x);
@@ -171,6 +170,8 @@ void lattice3D::fold(const vector3D<int64_t> &r, vector3D<int64_t> &R, vector3D<
     R -= e[1]*Q.y;
     S += e[1]*Q.y;
   }
+
+  return {R, S};
 }
 
 

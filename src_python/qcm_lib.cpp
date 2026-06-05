@@ -92,6 +92,7 @@ static PyMethodDef methods[] = {
     {"ground_state", ground_state_python, METH_VARARGS, ground_state_help},
     {"hopping_operator", (PyCFunction)hopping_operator_python, METH_VARARGS | METH_KEYWORDS, hopping_operator_help},
     {"hybridization_function", hybridization_function_python, METH_VARARGS, hybridization_function_help},
+    {"hybridization_function_sys", hybridization_function_sys_python, METH_VARARGS, hybridization_function_sys_help},
     {"interaction_operator", (PyCFunction)interaction_operator_python, METH_VARARGS | METH_KEYWORDS, interaction_operator_help},
     {"kinetic_energy", kinetic_energy_python, METH_VARARGS, kinetic_energy_help},
     {"Green_integral", Green_integral_python, METH_VARARGS, Green_integral_help},

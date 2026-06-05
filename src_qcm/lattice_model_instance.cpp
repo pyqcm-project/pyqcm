@@ -54,12 +54,12 @@ lattice_model_instance::lattice_model_instance(shared_ptr<lattice_model> _model,
   
   model->close_model();
   
-  for(auto& x : params){
-    string name = x.first;
+  for(auto& [pname, value] : params){
+    string name = pname; // copy: name_and_label may modify its argument
     auto P = model->name_and_label(name, true);
     if(P.second){
-      if(x.second != 0.0 or P.first == "mu"){
-        sys_values[P.second-1][P.first] = x.second;
+      if(value != 0.0 or P.first == "mu"){
+        sys_values[P.second-1][P.first] = value;
       }
     }
     else model->term.at(name)->is_active = true;
@@ -135,11 +135,11 @@ void lattice_model_instance::build_H()
   if(model->mixing == HS_mixing::up_down) H_down.set_size(model->dim_GF);
   for(auto& x : model->term){
     lattice_operator& op = *x.second;
-    auto it = params.find(op.name);
-    if(it == params.end()) continue;
-    double pv = it->second;
-    for(auto& e : op.GF_elem) H(e.r, e.c) += e.v*pv;
-    if(model->mixing == HS_mixing::up_down) for(auto& e : op.GF_elem_down) H_down(e.r, e.c) += e.v*pv;
+    if(auto it = params.find(op.name); it != params.end()){
+      double pv = it->second;
+      for(auto& e : op.GF_elem) H(e.r, e.c) += e.v*pv;
+      if(model->mixing == HS_mixing::up_down) for(auto& e : op.GF_elem_down) H_down(e.r, e.c) += e.v*pv;
+    }
   }
   
   // building the cluster one-body matrices

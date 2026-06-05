@@ -133,7 +133,7 @@ with h5py.File('hybrid.h5', "w") as f:
     f.create_dataset("k", data = k, dtype=k.dtype)
     f.create_dataset("hybrid_real", data=hybrid.real, dtype=float)
     f.create_dataset("hybrid_imag", data=hybrid.imag, dtype=float)
-    f.attrs['mixing'] = model.mixing
+    f.create_dataset("mixing", data=model.mixing, dtype=int)
 
 
 #--------------------------------------------------------------------------------

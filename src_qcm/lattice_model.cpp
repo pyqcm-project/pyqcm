@@ -85,8 +85,7 @@ void lattice_model::pre_operator_consolidate()
   // building the position map (i.e., the reverse of the array 'sites')
   for(size_t i=0; i< sites.size(); i++){
     position_map[sites[i].position] = i;
-    vector3D<int64_t> R,S;
-    superlattice.fold(sites[i].position, R, S); // r = R + S,  R in superlattice, S in SUC
+    auto [R, S] = superlattice.fold(sites[i].position); // r = R + S,  R in superlattice, S in SUC
     folded_position_map[S] = i;
   }
   
@@ -94,8 +93,7 @@ void lattice_model::pre_operator_consolidate()
   // setting the lattice orbital labels
   vector<vector3D<int64_t>> orb_set;
   for(size_t i=0; i< sites.size(); i++){
-    vector3D<int64_t> R,S;
-    unit_cell.fold(sites[i].position, R, S); // r = R + S,  R in lattice, S in unit cell
+    auto [R, S] = unit_cell.fold(sites[i].position); // r = R + S,  R in lattice, S in unit cell
     int b=0;
     for(b=0; b<orb_set.size(); ++b) if(S == orb_set[b]) break;
     if(b==orb_set.size()) orb_set.push_back(S);
@@ -141,33 +139,30 @@ int lattice_model::neighbor_index(vector3D<int64_t> &R){
  finds the second site, given a first site and a link
  @param s1 [in] site
  @param link [in] link
- @param s2 [out] second site
- @param ni [out] neighbor index
- @param ni_opp [out] opposite neighbor index
+ @returns the matching site (s2) and neighbor indices, or std::nullopt if there is no site at that position (e.g. graphene)
  */
-void lattice_model::find_second_site(int s1, const vector3D<int64_t>& link, int& s2, int& ni, int& ni_opp)
+std::optional<neighbor_match> lattice_model::find_second_site(int s1, const vector3D<int64_t>& link)
 {
   // folding the first site within the SUC
-  vector3D<int64_t> R1, S1;
-  superlattice.fold(sites[s1].position, R1, S1); // folds r into the SUC
-  
+  auto [R1, S1] = superlattice.fold(sites[s1].position); // folds r into the SUC
+
   vector3D<int64_t> r = S1;
   r += link; // adding the link to the position
-  
-  
-  // finding the second lattice site s2 and the neighbor link R
-  vector3D<int64_t> R2, S2;
-  superlattice.fold(r, R2, S2); // folds r into the SUC
-  
-  auto it_site2 = folded_position_map.find(S2);
-  if(it_site2==folded_position_map.end()) {s2 = -1; return;}; // empty site (e.g. graphene). skip.
-  s2 = (int)it_site2->second;
-  R2 += sites[s1].position - S1 - sites[s2].position + S2; // neighbor link (corrected for shift into conventional unit cell)
-  
-  ni = neighbor_index(R2);
-  R2 *= -1;
-  ni_opp = neighbor_index(R2);
 
+
+  // finding the second lattice site s2 and the neighbor link R
+  auto [R2, S2] = superlattice.fold(r); // folds r into the SUC
+
+  auto it_site2 = folded_position_map.find(S2);
+  if(it_site2==folded_position_map.end()) return std::nullopt; // empty site (e.g. graphene). skip.
+  int s2 = (int)it_site2->second;
+  R2 += sites[s1].position - S1 - sites[s2].position + S2; // neighbor link (corrected for shift into conventional unit cell)
+
+  int ni = neighbor_index(R2);
+  R2 *= -1;
+  int ni_opp = neighbor_index(R2);
+
+  return neighbor_match{s2, ni, ni_opp};
 }
 
 //===============================================================================
@@ -190,9 +185,7 @@ void lattice_model::neighbor_census()
     for(size_t i2 = 0; i2 < Ns; ++i2){
       vector3D<int64_t> delta = sites[i2].position - sites[i1].position;
       for(size_t s = 0; s < Ns; ++s){
-        int s2, ni, ni_opp;
-        find_second_site((int)s, delta, s2, ni, ni_opp);
-        // neighbor_index (called inside find_second_site) handles deduplication
+        find_second_site((int)s, delta); // neighbor_index (called inside) handles deduplication
       }
     }
   }
@@ -217,17 +210,14 @@ void lattice_model::prepare_tiling_data()
       grp_map[sites[s2].position - sites[s1].position].entries.push_back({s1, s2, 0});
 
   // For each displacement, add inter-cluster entries (n>0) from all sites
-  for(auto& kv : grp_map){
-    const vector3D<int64_t>& d = kv.first;
-    auto& grp = kv.second;
+  for(auto& [d, grp] : grp_map){
     grp.n_intra = grp.entries.size();  // all entries so far are intra (n=0)
 
     for(size_t s = 0; s < ns; ++s){
-      int s2, ni, ni_opp;
-      find_second_site((int)s, d, s2, ni, ni_opp);
-      if(s2 < 0) continue;   // no site at that position (non-Bravais cluster)
-      if(ni == 0) continue;  // intra-cluster, already in the list
-      grp.entries.push_back({s, (size_t)s2, (size_t)ni});
+      auto match = find_second_site((int)s, d);
+      if(!match) continue;       // no site at that position (non-Bravais cluster)
+      if(match->ni == 0) continue;  // intra-cluster, already in the list
+      grp.entries.push_back({s, (size_t)match->s2, (size_t)match->ni});
     }
   }
 
@@ -912,8 +902,7 @@ void lattice_model::interaction_operator(const string &name, vector3D<int64_t> &
   shared_ptr<lattice_operator> tmp_op;
   
   // static string previous_name("");
-  auto it_op = term.find(name);
-  if(it_op == term.end()){
+  if(auto it_op = term.find(name); it_op == term.end()){
     check_name(name);
     tmp_op = make_shared<lattice_operator>(*this, name, latt_op_type::Hubbard);
     tmp_op->is_interaction = true;
@@ -932,9 +921,9 @@ void lattice_model::interaction_operator(const string &name, vector3D<int64_t> &
   // looping over sites of the super unit cell
   for(int s1=0; s1 < (int)sites.size(); s1++){
     if(sites[s1].orb != b1) continue;
-    int s2, ni, ni_opp;
-    find_second_site(s1, link, s2, ni, ni_opp);
-    if(s2<0) continue;
+    auto match = find_second_site(s1, link);
+    if(!match) continue;
+    auto [s2, ni, ni_opp] = *match;
     if(sites[s2].orb != b2) continue; // wrong orbital. skip.
     
     switch(tmp_op->type){
@@ -980,8 +969,7 @@ void lattice_model::hopping_operator(const string &name, vector3D<int64_t> &link
 {
   shared_ptr<lattice_operator> tmp_op;
   // static string previous_name("");
-  auto it_op = term.find(name);
-  if(it_op == term.end()){
+  if(auto it_op = term.find(name); it_op == term.end()){
     check_name(name);
     tmp_op = make_shared<lattice_operator>(*this, name, latt_op_type::one_body);
     term[name] = tmp_op;
@@ -998,9 +986,9 @@ void lattice_model::hopping_operator(const string &name, vector3D<int64_t> &link
   // looping over sites of the super unit cell
   for(int s1=0; s1 < (int)sites.size(); s1++){
     if(sites[s1].orb != b1) continue;
-    int s2, ni, ni_opp;
-    find_second_site(s1, link, s2, ni, ni_opp);
-    if(s2<0) continue;
+    auto match = find_second_site(s1, link);
+    if(!match) continue;
+    auto [s2, ni, ni_opp] = *match;
     if(sites[s2].orb != b2) continue; // wrong orbital. skip.
     
     if(tau == 0){
@@ -1054,8 +1042,7 @@ void lattice_model::current_operator(const string &name, vector3D<int64_t> &link
   }
 
   shared_ptr<lattice_operator> tmp_op;
-  auto it_op = term.find(name);
-  if(it_op == term.end()){
+  if(auto it_op = term.find(name); it_op == term.end()){
     check_name(name);
     tmp_op = make_shared<lattice_operator>(*this, name, latt_op_type::one_body);
     term[name] = tmp_op;
@@ -1068,9 +1055,9 @@ void lattice_model::current_operator(const string &name, vector3D<int64_t> &link
   // looping over sites of the super unit cell
   for(int s1=0; s1 < (int)sites.size(); s1++){
     if(sites[s1].orb != b1) continue;
-    int s2, ni, ni_opp;
-    find_second_site(s1, link, s2, ni, ni_opp);
-    if(s2<0) continue;
+    auto match = find_second_site(s1, link);
+    if(!match) continue;
+    auto [s2, ni, ni_opp] = *match;
     if(sites[s2].orb != b2) continue; // wrong orbital. skip.
     int V;
     switch(dir){
@@ -1122,8 +1109,7 @@ void lattice_model::anomalous_operator(const string &name, vector3D<int64_t> &li
 
   shared_ptr<lattice_operator> tmp_op;
   // static string previous_name("");
-  auto it_op = term.find(name);
-  if(it_op == term.end()){
+  if(auto it_op = term.find(name); it_op == term.end()){
     check_name(name);
     tmp_op = make_shared<lattice_operator>(*this, name, SC);
     tmp_op->mixing |= HS_mixing::anomalous;
@@ -1138,9 +1124,9 @@ void lattice_model::anomalous_operator(const string &name, vector3D<int64_t> &li
   // looping over sites of the super unit cell
   for(int s1=0; s1 < (int)sites.size(); s1++){
     if(sites[s1].orb != b1) continue;
-    int s2, ni, ni_opp;
-    find_second_site(s1, link, s2, ni, ni_opp);
-    if(s2<0) continue;
+    auto match = find_second_site(s1, link);
+    if(!match) continue;
+    auto [s2, ni, ni_opp] = *match;
     if(sites[s2].orb != b2) continue; // wrong orbital. skip.
     add_anomalous_elements(tmp_op->elements, s1, s2, ni, ni_opp, 0.5*amplitude, SC);
   }
@@ -1168,8 +1154,7 @@ void lattice_model::density_wave(const string &name, vector3D<int64_t> &cdw_link
   // static string previous_name("");
   char dw_type = 'N';
   // checks whether another line has started the definition of the same operator
-  auto it_op = term.find(name);
-  if(it_op == term.end()){
+  if(auto it_op = term.find(name); it_op == term.end()){
     check_name(name);
     tmp_op = make_shared<lattice_operator>(*this, name, latt_op_type::one_body);
     tmp_op->is_density_wave = true;
@@ -1236,9 +1221,9 @@ void lattice_model::density_wave(const string &name, vector3D<int64_t> &cdw_link
     for(int s1=0; s1 < (int)sites.size(); s1++){
       if(orb >= 0 && sites[s1].orb != orb) continue; // wrong lattice orbital
       vector3D<int64_t>& r = sites[s1].position;
-      int s2, ni, ni_opp;
-      find_second_site(s1, cdw_link, s2, ni, ni_opp);
-      if(s2<0) continue;
+      auto match = find_second_site(s1, cdw_link);
+      if(!match) continue;
+      auto [s2, ni, ni_opp] = *match;
       
       Complex z;
       z = amplitude*Complex(cos(Q*r+phase),-sin(Q*r+phase)); // sign change 2016-04-15

@@ -34,22 +34,22 @@ void lattice_model_instance::set_V(Green_function_k &M, bool nohybrid){
 	if(M.G.spin_down){
 		M.t = H_down;
 		for(auto& op : model->term){
-			auto it = params.find(op.second->name);
-			if(it == params.end()) continue;
-			double pv = it->second;
-			for(auto& e : op.second->IGF_elem_down){
-				M.t(e.r,e.c) += e.v*pv*M.phase[e.n];
+			if(auto it = params.find(op.second->name); it != params.end()){
+				double pv = it->second;
+				for(auto& e : op.second->IGF_elem_down){
+					M.t(e.r,e.c) += e.v*pv*M.phase[e.n];
+				}
 			}
 		}
 	}
 	else{
 		M.t = H; // adds the momentum-independent part of V
 		for(auto& op : model->term){
-			auto it = params.find(op.second->name);
-			if(it == params.end()) continue;
-			double pv = it->second;
-			for(auto& e : op.second->IGF_elem){
-				M.t(e.r,e.c) += e.v*pv*M.phase[e.n];
+			if(auto it = params.find(op.second->name); it != params.end()){
+				double pv = it->second;
+				for(auto& e : op.second->IGF_elem){
+					M.t(e.r,e.c) += e.v*pv*M.phase[e.n];
+				}
 			}
 		}
 	}

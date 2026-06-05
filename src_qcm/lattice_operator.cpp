@@ -95,9 +95,9 @@ void lattice_operator::add_matrix_element(const vector3D<int64_t>& pos, const ve
     qcm_throw("position "+to_string<vector3D<int64_t>>(pos)+" does not exist!");
   }
   int s1 = (int)model.position_map.at(pos);
-  int s2, ni, ni_opp;
-  model.find_second_site(s1, link, s2, ni, ni_opp);
-  if(s2<0) return;
+  auto match = model.find_second_site(s1, link);
+  if(!match) return;
+  auto [s2, ni, ni_opp] = *match;
   if(type == latt_op_type::one_body){
     if(opt.size()!=2) qcm_throw("one-body matrix element requires an optional two-character string");
     int tau = (int)(opt[0]-'0');
@@ -204,12 +204,11 @@ void lattice_operator::consolidate()
   }
   elements.clear();
   elements.reserve(element_map.size());
-  for(auto& x : element_map){
-    if(abs(x.second) < SMALL_VALUE)  continue;
-    if(fabs(x.second.imag()) > SMALL_VALUE) is_complex = true;
-    else x.second = x.second.real();
-    auto& y = x.first;
-    elements.push_back(lattice_matrix_element(y.site1, y.spin1, y.site2, y.spin2, y.neighbor, x.second));
+  for(auto& [y, v] : element_map){
+    if(abs(v) < SMALL_VALUE)  continue;
+    if(fabs(v.imag()) > SMALL_VALUE) is_complex = true;
+    else v = v.real();
+    elements.push_back(lattice_matrix_element(y.site1, y.spin1, y.site2, y.spin2, y.neighbor, v));
   }
 
 

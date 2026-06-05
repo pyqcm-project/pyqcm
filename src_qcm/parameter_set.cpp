@@ -74,20 +74,16 @@ parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<strin
 
   set<string> param_list;
 
-  for(auto& x : values){
-    check_existence(x.first);
-    if(param_list.find(x.first) != param_list.end()){
-      qcm_throw(x.first+" has been assigned more than once. This is forbidden for safety reasons.");
+  for(auto& [name, value] : values){
+    check_existence(name);
+    if(param_list.find(name) != param_list.end()){
+      qcm_throw(name+" has been assigned more than once. This is forbidden for safety reasons.");
     }
-    param_list.insert(x.first);
-    auto P = model->name_and_label(x.first);
-    param[P.first] = make_shared<parameter>(x.first, P.second, x.second);
+    param_list.insert(name);
+    auto P = model->name_and_label(name);
+    param[P.first] = make_shared<parameter>(name, P.second, value);
   }
-  for(auto& x : equiv){
-    string name1;
-    string name2;
-    double mult;
-    tie(name1, mult, name2) = x;
+  for(auto& [name1, mult, name2] : equiv){
     check_existence(name1);
     
     if(param_list.find(name1) != param_list.end()){
@@ -108,17 +104,17 @@ parameter_set::parameter_set(shared_ptr<lattice_model> _model, vector<pair<strin
 
   // completing with implicit dependent operators
   set<shared_ptr<parameter>> param_tmp;
-  for(auto& x : param){
-    if(x.second->label == 0){
-      auto& op = model->term.at(x.first);
+  for(auto& [pname, p] : param){
+    if(p->label == 0){
+      auto& op = model->term.at(pname);
       for(int s=0; s<model->systems.size(); s++){
         int c = model->systems[s].clus;
         if(!op->in_cluster[c]) continue;
-        string name = x.first+parameter::separator+to_string(s+1);
+        string name = pname+parameter::separator+to_string(s+1);
         if(param.find(name) != param.end()) continue;
-        auto tmp = make_shared<parameter>(name, s+1, x.second->value);
+        auto tmp = make_shared<parameter>(name, s+1, p->value);
         param_tmp.insert(tmp);
-        tmp->ref = x.second;
+        tmp->ref = p;
       }
     }
   }
@@ -198,8 +194,8 @@ void parameter_set::check_existence(string& name)
 map<string,double> parameter_set::value_map()
 {
   map<string,double> X;
-  for(auto& x : param){
-    X[x.first] = x.second->value;
+  for(auto& [name, p] : param){
+    X[name] = p->value;
   }
   return X;
 }
@@ -215,21 +211,21 @@ map<string,double> parameter_set::value_map()
 void parameter_set::print(ostream& out)
 {
   out << setprecision(10);
-  for(auto& x : param){
-    if(x.second->ref!=nullptr){
+  for(auto& [name, p] : param){
+    if(p->ref!=nullptr){
       ostringstream sout;
-      sout << x.first << " := " << x.second->multiplier << " x " << x.second->ref->name;
+      sout << name << " := " << p->multiplier << " x " << p->ref->name;
       out << left << setw(FIELD_WIDTH) << sout.str();
     }
     else{
-      ostringstream sout; sout << x.first << " = " << x.second->value;
+      ostringstream sout; sout << name << " = " << p->value;
       out << left << setw(FIELD_WIDTH) << sout.str();
     }
-    if(x.second->deref.size()){
-      auto it = x.second->deref.begin();
+    if(p->deref.size()){
+      auto it = p->deref.begin();
       out << "--> " << (*it)->name;
       it++;
-      while(it != x.second->deref.end()){
+      while(it != p->deref.end()){
         out << ", " << (*it)->name;
         it++;
       }
