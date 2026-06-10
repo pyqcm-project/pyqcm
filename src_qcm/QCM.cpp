@@ -1166,6 +1166,11 @@ check_instance(label);
     qcm_model->param_set->CDMFT_variational_set(varia);
   }
 
+  void CDMFT_variational_sys_set(vector<vector<string>>& varia){
+    if(qcm_model->param_set == nullptr) qcm_throw("The parameters have not been specified yet.");
+    qcm_model->param_set->CDMFT_variational_sys_set(varia);
+  }
+
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label)
   {
     #ifdef QCM_DEBUG
@@ -1191,12 +1196,12 @@ check_instance(label);
     return lattice_model_instances.at(label)->get_CDMFT_host(spin_down); 
   }
 
-  double CDMFT_distance(const vector<double>& p, int clus, int label)
+  double CDMFT_distance(const vector<double>& p, int idx, int label, bool by_system)
   {
     #ifdef QCM_DEBUG
     check_instance(label);
     #endif
-    return lattice_model_instances.at(label)->CDMFT_distance(p, clus);
+    return lattice_model_instances.at(label)->CDMFT_distance(p, idx, by_system);
   }
 
   vector<double> CDMFT_residuals(const vector<double>& p, int clus, int label)
@@ -1213,6 +1218,22 @@ check_instance(label);
     check_instance(label);
     #endif
     return lattice_model_instances.at(label)->CDMFT_gradient(p, clus);
+  }
+
+  vector<double> CDMFT_residuals_sys(const vector<double>& p, int sys, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    return lattice_model_instances.at(label)->CDMFT_residuals_sys(p, sys);
+  }
+
+  vector<double> CDMFT_gradient_sys(const vector<double>& p, int sys, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    return lattice_model_instances.at(label)->CDMFT_gradient_sys(p, sys);
   }
 
   double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec, int label)

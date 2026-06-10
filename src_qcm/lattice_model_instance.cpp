@@ -399,7 +399,46 @@ matrix<complex<double>> lattice_model_instance::hybridization_function(size_t c,
 
 
 //==============================================================================
-/** 
+/**
+ returns the hybridization function of a single system (the *non-remixed* version),
+ upgraded to the lattice mixing if the system's mixing is lower.
+
+ Unlike hybridization_function(), which averages the systems of a cluster (remix) and
+ carries the cluster ref/conj equivalence, this addresses one ED system directly via
+ ED::hybridization_function() and upgrades the result exactly as hybridization_function()
+ does for a cluster, using the system's own mixing ED::mixing(sys_label).
+
+ @param sys [in] global system index (0 .. model->nsys-1)
+ @param w [in] complex frequency
+ @param spin_down [in] true if we are asking for the spin down part (mixing = 4)
+ @returns a complex-valued matrix in the lattice-mixing dimension
+ */
+matrix<complex<double>> lattice_model_instance::hybridization_function_sys(size_t sys, complex<double> w, bool spin_down)
+{
+  size_t sys_label = model->nsys*label + sys;
+  matrix<Complex> g = ED::hybridization_function(w, spin_down, sys_label);
+  int mix = ED::mixing(sys_label);
+  if(model->mixing == mix) return g;
+
+  // combinations 0:2, 0:4, 1:3, 1:5
+  else if(((model->mixing&1) == 0 and (mix&1) == 0) or ((model->mixing&1)==1 and (mix&1)==1)) {
+    return upgrade_cluster_matrix(model->mixing, mix, g);
+  }
+  // combinations 0:1, 0:3, 0:5, 2:3
+  else if((model->mixing&1) == 1 and (mix&1) == 0){
+    auto gm = ED::hybridization_function(-w, spin_down, sys_label);
+    return upgrade_cluster_matrix_anomalous(model->mixing, mix, g, gm);
+  }
+  else{
+    qcm_throw("undefined mixing combinations in hybridization_function_sys()");
+    matrix<complex<double>> empty;
+    return empty;
+  }
+}
+
+
+//==============================================================================
+/**
  returns the cluster hopping matrix for cluster # i
  @param c [in] index of the cluster (starts at 0)
  @param spin_down [in] true if we are asking for the spin down part (mixing = 4)

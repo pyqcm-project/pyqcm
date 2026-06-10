@@ -186,6 +186,7 @@ class CDMFT:
     :param float max_value: maximum absolute value of variational parameters
     :param bias_field bias: bias field (for spontaneous symmetry breaking) that decreases with iterations
     :param function post_min: function to be executed before writing to the progress file
+    :param bool by_system: if True, the CDMFT distance is defined and minimized per system (using the non-remixed hybridization function of each system) instead of per cluster; the optimization loop then runs over systems rather than clusters. Each system optimizes its own bath parameters independently.
     :ivar lattice_model model: (unique) model on which the computation is based
     :ivar ndarray Hyb: host function
     :ivar ndarray Hyb_down: host function for the spin down component in the case of mixing=4
@@ -226,8 +227,10 @@ class CDMFT:
         max_value=100,
         bias=None,
         post_min=None,
+        by_system=False,
     ):
 
+        self.by_system = by_system
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
         self.alpha = alpha
@@ -278,7 +281,12 @@ class CDMFT:
         if self.hartree is None:
             self.hartree = []
 
-        var = [[] for i in range(model.nclus + 1)]
+        # Number of optimization groups: one per system (by_system) or one per cluster.
+        # The variational parameter names carry a system suffix (e.g. "eb1_3" -> system 3);
+        # by_system keeps each system's bath parameters in its own group, while the
+        # per-cluster default lumps together the systems belonging to the same cluster.
+        self.ngroups = model.nsys if by_system else model.nclus
+        var = [[] for i in range(self.ngroups + 1)]
         for v in varia:
             p = v.partition("_")
             if len(p) == 1:
@@ -286,15 +294,20 @@ class CDMFT:
                     "{:s} cannot be a CDMFT variational parameter".format(v)
                 )
             elif len(p) == 3:
-                var[model.sys_clus[int(p[2]) - 1] + 1].append(v)
+                sys = int(p[2]) - 1
+                grp = sys if by_system else model.sys_clus[sys]
+                var[grp + 1].append(v)
             else:
                 raise ValueError("parameter name" + v + " has wrong format")
         var[0] = [h.Vm for h in self.hartree]
-        self.nvar = np.zeros(model.nclus + 1, int)
-        for c in range(model.nclus + 1):
+        self.nvar = np.zeros(self.ngroups + 1, int)
+        for c in range(self.ngroups + 1):
             self.nvar[c] = len(var[c])
 
-        qcm.CDMFT_variational_set(var[1:])
+        if by_system:
+            qcm.CDMFT_variational_sys_set(var[1:])
+        else:
+            qcm.CDMFT_variational_set(var[1:])
 
         self.varia = []
         for v in var:
@@ -529,31 +542,43 @@ class CDMFT:
         gs = self.I.ground_state()
 
         # --------------------------------------------------------------------------------
-        # optimization of the bath parameters, one cluster at a time
+        # optimization of the bath parameters, one group at a time
+        # (one group per cluster, or per system if by_system)
 
         self.dist = 0.0
         ic = self.nvar[0]
-        for c in range(1, self.model.nclus + 1):
+        for c in range(1, self.ngroups + 1):
             if self.nvar[c] == 0:
                 continue
             x0 = self.x[ic : ic + self.nvar[c]]
-            _clus = c - 1
+            _idx = c - 1  # cluster index, or system index if by_system
             _label = self.I.label
-            # NOTE: CDMFT_residuals returns r such that ‖r‖² ∝ D (same minimiser,
+            _bs = self.by_system
+            # NOTE: CDMFT_residuals[_sys] returns r such that ‖r‖² ∝ D (same minimiser,
             # different scale). CDMFT_distance normalises by dw/(dim²) for reporting.
             if self.jac:
                 # All jac-capable methods receive the residual vector r(x) and the
                 # full Jacobian J(x) = ∂r/∂x.  optimize() selects the appropriate
                 # scipy.optimize.least_squares sub-algorithm (trf / lm / dogbox).
-                F = lambda x, _c=_clus, _l=_label: np.asarray(
-                    qcm.CDMFT_residuals(x, _c, _l)
-                )
-                jac_fn = lambda x, _c=_clus, _l=_label: np.asarray(
-                    qcm.CDMFT_gradient(x, _c, _l)
-                )
+                if _bs:
+                    F = lambda x, _i=_idx, _l=_label: np.asarray(
+                        qcm.CDMFT_residuals_sys(x, _i, _l)
+                    )
+                    jac_fn = lambda x, _i=_idx, _l=_label: np.asarray(
+                        qcm.CDMFT_gradient_sys(x, _i, _l)
+                    )
+                else:
+                    F = lambda x, _i=_idx, _l=_label: np.asarray(
+                        qcm.CDMFT_residuals(x, _i, _l)
+                    )
+                    jac_fn = lambda x, _i=_idx, _l=_label: np.asarray(
+                        qcm.CDMFT_gradient(x, _i, _l)
+                    )
                 maxfev = self.lm_max_nfev
             else:
-                F = lambda x, grad=None: qcm.CDMFT_distance(x, _clus, _label)
+                F = lambda x, _i=_idx, _l=_label, _b=_bs: qcm.CDMFT_distance(
+                    x, _i, _l, _b
+                )
                 jac_fn = False
                 maxfev = self.max_function_eval
             opt_x, opt_iter_done, opt_success, _ = optimize(
@@ -567,7 +592,7 @@ class CDMFT:
                 jac=jac_fn,
                 # bounds=self.max_value if self.jac else None,
             )
-            opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
+            opt_fun = qcm.CDMFT_distance(opt_x, _idx, _label, _bs)
 
             self.dist += opt_fun
 

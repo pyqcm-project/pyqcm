@@ -264,4 +264,20 @@ void parameter_set::CDMFT_variational_set(const vector<vector<string>>& vars) {
 }
 
 
+/**
+sets the per-system CDMFT variational parameters to vars (used by the per-system distance)
+@param vars [in] array of parameter names, grouped by system
+*/
+void parameter_set::CDMFT_variational_sys_set(const vector<vector<string>>& vars) {
+  for(int s=0; s<vars.size(); s++){
+    for(auto& name : vars[s]){
+      if(param.find(name)==param.end())
+        qcm_throw(name + " is not in the set of parameters: it cannot be a variational parameter.");
+      if(is_dependent(name)) qcm_throw("parameter "+name+" is dependent. Cannot be a variational parameter.");
+    }
+  }
+  CDMFT_variational_sys = vars;
+}
+
+
 

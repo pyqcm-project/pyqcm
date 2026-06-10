@@ -174,18 +174,24 @@ namespace QCM{
   void wk_integral(int dim, function<void (Complex w, vector3D<double> &k, const int *nv, double I[])> f, vector<double> &Iv, const double accuracy,bool verb=false);
   //! Forces eager (non-lazy) computation of cluster Green functions in all clusters.
   void Green_function_solve(int label);
-  //! Defines the set of CDMFT variational parameters.
+  //! Defines the set of CDMFT variational parameters (per cluster).
   void CDMFT_variational_set(vector<vector<string>>& varia);
+  //! Defines the set of CDMFT variational parameters per system (for the per-system distance).
+  void CDMFT_variational_sys_set(vector<vector<string>>& varia);
   //! Sets the CDMFT host function from a list of frequencies and weights.
   void CDMFT_host(const vector<double>& freqs, const vector<double>& weights, int label);
   //! Sets the CDMFT host function from precomputed matrix data.
   void set_CDMFT_host(int label, const vector<double>& freqs, const int clus, const vector<matrix<Complex>>& H, const bool spin_down);
-  //! Computes the CDMFT distance function at the given variational point.
-  double CDMFT_distance(const vector<double>& p, int clus, int label);
+  //! Computes the CDMFT distance function at the given variational point (per cluster, or per system if by_system).
+  double CDMFT_distance(const vector<double>& p, int idx, int label, bool by_system=false);
   //! Computes the CDMFT residual vector r(p) used by least-squares optimizers.
   vector<double> CDMFT_residuals(const vector<double>& p, int clus, int label);
   //! Computes the analytical Jacobian dr/dp of the CDMFT residual vector.
   vector<double> CDMFT_gradient(const vector<double>& p, int clus, int label);
+  //! System-based CDMFT residual vector (non-remixed ED hybridization of system `sys`).
+  vector<double> CDMFT_residuals_sys(const vector<double>& p, int sys, int label);
+  //! System-based Jacobian dr/dp of the CDMFT residual vector.
+  vector<double> CDMFT_gradient_sys(const vector<double>& p, int sys, int label);
   //! Retrieves the CDMFT host function (per-cluster matrices over all frequencies).
   vector<vector<matrix<Complex>>> get_CDMFT_host(bool spin_down, int label);
 };

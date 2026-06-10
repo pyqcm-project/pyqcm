@@ -813,7 +813,16 @@ inline void register_qcm(nb::module_ &m) {
           qcm_model->param_set->CDMFT_variational_set(
               strings_from_DoublePyList(v.ptr()));
         },
-        "varia"_a, "defines the set of CDMFT variational parameters");
+        "varia"_a, "defines the set of CDMFT variational parameters (per cluster)");
+
+  m.def("CDMFT_variational_sys_set",
+        [](nb::object v) {
+          if (qcm_model->param_set == nullptr)
+            qcm_throw("The parameters have not been specified yet.");
+          qcm_model->param_set->CDMFT_variational_sys_set(
+              strings_from_DoublePyList(v.ptr()));
+        },
+        "varia"_a, "defines the set of CDMFT variational parameters per system (for the per-system distance)");
 
   m.def("CDMFT_host",
         [](nb::object freqs, nb::object weights, int label) {
@@ -849,11 +858,12 @@ inline void register_qcm(nb::module_ &m) {
         "retrieves the CDMFT host function (per-cluster matrices)");
 
   m.def("CDMFT_distance",
-        [](nb::object val, int clus, int label) {
-          return QCM::CDMFT_distance(doubles_from_Py(val.ptr()), clus, label);
+        [](nb::object val, int idx, int label, int by_system) {
+          return QCM::CDMFT_distance(doubles_from_Py(val.ptr()), idx, label,
+                                     (bool)by_system);
         },
-        "p"_a, "clus"_a, "label"_a = 0,
-        "computes the CDMFT distance function at a variational point");
+        "p"_a, "clus"_a, "label"_a = 0, "by_system"_a = 0,
+        "computes the CDMFT distance function at a variational point (per cluster, or per system if by_system)");
 
   m.def("CDMFT_residuals",
         [](nb::object val, int clus, int label) {
@@ -873,6 +883,25 @@ inline void register_qcm(nb::module_ &m) {
         },
         "p"_a, "clus"_a, "label"_a = 0,
         "analytical Jacobian dr/dp of the CDMFT residual vector");
+
+  m.def("CDMFT_residuals_sys",
+        [](nb::object val, int sys, int label) {
+          auto r = QCM::CDMFT_residuals_sys(doubles_from_Py(val.ptr()), sys, label);
+          return nb_array_<double>(r.data(), {r.size()});
+        },
+        "p"_a, "sys"_a, "label"_a = 0,
+        "system-based CDMFT residual vector (non-remixed ED hybridization)");
+
+  m.def("CDMFT_gradient_sys",
+        [](nb::object val, int sys, int label) {
+          vector<double> p = doubles_from_Py(val.ptr());
+          auto J = QCM::CDMFT_gradient_sys(p, sys, label);
+          size_t Nparams = p.size();
+          size_t Nrows = Nparams ? J.size() / Nparams : 0;
+          return nb_array_<double>(J.data(), {Nrows, Nparams});
+        },
+        "p"_a, "sys"_a, "label"_a = 0,
+        "system-based Jacobian dr/dp of the CDMFT residual vector");
 
   //------------------------------------------------------------------ printing
   m.def("print_model",

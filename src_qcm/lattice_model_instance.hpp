@@ -41,9 +41,11 @@ struct lattice_model_instance{
 	complex<double> TrSigmaG(Complex w, vector3D<double> &k, bool spin_down);
 	double Berry_flux(const vector<vector3D<double>> &k, int orb, bool spin_down);
 	double Berry_plaquette(Green_function &G, const vector3D<double> &k1, const double deltax, const double deltay, const int opt, int dir, int orb);
-	double CDMFT_distance(const vector<double>& p, int clus);
+	double CDMFT_distance(const vector<double>& p, int idx, bool by_system=false);
 	vector<double> CDMFT_residuals(const vector<double>& p, int clus);
 	vector<double> CDMFT_gradient(const vector<double>& p, int clus);
+	vector<double> CDMFT_residuals_sys(const vector<double>& p, int sys);
+	vector<double> CDMFT_gradient_sys(const vector<double>& p, int sys);
 	double monopole_part(vector3D<double>& k, double a, int nk, int orb, bool rec, int dir, bool spin_down);
 	double monopole(vector3D<double>& k, double a, int nk, int orb, bool rec);
 	double potential_energy();
@@ -59,6 +61,7 @@ struct lattice_model_instance{
 	matrix<complex<double>> cluster_self_energy(size_t i, complex<double> w, bool spin_down);
 	matrix<complex<double>> hybridization_function_remix(size_t i, complex<double> w, bool spin_down);
 	matrix<complex<double>> hybridization_function(size_t i, complex<double> w, bool spin_down);
+	matrix<complex<double>> hybridization_function_sys(size_t sys, complex<double> w, bool spin_down);
 	matrix<complex<double>> Green_integral(bool spin_down, int clus);
 	matrix<Complex> epsilon(Green_function_k &M);
 	matrix<Complex> projected_Green_function(Complex w, bool spin_down);

@@ -512,38 +512,33 @@ void lattice_model_instance::set_CDMFT_host(const vector<double>& freqs, const i
 }
 //==============================================================================
 /**
- Computes the CDMFT distance function
+ Computes the CDMFT distance function.
  @param p values of the variational parameters
+ @param idx cluster index (by_system==false) or global system index (by_system==true)
+ @param by_system if true, the distance is built from the per-system residuals
+ (CDMFT_residuals_sys); otherwise from the per-cluster residuals (CDMFT_residuals)
  @returns the distance function
  */
-double lattice_model_instance::CDMFT_distance(const vector<double>& p, int clus)
+double lattice_model_instance::CDMFT_distance(const vector<double>& p, int idx, bool by_system)
 {
-	double dist = 0.0;
-	for(int i=0; i<model->param_set->CDMFT_variational[clus].size(); i++){
-		model->param_set->set_value(model->param_set->CDMFT_variational[clus][i], p[i]);
+	// The distance is the weighted sum of squares of the CDMFT residual vector.
+	// Since r_n = sqrt(w_n)*(Gamma + G_host) packed as Re/Im, we have
+	// sum_n r_n^2 = sum_i w_i * ||Gamma(iw_i) + G_host(iw_i)||^2, which is the
+	// raw distance before the mixing factor and normalizations applied below.
+	vector<double> r;
+	int dim;
+	if(by_system){
+		r = CDMFT_residuals_sys(p, idx);
+		dim = G_host[0][model->systems[idx].clus].r;
 	}
-	auto I = lattice_model_instance(model, label+999);
+	else{
+		r = CDMFT_residuals(p, idx);
+		dim = G_host[0][0].r;
+	}
+	double dist = 0.0;
+	for(double x : r) dist += x*x;
 
 	double dw = CDMFT_freqs[1]-CDMFT_freqs[0];
-	int dim = G_host[0][0].r;
-
-	#pragma omp parallel for reduction (+:dist)
-	for(int i=0; i<CDMFT_freqs.size(); i++){
-		Complex w(0.0, CDMFT_freqs[i]);
-		auto gamma = I.hybridization_function(clus, w, false);
-		gamma.v += G_host[i][clus].v;
-		dist += norm2(gamma.v)*CDMFT_weights[i];
-	}
-
-	if(model->mixing & HS_mixing::up_down){
-		#pragma omp parallel for reduction (+:dist)
-		for(int i=0; i<CDMFT_freqs.size(); i++){
-			Complex w(0.0, CDMFT_freqs[i]);
-			auto gamma = I.hybridization_function(clus, w, true);
-			gamma.v += G_host_down[i][clus].v;
-			dist += norm2(gamma.v)*CDMFT_weights[i];
-		}
-	}
 
 	if(model->mixing == 0) dist *= 2;
 	else if(model->mixing == 3) dist *= 0.5;
@@ -666,6 +661,126 @@ vector<double> lattice_model_instance::CDMFT_gradient(const vector<double>& p, i
 	// Restore original parameter values so subsequent calls see consistent state
 	for(int i=0; i<model->param_set->CDMFT_variational[clus].size(); i++){
 		model->param_set->set_value(model->param_set->CDMFT_variational[clus][i], p[i]);
+	}
+
+	return J;
+}
+
+//==============================================================================
+/**
+ System-based version of CDMFT_residuals(). Instead of a cluster index, this takes
+ a (global) system index `sys` and builds the residual vector from the *non-remixed*
+ hybridization of that single system via hybridization_function_sys(), which calls
+ ED::hybridization_function() directly and upgrades it to the lattice mixing if the
+ system's mixing is lower. This differs from the cluster-averaged (remixed)
+ lattice_model_instance::hybridization_function() used by CDMFT_residuals().
+
+ The variational parameters set here come from the per-system list
+ CDMFT_variational_sys[sys] (set via CDMFT_variational_sys_set), not the per-cluster
+ CDMFT_variational[clus]: when a cluster owns several systems, each system optimizes
+ its own bath parameters independently.
+
+ The host function compared against is the one of the cluster owning the system,
+ G_host[i][clus] with clus = model->systems[sys].clus. The packing is identical to
+ CDMFT_residuals: r_n = sqrt(w_n) * (Gamma_sys(iw_n) + G_host(iw_n)), as
+ [Re(.).ravel(), Im(.).ravel()] per frequency, stacked over frequencies, with the
+ up_down spin component concatenated if present.
+
+ @param p values of the variational parameters
+ @param sys global system index
+ @returns the real residual vector
+ */
+vector<double> lattice_model_instance::CDMFT_residuals_sys(const vector<double>& p, int sys)
+{
+	int clus = model->systems[sys].clus;
+	for(int i=0; i<model->param_set->CDMFT_variational_sys[sys].size(); i++){
+		model->param_set->set_value(model->param_set->CDMFT_variational_sys[sys][i], p[i]);
+	}
+	auto I = lattice_model_instance(model, label+999);
+
+	int dim = G_host[0][clus].r;
+	int dim2 = dim*dim;
+	int Nfreq = (int)CDMFT_freqs.size();
+	bool has_down = (model->mixing & HS_mixing::up_down) != 0;
+	int n_spins = has_down ? 2 : 1;
+
+	vector<double> r(2 * n_spins * Nfreq * dim2, 0.0);
+
+	#pragma omp parallel for if(!omp_in_parallel())
+	for(int i=0; i<Nfreq; i++){
+		Complex w(0.0, CDMFT_freqs[i]);
+		double sw = sqrt(CDMFT_weights[i]);
+		auto gamma = I.hybridization_function_sys(sys, w, false);
+		for(int k=0; k<dim2; k++){
+			Complex z = gamma.v[k] + G_host[i][clus].v[k];
+			r[2*dim2*i + k]        = sw * z.real();
+			r[2*dim2*i + dim2 + k] = sw * z.imag();
+		}
+	}
+
+	if(has_down){
+		int off = 2 * Nfreq * dim2;
+		#pragma omp parallel for if(!omp_in_parallel())
+		for(int i=0; i<Nfreq; i++){
+			Complex w(0.0, CDMFT_freqs[i]);
+			double sw = sqrt(CDMFT_weights[i]);
+			auto gamma = I.hybridization_function_sys(sys, w, true);
+			for(int k=0; k<dim2; k++){
+				Complex z = gamma.v[k] + G_host_down[i][clus].v[k];
+				r[off + 2*dim2*i + k]        = sw * z.real();
+				r[off + 2*dim2*i + dim2 + k] = sw * z.imag();
+			}
+		}
+	}
+
+	return r;
+}
+
+//==============================================================================
+/**
+ System-based version of CDMFT_gradient(): finite-difference Jacobian d r / d p of
+ the system-based residual vector CDMFT_residuals_sys(), using central differences:
+ J[:,j] = (r(p+δeⱼ) − r(p−δeⱼ)) / (2δ), stored row-major with shape (Nrows, Nparams).
+
+ @param p values of the variational parameters
+ @param sys global system index
+ @returns the Jacobian as a flat row-major vector (shape: Nrows × Nparams, row-major)
+ */
+vector<double> lattice_model_instance::CDMFT_gradient_sys(const vector<double>& p, int sys)
+{
+	int clus = model->systems[sys].clus;
+	int Nparams = (int)p.size();
+	int dim = G_host[0][clus].r;
+	int dim2 = dim*dim;
+	int Nfreq = (int)CDMFT_freqs.size();
+	bool has_down = (model->mixing & HS_mixing::up_down) != 0;
+	int n_spins = has_down ? 2 : 1;
+	int Nrows = 2 * n_spins * Nfreq * dim2;
+
+	vector<double> J(Nrows * Nparams, 0.0);
+
+	const double delta = global_double("cdmft_jacobian_delta");
+	for(int j=0; j<Nparams; j++){
+		double scale = std::max(1.0, std::abs(p[j]));
+		double dj = delta * scale;
+
+		vector<double> pp = p;
+		pp[j] = p[j] + dj;
+		vector<double> rp = CDMFT_residuals_sys(pp, sys);
+
+		vector<double> pm = p;
+		pm[j] = p[j] - dj;
+		vector<double> rm = CDMFT_residuals_sys(pm, sys);
+
+		double inv = 1.0 / (2.0 * dj);
+		for(int row=0; row<Nrows; row++){
+			J[row * Nparams + j] = (rp[row] - rm[row]) * inv;
+		}
+	}
+
+	// Restore original parameter values so subsequent calls see consistent state
+	for(int i=0; i<model->param_set->CDMFT_variational_sys[sys].size(); i++){
+		model->param_set->set_value(model->param_set->CDMFT_variational_sys[sys][i], p[i]);
 	}
 
 	return J;
