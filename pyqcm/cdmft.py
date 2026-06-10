@@ -493,8 +493,6 @@ class CDMFT:
         parameters and updates it to the next set of values
         """
 
-        check_bounds(self.x, self.max_value, v=self.varia)
-
         self.model.set_parameter(self.varia, self.x)
         self.I = pyqcm.model_instance(self.model)
         self.grid.udpate(self.I)
@@ -567,7 +565,7 @@ class CDMFT:
                 self.accur_dist,
                 maxfev,
                 jac=jac_fn,
-                bounds=self.max_value if self.jac else None,
+                # bounds=self.max_value if self.jac else None,
             )
             opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
@@ -1586,12 +1584,6 @@ def optimize(
         )
     if method.lower() == "trf" and not callable(jac):
         raise ValueError('"trf" requires a callable jac')
-    # if callable(jac):
-    #     print(
-    #         f"Jacobian active "
-    #         f"(cdmft_jacobian_delta = "
-    #         f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
-    #     )
 
     _lo = -bounds if bounds is not None else -np.inf
     _hi = bounds if bounds is not None else np.inf
@@ -1610,7 +1602,7 @@ def optimize(
             x,
             jac=jac,
             method="trf",
-            bounds=(_lo, _hi),
+            # bounds=(_lo, _hi),
             max_nfev=maxfev,
             ftol=accur_dist,
             xtol=accur,
