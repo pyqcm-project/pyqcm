@@ -167,10 +167,8 @@ class CDMFT:
     :param [float] accur_dist: relative tolerance of the distance function when minimizing it
     :param [hartree] hartree: mean-field hartree couplings to incorportate in the convergence procedure
     :param bool converge_with_stdev: If True, checks convergence using the standard deviation of the convergence tests, not the difference
-    :param str iteration: method of iteration of parameters ('fixed_point', 'broyden', or 'anderson')
-    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run). Unused for 'anderson'.
-    :param int anderson_depth: history depth m for Anderson mixing (number of previous steps to mix); only used when iteration='anderson'
-    :param float anderson_beta: mixing parameter for Anderson mixing (1.0 = full step, < 1.0 = damped); only used when iteration='anderson'
+    :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
+    :param float alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
     :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'. Analytical-Jacobian choices (the Jacobian ``qcm.CDMFT_gradient`` is activated automatically): 'trf' (Trust Region Reflective via scipy.least_squares), 'BFGS', 'L-BFGS-B'. The finite-difference step for the Jacobian is ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``).
     :param int lm_max_nfev: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param str file: name of the file where the solution is written
@@ -207,10 +205,8 @@ class CDMFT:
         accur_dist=1e-8,
         hartree=None,
         converge_with_stdev=False,
-        iteration="broyden",  # or 'fixed_point' or 'anderson'
+        iteration="broyden",  # or 'fixed_point'
         alpha=0.0,
-        anderson_depth=5,
-        anderson_beta=1.0,
         method="Nelder-Mead",
         lm_max_nfev=2000,
         file="cdmft.tsv",
@@ -231,8 +227,6 @@ class CDMFT:
         self.accur_bath = accur_bath
         self.accur_dist = accur_dist
         self.alpha = alpha
-        self.anderson_depth = anderson_depth
-        self.anderson_beta = anderson_beta
         self.check_ground_state = check_ground_state
         self.dist = 1e6
         self.hartree = hartree
@@ -264,9 +258,9 @@ class CDMFT:
                 "The argument 'varia' of CDMFT should be a list of variational parameters"
             )
 
-        if iteration not in ["broyden", "fixed_point", "anderson"]:
+        if iteration not in ["broyden", "fixed_point"]:
             raise ValueError(
-                "the argument 'iteration' of CDMFT() should be one of 'broyden', 'fixed_point', 'anderson'"
+                "the argument 'iteration' of CDMFT() should be one of 'broyden', 'fixed_point'"
             )
 
         # ----------- Managing the variational parameters ---------
@@ -434,26 +428,9 @@ class CDMFT:
                 raise pyqcm.SolverError(
                     "Failure of the CDMFT method (fixed-point)"
                 ) from E
-
-        elif iteration == "anderson":
-            try:
-                actual_method = "anderson"
-                self.x, self.niter = pyqcm.anderson_mixing(
-                    F,
-                    self.x,
-                    m=self.anderson_depth,
-                    beta=self.anderson_beta,
-                    xtol=1e-6,
-                    convergence_test=G,
-                    maxiter=maxiter,
-                    miniter=miniter,
-                )
-            except Exception as E:
-                raise pyqcm.SolverError("Failure of the CDMFT method (anderson)") from E
-
         else:
             raise ValueError(
-                'unknown iteration method in CDMFT. must be one of "broyden", "fixed_point", "anderson". Check spelling.'
+                'unknown iteration method in CDMFT. must be one of "broyden", "fixed_point". Check spelling.'
             )
 
         # Here we have converged
@@ -567,7 +544,6 @@ class CDMFT:
                 self.accur_dist,
                 maxfev,
                 jac=jac_fn,
-                bounds=self.max_value if self.jac else None,
             )
             opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
@@ -608,7 +584,8 @@ class CDMFT:
                 pass
             else:
                 self.bias.value *= self.bias.factor
-            if self.bias.value < 1e-9 : self.bias.value = 1e-9
+            if self.bias.value < 1e-9:
+                self.bias.value = 1e-9
             self.model.set_parameter(self.bias.op, self.bias.value)
             print("====> bias field : ", self.bias.op, " = ", self.bias.value)
 
@@ -892,7 +869,7 @@ class frequency_grid:
             Sig_inf = I.cluster_self_energy(1.0e6j)
             for i, x in enumerate(self.wr):
                 self.cdmft_weight[i] = np.linalg.norm(
-                    I.cluster_self_energy(x*1j) - Sig_inf
+                    I.cluster_self_energy(x * 1j) - Sig_inf
                 )
             self.cdmft_weight = self.cdmft_weight / self.cdmft_weight.sum()
         else:
@@ -1545,8 +1522,7 @@ def optimize(
     accur=1e-4,
     accur_dist=1e-8,
     maxfev=5000000,
-    jac=False,
-    bounds=None,
+    jac=None,
 ):
     """
 
@@ -1586,15 +1562,6 @@ def optimize(
         )
     if method.lower() == "trf" and not callable(jac):
         raise ValueError('"trf" requires a callable jac')
-    # if callable(jac):
-    #     print(
-    #         f"Jacobian active "
-    #         f"(cdmft_jacobian_delta = "
-    #         f"{pyqcm.get_global_parameter('cdmft_jacobian_delta'):.2g})"
-    #     )
-
-    _lo = -bounds if bounds is not None else -np.inf
-    _hi = bounds if bounds is not None else np.inf
 
     nvar = len(x)
     nlopt_df_methods = {
@@ -1610,7 +1577,6 @@ def optimize(
             x,
             jac=jac,
             method="trf",
-            bounds=(_lo, _hi),
             max_nfev=maxfev,
             ftol=accur_dist,
             xtol=accur,
@@ -1742,7 +1708,6 @@ def optimize(
                 x,
                 jac=jac,
                 method="dogbox",
-                bounds=(_lo, _hi),
                 max_nfev=maxfev,
                 ftol=accur_dist,
                 xtol=accur,
