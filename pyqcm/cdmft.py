@@ -590,7 +590,10 @@ class CDMFT:
                 self.accur_dist,
                 maxfev,
                 jac=jac_fn,
-                # bounds=self.max_value if self.jac else None,
+                # `bounds` here is used only to flag out-of-bounds parameters in the
+                # failure diagnostic; the solver-level box (commented out in
+                # optimize()) is not enabled by passing it.
+                bounds=self.max_value if jac_fn else None,
             )
             opt_fun = qcm.CDMFT_distance(opt_x, _idx, _label, _bs)
 
@@ -1621,6 +1624,8 @@ def optimize(
         "neldermead": nlopt.LN_NELDERMEAD,
         "subplex": nlopt.LN_SBPLX,
     }
+    # diagnostic message reported by the underlying solver, surfaced on failure
+    message = None
     if method.lower() == "trf":
         sol_ls = scipy.optimize.least_squares(
             F,
@@ -1639,6 +1644,7 @@ def optimize(
             sol_ls.success,
             sol_ls.cost,
         )
+        message = sol_ls.message
 
     elif method == "Nelder-Mead":
         initial_simplex = np.zeros((nvar + 1, nvar))
@@ -1701,6 +1707,7 @@ def optimize(
                 sol_ls.success,
                 sol_ls.cost,
             )
+            message = sol_ls.message
         else:
             sol = scipy.optimize.minimize(
                 F,
@@ -1730,7 +1737,12 @@ def optimize(
     elif method.lower() in nlopt_df_methods.keys():
         optimizer = nlopt.opt(nlopt_df_methods[method.lower()], nvar)
 
-        optimizer.set_min_objective(F)
+        # nlopt always calls the objective as f(x, grad); for these derivative-free
+        # methods grad is unused, so wrap F (which expects f(x)) to absorb it.
+        def _F_nlopt(x, grad):
+            return F(x)
+
+        optimizer.set_min_objective(_F_nlopt)
         optimizer.set_lower_bounds(np.full(nvar, -np.inf))
         optimizer.set_upper_bounds(np.full(nvar, np.inf))
 
@@ -1771,6 +1783,7 @@ def optimize(
                 sol_ls.success,
                 sol_ls.cost,
             )
+            message = sol_ls.message
         else:
             _fd_eps = pyqcm.get_global_parameter("cdmft_jacobian_delta")
 
@@ -1804,9 +1817,25 @@ def optimize(
         raise ValueError(f"unknown method specified for minimization: {method}")
 
     if not success:
-        raise pyqcm.MinimizationError(
-            "Failure of the optimization of the bath parameters"
-        )
+        lines = [
+            "Failure of the optimization of the bath parameters",
+            "  method: {:s}".format(method),
+        ]
+        if message:
+            lines.append("  solver message: {:s}".format(str(message)))
+        # report the parameter values reached at failure and flag any that left
+        # the [-bounds, bounds] box (a frequent cause: a parameter ran away)
+        B = bounds if bounds is not None else np.inf
+        lines.append("  bath parameters at failure:")
+        for i in range(len(opt_x)):
+            flag = "  <-- OUT OF BOUNDS" if np.abs(opt_x[i]) > B else ""
+            lines.append("    x[{:d}] = {:g}{:s}".format(i, opt_x[i], flag))
+        if np.any(np.abs(np.asarray(opt_x)) > B):
+            lines.append(
+                "  one or more parameters left the bounds [-{0:g}, {0:g}]; "
+                "consider increasing `max_value` in the CDMFT call".format(B)
+            )
+        raise pyqcm.MinimizationError("\n".join(lines))
 
     return opt_x, iter_done, success, fun
 
