@@ -298,7 +298,8 @@ class lattice_model:
             else:
                 ref = -1
             qcm.add_cluster(x.pos, x.sites, ref, x.conj)
-            if x.sys is None: continue
+            if x.sys is None:
+                continue
             for s in x.sys:
                 if s.n_bath > 0:
                     self.has_bath = True
@@ -345,7 +346,13 @@ class lattice_model:
                     name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
                 )
 
-        self.operator_calls.append(('hopping_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
+        self.operator_calls.append(
+            (
+                "hopping_operator",
+                (name, link, amplitude),
+                {"orbitals": orbitals, **kwargs},
+            )
+        )
 
         dir = {"x": 0, "y": 1, "z": 2}
         if (
@@ -404,7 +411,13 @@ class lattice_model:
                 qcm.anomalous_operator(
                     name, link, amplitude, orb1=orb_no1, orb2=orb_no2, **kwargs
                 )
-        self.operator_calls.append(('anomalous_operator', (name, link, amplitude), {'orbitals': orbitals, **kwargs}))
+        self.operator_calls.append(
+            (
+                "anomalous_operator",
+                (name, link, amplitude),
+                {"orbitals": orbitals, **kwargs},
+            )
+        )
 
     # -----------------------------------------------------------------------------------------------
     def explicit_operator(self, name, elem, **kwargs):
@@ -426,7 +439,7 @@ class lattice_model:
             )
 
         qcm.explicit_operator(name, elem, **kwargs)
-        self.operator_calls.append(('explicit_operator', (name, elem), kwargs))
+        self.operator_calls.append(("explicit_operator", (name, elem), kwargs))
 
     # -----------------------------------------------------------------------------------------------
     def density_wave(self, name, t, Q, **kwargs):
@@ -450,7 +463,7 @@ class lattice_model:
                 'names of operators must not include the character "_" (underline)'
             )
         qcm.density_wave(name, t, Q, **kwargs)
-        self.operator_calls.append(('density_wave', (name, t, Q), kwargs))
+        self.operator_calls.append(("density_wave", (name, t, Q), kwargs))
 
     # -----------------------------------------------------------------------------------------------
     def set_basis(self, B):
@@ -490,7 +503,13 @@ class lattice_model:
                 qcm.interaction_operator(
                     name, orb1=orb_no1, orb2=orb_no2, link=link, **kwargs
                 )
-        self.operator_calls.append(('interaction_operator', (name,), {'link': link, 'orbitals': orbitals, **kwargs}))
+        self.operator_calls.append(
+            (
+                "interaction_operator",
+                (name,),
+                {"link": link, "orbitals": orbitals, **kwargs},
+            )
+        )
 
     # -----------------------------------------------------------------------------------------------
     def set_target_sectors(self, sec):
@@ -506,13 +525,14 @@ class lattice_model:
         :returns: None
 
         """
+
         def is_integer(s):
             try:
                 int(s)
                 return True
             except ValueError:
                 return False
-    
+
         if not is_sequence(sec):
             sec = (sec,)
 
@@ -528,22 +548,26 @@ class lattice_model:
                     ", which is not a string !",
                 )
                 raise ValueError("Target sector {:d} is is not a string".format(i))
-            for x in s.split('/'):
+            for x in s.split("/"):
                 if len(x) == 0:
                     valid = False
                     break
-                for y in x.split(':'):
-                    if y[0] not in 'RNS':
+                for y in x.split(":"):
+                    if y[0] not in "RNS":
                         valid = False
                         break
                     if not is_integer(y[1:]):
                         valid = False
                         break
                 if valid == False:
-                    raise ValueError("String {:s} does not represent a valid sector".format(s))
+                    raise ValueError(
+                        "String {:s} does not represent a valid sector".format(s)
+                    )
             if valid == False:
-                raise ValueError("String {:s} does not represent a valid set of sectors".format(s))
-       
+                raise ValueError(
+                    "String {:s} does not represent a valid set of sectors".format(s)
+                )
+
         qcm.set_target_sectors(sec)
         self.target_sectors = sec
 
@@ -833,7 +857,7 @@ class lattice_model:
         :param bool str: if True, return the content as a string instead of writing to a file.
         :returns: None, or the definition string if str=True
         """
-        lines = ['import pyqcm', '']
+        lines = ["import pyqcm", ""]
 
         # --- cluster_model definitions (deduplicated, preserving order) ---
         seen = set()
@@ -848,80 +872,90 @@ class lattice_model:
         for s in clus_models:
             args = [repr(s.n_sites)]
             if s.n_bath != 0:
-                args.append(f'n_bath={s.n_bath}')
-            args.append(f'name={repr(s.name)}')
+                args.append(f"n_bath={s.n_bath}")
+            args.append(f"name={repr(s.name)}")
             if s.generators is not None:
-                args.append(f'generators={repr(s.generators)}')
+                args.append(f"generators={repr(s.generators)}")
             if s.bath_irrep:
-                args.append(f'bath_irrep=True')
-            lines.append(f'{s.name} = pyqcm.cluster_model({", ".join(args)})')
+                args.append(f"bath_irrep=True")
+            lines.append(f"{s.name} = pyqcm.cluster_model({', '.join(args)})")
             for op_name, op_type, elem, is_complex in s.operators:
-                method = 'new_operator_complex' if is_complex else 'new_operator'
-                lines.append(f'{s.name}.{method}({repr(op_name)}, {repr(op_type)}, {repr(elem)})')
-            lines.append('')
+                method = "new_operator_complex" if is_complex else "new_operator"
+                lines.append(
+                    f"{s.name}.{method}({repr(op_name)}, {repr(op_type)}, {repr(elem)})"
+                )
+            lines.append("")
 
         # --- cluster definitions ---
         clus_varnames = []
         for i, c in enumerate(self.clus):
-            varname = f'clus{i}'
+            varname = f"clus{i}"
             clus_varnames.append(varname)
             if c.ref is not None:
                 ref_var = clus_varnames[c.ref.index]
-                lines.append(f'{varname} = pyqcm.cluster({ref_var}, {repr(c.sites)}, pos={repr(c.pos)})')
+                lines.append(
+                    f"{varname} = pyqcm.cluster({ref_var}, {repr(c.sites)}, pos={repr(c.pos)})"
+                )
             else:
                 if len(c.sys) == 1:
                     sys_arg = c.sys[0].name
                 else:
-                    sys_arg = '[' + ', '.join(s.name for s in c.sys) + ']'
-                lines.append(f'{varname} = pyqcm.cluster({sys_arg}, {repr(c.sites)}, pos={repr(c.pos)})')
-        lines.append('')
+                    sys_arg = "[" + ", ".join(s.name for s in c.sys) + "]"
+                lines.append(
+                    f"{varname} = pyqcm.cluster({sys_arg}, {repr(c.sites)}, pos={repr(c.pos)})"
+                )
+        lines.append("")
 
         # --- lattice_model constructor ---
-        clus_arg = clus_varnames[0] if len(clus_varnames) == 1 else '[' + ', '.join(clus_varnames) + ']'
+        clus_arg = (
+            clus_varnames[0]
+            if len(clus_varnames) == 1
+            else "[" + ", ".join(clus_varnames) + "]"
+        )
         lm_args = [repr(self.name), clus_arg, repr(self.superlattice)]
         if self.lattice is not None:
-            lm_args.append(f'lattice={repr(self.lattice)}')
+            lm_args.append(f"lattice={repr(self.lattice)}")
         if self.hybrid_file:
-            lm_args.append(f'hybrid_file={repr(self.hybrid_file)}')
-        lines.append(f'model = pyqcm.lattice_model({", ".join(lm_args)})')
-        lines.append('')
+            lm_args.append(f"hybrid_file={repr(self.hybrid_file)}")
+        lines.append(f"model = pyqcm.lattice_model({', '.join(lm_args)})")
+        lines.append("")
 
         # --- lattice-level operator calls ---
         if self.current_dir is not None:
-            lines.append(f'model.current_dir = {repr(self.current_dir)}')
+            lines.append(f"model.current_dir = {repr(self.current_dir)}")
         for method, args, kwargs in self.operator_calls:
             parts = [repr(a) for a in args]
             for k, v in kwargs.items():
-                if v is None and k == 'orbitals':
+                if v is None and k == "orbitals":
                     continue  # omit default None for orbitals
-                if v is None and k == 'link':
+                if v is None and k == "link":
                     continue  # omit default None for link
-                parts.append(f'{k}={repr(v)}')
-            lines.append(f'model.{method}({", ".join(parts)})')
+                parts.append(f"{k}={repr(v)}")
+            lines.append(f"model.{method}({', '.join(parts)})")
 
         # --- target sectors ---
         if self.target_sectors is not None:
-            lines.append(f'model.set_target_sectors({repr(list(self.target_sectors))})')
-            lines.append('')
+            lines.append(f"model.set_target_sectors({repr(list(self.target_sectors))})")
+            lines.append("")
 
         # --- parameter set (structure + current values, if defined) ---
         try:
             P = self.parameter_set()
-            lines.append('')
+            lines.append("")
             lines.append('model.set_parameters("""')
             for name, (value, overlord, multiplier) in P.items():
                 if overlord is None:
-                    lines.append(f'    {name}={value!r}')
+                    lines.append(f"    {name}={value!r}")
                 else:
-                    lines.append(f'    {name}={multiplier!r}*{overlord}')
+                    lines.append(f"    {name}={multiplier!r}*{overlord}")
             lines.append('""")')
         except Exception:
             pass  # parameter set not yet defined
 
-        content = '\n'.join(lines) + '\n'
+        content = "\n".join(lines) + "\n"
         if str:
             return content
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             f.write(content)
 
     # -----------------------------------------------------------------------------------------------
@@ -956,12 +990,16 @@ class model_instance:
     print_dependent = False
 
     def __init__(self, model):
-        if not isinstance(model, lattice_model): raise ValueError('The first argument of "model_instance()" should be a lattice_model object')
+        if not isinstance(model, lattice_model):
+            raise ValueError(
+                'The first argument of "model_instance()" should be a lattice_model object'
+            )
         self.label = model_instance.count
         model_instance.count += 1
         self.model = model
         qcm.new_model_instance(self.label)
-        if not self.model.is_closed: self.model.finalize()
+        if not self.model.is_closed:
+            self.model.finalize()
         self.is_complex = qcm.complex_HS(self.label)
 
         self.props = {}
@@ -1061,18 +1099,16 @@ class model_instance:
             L is the dimension of the Green function, M is the number of floors.
         """
 
-        if pr is False: 
+        if pr is False:
             return qcm.combined_mcf(self.label * self.model.nsys + sys, k)
         else:
             W, A, B = qcm.combined_mcf(self.label * self.model.nsys + sys, k)
-            print('W = \n' + str(W))
-            for i,x in enumerate(A):
-                print('A[' + str(i) + '] = \n' + str(x))
-            for i,x in enumerate(B):
-                print('B[' + str(i) + '] = \n' + str(x)) 
-            return W, A, B   
-
-        
+            print("W = \n" + str(W))
+            for i, x in enumerate(A):
+                print("A[" + str(i) + "] = \n" + str(x))
+            for i, x in enumerate(B):
+                print("B[" + str(i) + "] = \n" + str(x))
+            return W, A, B
 
     # -----------------------------------------------------------------------------------------------
     def write_hdf5(self, filename, sys=0):
@@ -1087,8 +1123,8 @@ class model_instance:
         :param int sys: label of the system (0-based)
         :returns: None
         """
-        label  = self.label * self.model.nsys + sys
-        group  = "cluster_{:d}".format(sys)
+        label = self.label * self.model.nsys + sys
+        group = "cluster_{:d}".format(sys)
         qcm.write_instance_to_hdf5(filename, group, label)
 
     # -----------------------------------------------------------------------------------------------
@@ -1103,14 +1139,15 @@ class model_instance:
             the values stored in the file before loading the solution.
         :returns: None
         """
-        label  = self.label * self.model.nsys + sys
-        group  = "cluster_{:d}".format(sys)
+        label = self.label * self.model.nsys + sys
+        group = "cluster_{:d}".format(sys)
         if set_parameters:
             import h5py
-            with h5py.File(filename, 'r') as f:
-                params = {k: float(v) for k, v in f[group]['params'].attrs.items()}
+
+            with h5py.File(filename, "r") as f:
+                params = {k: float(v) for k, v in f[group]["params"].attrs.items()}
             valid = set(self.model.parameter_set().keys())
-            suffix = f'_{sys + 1}'
+            suffix = f"_{sys + 1}"
             for name, val in params.items():
                 if name in valid:
                     self.model.set_parameter(name, val)
@@ -1134,8 +1171,9 @@ class model_instance:
         for s in range(self.model.nsys):
             self.write_hdf5(filename, sys=s)
         import h5py
-        with h5py.File(filename, 'a') as f:
-            f.attrs['model_definition'] = self.model.write_definition(str=True)
+
+        with h5py.File(filename, "a") as f:
+            f.attrs["model_definition"] = self.model.write_definition(str=True)
 
     # -----------------------------------------------------------------------------------------------
     def read_all_hdf5(self, filename, set_parameters=False):
@@ -1313,9 +1351,7 @@ class model_instance:
         :returns: a complex-valued matrix
 
         """
-        return qcm.Green_function_average(
-            self.label * self.model.nsys + sys, spin_down
-        )
+        return qcm.Green_function_average(self.label * self.model.nsys + sys, spin_down)
 
     # -----------------------------------------------------------------------------------------------
     def interactions(self, sys=0):
@@ -1464,7 +1500,7 @@ class model_instance:
         if file is not None:
             self.write_summary(file)
         if pr:
-            for s,x in enumerate(GS):
+            for s, x in enumerate(GS):
                 print("system {:d} : E0 = {:f}\tsector =  {:s}".format(s, x[0], x[1]))
         return GS
 
@@ -1961,6 +1997,7 @@ class model_instance:
         # JSON Lines output: same data, self-describing, one object per line
         if json_output:
             import json
+
             record = {}
             for x in sorted(self.props.keys()):
                 record[x] = self.props[x]
@@ -2585,7 +2622,7 @@ def orbital_manager(orbitals, from_zero=False, spin_split=False):
     With mixing == 2 (spin flip), the matrix is 2*nband x 2*nband, with both
     spin sectors entangled. By default, when orbitals=None this returns indices
     over the full 2*nband range so that callers summing diagonal elements pick
-    up both spin sectors. 
+    up both spin sectors.
 
     :param orbitals: list of orbitals
     :param bool from_zero: it True, returs 0-based indices, otherwise 1-based
@@ -2701,28 +2738,31 @@ def varia_table(var, val):
     nsys = 0
     # finds the number of systems
     for i, p in enumerate(var):
-        if '_' not in p: continue
+        if "_" not in p:
+            continue
         s = int(p.partition("_")[-1])
-        if s > nsys: nsys = s
+        if s > nsys:
+            nsys = s
 
-    dic = [dict() for s in range(nsys+1)]
+    dic = [dict() for s in range(nsys + 1)]
 
     for i, p in enumerate(var):
-        if '_' not in p:
+        if "_" not in p:
             dic[nsys][p] = val[i]
         else:
             X = p.partition("_")
             s = int(X[-1])
-            dic[s-1][X[0]] = val[i]
+            dic[s - 1][X[0]] = val[i]
 
     for s in range(nsys):
-        S += "\nsystem {:d}:\n".format(s+1)
+        S += "\nsystem {:d}:\n".format(s + 1)
         i = 0
         sorted_dic = dict(sorted(dic[s].items()))
         for x in sorted_dic:
             S += "{:>8} = {: .5g}\t".format(x, sorted_dic[x])
             i += 1
-            if i%5 == 0: S += '\n'
+            if i % 5 == 0:
+                S += "\n"
 
     if len(dic[nsys]):
         S += "\nlattice parameters:\n"
@@ -2731,9 +2771,11 @@ def varia_table(var, val):
         for x in sorted_dic:
             S += "{:>8} = {: .5g}\t".format(x, sorted_dic[x])
             i += 1
-            if i%5 == 0: S += '\n'
-        
-    return S+'\n'
+            if i % 5 == 0:
+                S += "\n"
+
+    return S + "\n"
+
 
 # ---------------------------------------------------------------------------------------------------
 def epsilon(y, pr=False):
@@ -2769,7 +2811,7 @@ def fixed_point_iteration(
     convergence_test=None,
     maxiter=32,
     miniter=0,
-    alpha=0.0,
+    damping=0.0,
     eps_algo=0,
 ):
     """
@@ -2781,7 +2823,7 @@ def fixed_point_iteration(
     :param function convergence_test: function called to perform custom convergence tests. Returns True if converged
     :param int maxiter: maximum number of iterations
     :param int miniter: minimum number of iterations
-    :param float alpha: damping coefficient
+    :param float/iterable damping: damping coefficient
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :returns: the solution, the number of iterations
     :rtype: [float], int
@@ -2792,11 +2834,17 @@ def fixed_point_iteration(
     data = np.empty((n, maxiter + 1))
     if eps_algo > 0:
         pass
+
+    if isinstance(damping, float):
+        alpha = damping
+    else:
+        alpha = 0
+
     iter = 0
     while True:
         print("\n--> fixed_point iteration {:d}".format(iter + 1))
-        if iter > 16 and alpha == 0:
-            alpha = 0.3  # mix with previous solution if convergence is slow
+        if isinstance(damping, tuple) and iter >= damping[1] and alpha == 0:
+            alpha = damping[0]
         x = (alpha - 1) * F(x0) + x0
         data[:, iter] = np.copy(x0)
         delta_x = x - x0
@@ -2809,7 +2857,7 @@ def fixed_point_iteration(
                 z = epsilon(data[i, iter - eps_length : iter])
                 data[i, iter] = z
                 x[i] = z
-            print("epsilon algorithm : ", x0, " ---> ", x)
+            print("epsilon algorithm : ", x0, " --> ", x)
         # -------------------------------------------------------------------------------
         x0 = np.copy(x)
 
@@ -2849,6 +2897,8 @@ def broyden(F, x0, iJ0=0.0, xtol=1e-6, convergence_test=None, maxiter=32, minite
         if iJ0.shape[0] != n or iJ0.shape[1] != n:
             raise ValueError("the initial Jacobian has the wrong dimensions")
         I = np.copy(iJ0)
+    elif isinstance(iJ0, tuple):
+        raise TypeError("Parameter iJ0 must be of type int, float or Numpy ndarray")
     f0 = F(x0)
     f = np.copy(f0)
     x = np.copy(x0)
@@ -2936,29 +2986,34 @@ def read_model_instance(filename):
 
     :param str filename: path to the HDF5 file
     :returns: the reconstructed :class:`model_instance`
-    
+
     """
-    import h5py, sys as _sys
+    import sys as _sys
+
+    import h5py
+
     caller_globals = _sys._getframe(1).f_globals
-    with h5py.File(filename, 'r') as f:
-        if 'model_definition' not in f.attrs:
+    with h5py.File(filename, "r") as f:
+        if "model_definition" not in f.attrs:
             raise ValueError("The file does not contain a model definition.")
-        exec(f.attrs['model_definition'], caller_globals)
-        model = caller_globals['model']
+        exec(f.attrs["model_definition"], caller_globals)
+        model = caller_globals["model"]
         try:
             model.parameter_set()  # succeeds if set_parameters was part of the definition
         except Exception:
             # Fallback for files written before set_parameters was included in write_definition.
             # Operators defined via cluster_model.new_operator are system-specific (need _N suffix);
             # all other parameters are lattice-wide and keep their name as-is.
-            cluster_op_names = {op_name for s in model.systems for op_name, *_ in s.operators}
+            cluster_op_names = {
+                op_name for s in model.systems for op_name, *_ in s.operators
+            }
             params = {}
             for key in sorted(f.keys()):
-                if key.startswith('cluster_') and 'params' in f[key]:
-                    sys_idx = int(key.split('_')[1])  # 0-based
-                    for k, v in f[key]['params'].attrs.items():
+                if key.startswith("cluster_") and "params" in f[key]:
+                    sys_idx = int(key.split("_")[1])  # 0-based
+                    for k, v in f[key]["params"].attrs.items():
                         if k in cluster_op_names:
-                            params[f'{k}_{sys_idx + 1}'] = float(v)
+                            params[f"{k}_{sys_idx + 1}"] = float(v)
                         else:
                             params[k] = float(v)
             model.set_parameters(list(params.items()))
@@ -3025,7 +3080,7 @@ def legendre_frequency_grid(w1, w2, n1, n2, n3):
     """
     returns a frequency grid (along the positive imaginary axis) tailored for integration.
     It is a Gauss-Legendre grid of n1, n2 and n3 points in each of the intervals [0,w1], [w1,w2] and [w2,infinity]
-    
+
     :param float w1 : low-frequency boundary
     :param float w2 : high-frequency boundary
     :param int n1: number of points from 0 to w1
@@ -3034,18 +3089,16 @@ def legendre_frequency_grid(w1, w2, n1, n2, n3):
     """
 
     nodes, weights = np.polynomial.legendre.leggauss(n1)
-    w = np.zeros(n1+n2+n3)
-    p = np.zeros(n1+n2+n3)
+    w = np.zeros(n1 + n2 + n3)
+    p = np.zeros(n1 + n2 + n3)
     w[0:n1] = w1 * 0.5 * (nodes + 1)
     p[0:n1] = weights * w1 * 0.5
     nodes, weights = np.polynomial.legendre.leggauss(n2)
-    w[n1 : n1+n2] = w1 + 0.5 * (w2 - w1) * (nodes + 1)
-    p[n1 : n1+n2] = weights * (w2 - w1) * 0.5
+    w[n1 : n1 + n2] = w1 + 0.5 * (w2 - w1) * (nodes + 1)
+    p[n1 : n1 + n2] = weights * (w2 - w1) * 0.5
     nodes, weights = np.polynomial.legendre.leggauss(n3)
-    w[n1+n2 :] = 1.0 / ((1 / w2) * 0.5 * np.flip((nodes + 1)))
-    p[n1+n2 :] = (
-        np.flip(weights) * (1 / w2) * 0.5 * w[n1+n2 :] * w[n1+n2 :]
-    )
+    w[n1 + n2 :] = 1.0 / ((1 / w2) * 0.5 * np.flip((nodes + 1)))
+    p[n1 + n2 :] = np.flip(weights) * (1 / w2) * 0.5 * w[n1 + n2 :] * w[n1 + n2 :]
     p = p / np.pi
     return w, p
 
@@ -3055,11 +3108,11 @@ def regular_frequency_grid(wc, n1, n2):
     returns a frequency grid (along the positive imaginary axis) tailored for integration.
     It is a uniform grid of n1 points in the interval [0,wc] and n2 points in the inverse interval [0,1/wc] for 1/w
     Uses the trapezoidal rule.
-    
+
     :param float wc : frequency boundary
     :param int n1 : number of points in the low-frequency interval
     :param int n2 : number of points in the high-frequency interval
-    
+
     """
 
     w = np.zeros(n1 + n2)
@@ -3093,5 +3146,3 @@ def discrete_integration_grid(freqs, weights):
     """
 
     qcm.frequency_grid(freqs, weights)
-
-
