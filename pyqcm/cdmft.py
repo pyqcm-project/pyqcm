@@ -206,7 +206,7 @@ class CDMFT:
         hartree=None,
         converge_with_stdev=False,
         iteration="broyden",  # or 'fixed_point'
-        alpha=(0.3, 16),  # (Damping Factor, Iterations)
+        alpha=0.0,  # or (damping factor, iterations) for fixed_point
         method="Nelder-Mead",
         lm_max_nfev=2000,
         file="cdmft.tsv",
@@ -376,12 +376,21 @@ class CDMFT:
             self.grid = grid
         print("frequency grid = ", self.grid.name)
 
-        if isinstance(alpha, float):
+        if isinstance(self.alpha, float) and self.alpha > 0.0:
+            # Catch if custom float given. Works for both iteration methods.
             print(f"Constant damping factor of {self.alpha}")
-        elif isinstance(alpha, tuple):
+        elif isinstance(self.alpha, tuple):
+            # Catch if custom tuple is given. Works only for fixed point.
             print(
                 f"Applying a damping factor {self.alpha[0]} after {self.alpha[1]} iterations "
             )
+        elif iteration == "fixed_point":
+            # Set default 'low-convergence' damping for fixed point iterations
+            self.alpha = (0.3, 16)
+            print(
+                f"Applying a damping factor {self.alpha[0]} after {self.alpha[1]} iterations "
+            )
+
         print("-" * 100)
 
         # -------------------------------------- bias field --------------------------------
@@ -389,8 +398,7 @@ class CDMFT:
             model.set_parameter(self.bias.op, self.bias.value0)
 
         # ------------------------------- CDMFT main iteration loop ------------------------
-        self.niter = 0
-        self.iter = 0
+        self.niter, self.iter = 0, 0
 
         def F(x):
             self.x = np.copy(x)
