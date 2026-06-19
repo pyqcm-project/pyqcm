@@ -31,5 +31,10 @@ jobs:
           git clone --mirror \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo.git
           cd repo.git
-          git push --mirror \
-            "https://x-token-auth:${BITBUCKET_SYNC}@bitbucket.org/dsenechQCM/qcm_wed.git"
+          # Pass the credential as a Basic-auth header rather than in the URL,
+          # so any special characters in the token are tolerated. Strip stray
+          # whitespace/newlines from the secret first.
+          TOKEN="$(printf '%s' "$BITBUCKET_SYNC" | tr -d '[:space:]')"
+          AUTH="$(printf 'x-token-auth:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http."https://bitbucket.org/".extraheader="Authorization: Basic ${AUTH}" \
+            push --mirror "https://bitbucket.org/dsenechQCM/qcm_wed.git"
