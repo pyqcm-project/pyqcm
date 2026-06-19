@@ -9,6 +9,8 @@ The library is distributed under the GPL license.
 
 A comprehensive paper describing the different methods and version 2.1 of the software is available on [arXiv repository](https://arxiv.org/abs/2305.18643).
 
+The source code is hosted on GitHub: [https://github.com/pyqcm-project/pyqcm](https://github.com/pyqcm-project/pyqcm).
+
 
 ## Installation
 

@@ -19,7 +19,7 @@ brew install cmake
 2. Open a terminal and clone the Pyqcm Git repository:
 
 ```
-git clone https://bitbucket.org/dsenechQCM/qcm_wed.git
+git clone https://github.com/pyqcm-project/pyqcm.git qcm_wed
 cd qcm_wed
 ```
 
@@ -90,7 +90,7 @@ brew install eigen
 1. Clone PyQCM:
 
 ```
-git clone https://bitbucket.org/dsenechQCM/qcm_wed.git
+git clone https://github.com/pyqcm-project/pyqcm.git qcm_wed
 ```
 
 2. Configure and compile QCM library:
