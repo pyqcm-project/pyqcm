@@ -551,7 +551,7 @@ def plot_hybridization_function(self, w=6, eta=0.01, imaginary=False, clus = 0, 
 
 
 #---------------------------------------------------------------------------------------------------
-def cluster_spectral_function(self, w=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, orbs=None, real_part=False, color = 'b', **kwargs):
+def cluster_spectral_function(self, w=6, eta = 0.05, imaginary=False, clus=0, offset=2, full=False, opt=None, spin_down=False, blocks=False, file=None, plt_ax=None, orbs=None, real_part=False, color = 'b', log=False, **kwargs):
     """Plots the spectral function of the cluster in the site basis
     
     :param float w: the frequency range is from -w to w if w is a float. If w is a tuple then the range is (w[0], w[1]). w can also be an explicit list of real frequencies
@@ -569,6 +569,7 @@ def cluster_spectral_function(self, w=6, eta = 0.05, imaginary=False, clus=0, of
     :param [int] orbs: list of orbitals to plot (starts at 1). If None, all are included.
     :param bool real_part: if True, plots the real part instead of the imaginary part.
     :param color: matplotlib color of the curves
+    :param log: if True, plots the log of the spectral weight
     :param kwargs: keyword arguments passed to the matplotlib 'plot' function
     :returns: the array of frequencies, the spectral weight
 
@@ -622,19 +623,25 @@ def cluster_spectral_function(self, w=6, eta = 0.05, imaginary=False, clus=0, of
             for j in range(d):
                 A[i, j] += g[O[j], O[j]]
 
-    max = np.max(np.abs(A))
-    ax.set_ylim(0, dd * offset + max)
+    if real_part:
+        Ap = A.real
+    else:
+        Ap = -A.imag
+    if log : 
+        Ap = np.log(np.abs(Ap))
+        print('minimimum = ', np.min(Ap), '\tmaximum = ', np.max(Ap))
+    else: 
+        max = np.max(np.abs(Ap))
+        ax.set_ylim(0, dd * offset + max)
 
     if imaginary:
         ax.set_xlim(np.imag(w[0]), np.imag(w[-1]))
         for j in range(dd):
-            if real_part: ax.plot(np.imag(w), A[:, j].real + offset * j, '-', lw=0.5, color=color, **kwargs)
-            else: ax.plot(np.imag(w), -A[:, j].imag + offset * j, '-', lw=0.5, color=color, **kwargs)
+            ax.plot(np.imag(w), Ap[:, j] + offset * j, '-', lw=0.5, color=color, **kwargs)
     else:
         ax.set_xlim(np.real(w[0]), np.real(w[-1]))
         for j in range(dd):
-            if real_part: ax.plot(np.real(w), A[:, j].real + offset * j, '-', lw=0.5, color=color, **kwargs)
-            else: ax.plot(np.real(w), -A[:, j].imag + offset * j, '-', lw=0.5, color=color, **kwargs)
+            ax.plot(np.real(w), Ap[:, j] + offset * j, '-', lw=0.5, color=color, **kwargs)
 
     ax.set_xlabel(r'$\omega$')
     ax.axvline(0, ls='solid', lw=0.5)

@@ -512,7 +512,7 @@ class lattice_model:
                 return True
             except ValueError:
                 return False
-    
+
         if not is_sequence(sec):
             sec = (sec,)
 
@@ -543,7 +543,7 @@ class lattice_model:
                     raise ValueError("String {:s} does not represent a valid sector".format(s))
             if valid == False:
                 raise ValueError("String {:s} does not represent a valid set of sectors".format(s))
-       
+
         qcm.set_target_sectors(sec)
         self.target_sectors = sec
 
@@ -854,7 +854,7 @@ class lattice_model:
                 args.append(f'generators={repr(s.generators)}')
             if s.bath_irrep:
                 args.append(f'bath_irrep=True')
-            lines.append(f'{s.name} = pyqcm.cluster_model({", ".join(args)})')
+            lines.append(f'{s.name} = cluster_model({", ".join(args)})')
             for op_name, op_type, elem, is_complex in s.operators:
                 method = 'new_operator_complex' if is_complex else 'new_operator'
                 lines.append(f'{s.name}.{method}({repr(op_name)}, {repr(op_type)}, {repr(elem)})')
@@ -867,13 +867,13 @@ class lattice_model:
             clus_varnames.append(varname)
             if c.ref is not None:
                 ref_var = clus_varnames[c.ref.index]
-                lines.append(f'{varname} = pyqcm.cluster({ref_var}, {repr(c.sites)}, pos={repr(c.pos)})')
+                lines.append(f'{varname} = cluster({ref_var}, {repr(c.sites)}, pos={repr(c.pos)})')
             else:
                 if len(c.sys) == 1:
                     sys_arg = c.sys[0].name
                 else:
                     sys_arg = '[' + ', '.join(s.name for s in c.sys) + ']'
-                lines.append(f'{varname} = pyqcm.cluster({sys_arg}, {repr(c.sites)}, pos={repr(c.pos)})')
+                lines.append(f'{varname} = cluster({sys_arg}, {repr(c.sites)}, pos={repr(c.pos)})')
         lines.append('')
 
         # --- lattice_model constructor ---
@@ -883,7 +883,7 @@ class lattice_model:
             lm_args.append(f'lattice={repr(self.lattice)}')
         if self.hybrid_file:
             lm_args.append(f'hybrid_file={repr(self.hybrid_file)}')
-        lines.append(f'model = pyqcm.lattice_model({", ".join(lm_args)})')
+        lines.append(f'model = lattice_model({", ".join(lm_args)})')
         lines.append('')
 
         # --- lattice-level operator calls ---
@@ -938,6 +938,14 @@ class lattice_model:
         loop_from_table,
     )
 
+    # -----------------------------------------------------------------------------------------------
+    def model_instance(self):
+        """Initiates a new instance of the lattice model
+        :returns: A model_instance object
+
+        """
+
+        return model_instance(self)
 
 ####################################################################################################
 class model_instance:
@@ -1061,7 +1069,7 @@ class model_instance:
             L is the dimension of the Green function, M is the number of floors.
         """
 
-        if pr is False: 
+        if pr is False:
             return qcm.combined_mcf(self.label * self.model.nsys + sys, k)
         else:
             W, A, B = qcm.combined_mcf(self.label * self.model.nsys + sys, k)
@@ -1069,10 +1077,10 @@ class model_instance:
             for i,x in enumerate(A):
                 print('A[' + str(i) + '] = \n' + str(x))
             for i,x in enumerate(B):
-                print('B[' + str(i) + '] = \n' + str(x)) 
-            return W, A, B   
+                print('B[' + str(i) + '] = \n' + str(x))
+            return W, A, B
 
-        
+
 
     # -----------------------------------------------------------------------------------------------
     def write_hdf5(self, filename, sys=0):
@@ -2585,7 +2593,7 @@ def orbital_manager(orbitals, from_zero=False, spin_split=False):
     With mixing == 2 (spin flip), the matrix is 2*nband x 2*nband, with both
     spin sectors entangled. By default, when orbitals=None this returns indices
     over the full 2*nband range so that callers summing diagonal elements pick
-    up both spin sectors. 
+    up both spin sectors.
 
     :param orbitals: list of orbitals
     :param bool from_zero: it True, returs 0-based indices, otherwise 1-based
@@ -2732,7 +2740,7 @@ def varia_table(var, val):
             S += "{:>8} = {: .5g}\t".format(x, sorted_dic[x])
             i += 1
             if i%5 == 0: S += '\n'
-        
+
     return S+'\n'
 
 # ---------------------------------------------------------------------------------------------------
@@ -2769,7 +2777,7 @@ def fixed_point_iteration(
     convergence_test=None,
     maxiter=32,
     miniter=0,
-    alpha=0.0,
+    damping=0.0,
     eps_algo=0,
 ):
     """
@@ -2781,7 +2789,7 @@ def fixed_point_iteration(
     :param function convergence_test: function called to perform custom convergence tests. Returns True if converged
     :param int maxiter: maximum number of iterations
     :param int miniter: minimum number of iterations
-    :param float alpha: damping coefficient
+    :param float/iterable damping: damping coefficient
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :returns: the solution, the number of iterations
     :rtype: [float], int
@@ -2792,11 +2800,17 @@ def fixed_point_iteration(
     data = np.empty((n, maxiter + 1))
     if eps_algo > 0:
         pass
+
+    if isinstance(damping, float):
+        alpha = damping
+    else:
+        alpha = 0
+        
     iter = 0
     while True:
         print("\n--> fixed_point iteration {:d}".format(iter + 1))
-        if iter > 16 and alpha == 0:
-            alpha = 0.3  # mix with previous solution if convergence is slow
+        if isinstance(damping, tuple) and iter >= damping[1] and alpha == 0:
+            alpha = damping[0]
         x = (alpha - 1) * F(x0) + x0
         data[:, iter] = np.copy(x0)
         delta_x = x - x0
@@ -2809,7 +2823,7 @@ def fixed_point_iteration(
                 z = epsilon(data[i, iter - eps_length : iter])
                 data[i, iter] = z
                 x[i] = z
-            print("epsilon algorithm : ", x0, " ---> ", x)
+            print("epsilon algorithm : ", x0, " --> ", x)
         # -------------------------------------------------------------------------------
         x0 = np.copy(x)
 
@@ -2849,6 +2863,8 @@ def broyden(F, x0, iJ0=0.0, xtol=1e-6, convergence_test=None, maxiter=32, minite
         if iJ0.shape[0] != n or iJ0.shape[1] != n:
             raise ValueError("the initial Jacobian has the wrong dimensions")
         I = np.copy(iJ0)
+    elif isinstance(iJ0, tuple):
+        raise TypeError("Parameter iJ0 must be of type int, float or Numpy ndarray")
     f0 = F(x0)
     f = np.copy(f0)
     x = np.copy(x0)
@@ -2936,7 +2952,7 @@ def read_model_instance(filename):
 
     :param str filename: path to the HDF5 file
     :returns: the reconstructed :class:`model_instance`
-    
+
     """
     import h5py, sys as _sys
     caller_globals = _sys._getframe(1).f_globals
@@ -3025,7 +3041,7 @@ def legendre_frequency_grid(w1, w2, n1, n2, n3):
     """
     returns a frequency grid (along the positive imaginary axis) tailored for integration.
     It is a Gauss-Legendre grid of n1, n2 and n3 points in each of the intervals [0,w1], [w1,w2] and [w2,infinity]
-    
+
     :param float w1 : low-frequency boundary
     :param float w2 : high-frequency boundary
     :param int n1: number of points from 0 to w1
@@ -3055,11 +3071,11 @@ def regular_frequency_grid(wc, n1, n2):
     returns a frequency grid (along the positive imaginary axis) tailored for integration.
     It is a uniform grid of n1 points in the interval [0,wc] and n2 points in the inverse interval [0,1/wc] for 1/w
     Uses the trapezoidal rule.
-    
+
     :param float wc : frequency boundary
     :param int n1 : number of points in the low-frequency interval
     :param int n2 : number of points in the high-frequency interval
-    
+
     """
 
     w = np.zeros(n1 + n2)
@@ -3093,5 +3109,3 @@ def discrete_integration_grid(freqs, weights):
     """
 
     qcm.frequency_grid(freqs, weights)
-
-
