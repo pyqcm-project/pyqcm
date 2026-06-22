@@ -43,7 +43,7 @@ option(
   ON)
 option(
   PRIMME_DIR
-  "Specify the path to the PRIMME root directory for linking qcm_wed library against if not download automatically"
+  "Specify the path to the PRIMME root directory for linking pyqcm library against if not download automatically"
 )
 option(
   WITH_GF_OPT_KERNEL
@@ -53,7 +53,7 @@ option(QCM_DEBUG "Enable extra verbose information for debug purpose" OFF)
 option(USE_OPENMP "Enable parallelization using OpenMP" ON)
 option(
   GENERIC_BUILD
-  "Compile qcm_wed with the minimum optimization flag to target generic machine"
+  "Compile pyqcm with the minimum optimization flag to target generic machine"
   ON)
 
 # Fetch git hash for traceability, not for versioning
@@ -69,11 +69,28 @@ if(NOT QCM_GIT_HASH)
 endif()
 message(STATUS "Git hash: ${QCM_GIT_HASH}")
 
+# When built through scikit-build, SKBUILD_PROJECT_VERSION is provided by
+# setuptools-scm. For a direct CMake build, derive the version from git tags so
+# the artifact is not stamped with the 0.0.0 placeholder.
 if(NOT DEFINED SKBUILD_PROJECT_VERSION)
-    set(SKBUILD_PROJECT_VERSION "0.0.0")
+    execute_process(
+        COMMAND git describe --tags --always
+        OUTPUT_VARIABLE GIT_DESCRIBE
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    # Extract a strict X.Y.Z (CMake's project(VERSION ...) accepts numbers only)
+    # from tags like "v2.26.1" or "v2.26.1-5-gc29031a".
+    if(GIT_DESCRIBE MATCHES "([0-9]+)\\.([0-9]+)\\.([0-9]+)")
+        set(SKBUILD_PROJECT_VERSION "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
+    else()
+        set(SKBUILD_PROJECT_VERSION "0.0.0")
+        message(WARNING "Could not derive version from git; defaulting to 0.0.0")
+    endif()
 endif()
 
-message(STATUS "QCM_WED version: ${SKBUILD_PROJECT_VERSION}")
+message(STATUS "PYQCM version: ${SKBUILD_PROJECT_VERSION}")
 project(
   qcm
   LANGUAGES C CXX
@@ -221,13 +238,12 @@ message(STATUS "nanobind dir: ${nanobind_ROOT}")
 # -------------
 nanobind_add_module(qcm NB_STATIC ${QCM_SOURCES})
 
-# Preserve the historical artifact name (qcm.0.0.0.so, imported through the
-# pyqcm/qcm.so -> qcm.0.0.0.so symlink chain).
+# Produce a plain artifact name (qcm.so), imported directly as the `qcm` module.
 set_target_properties(
   qcm
   PROPERTIES
   PREFIX ""
-  OUTPUT_NAME "qcm.0.0.0"
+  OUTPUT_NAME "qcm"
   SUFFIX ".so")
 
 # ------
@@ -254,7 +270,7 @@ if(WITH_PRIMME)
     if(NOT EIGEN_HAMILTONIAN)
         message(
       FATAL_ERROR
-        "PRIMME eigensolver require qcm_wed to be build with Eigen Hamiltonian. Add -DEIGEN_HAMILTONIAN=1 to CMake."
+        "PRIMME eigensolver require pyqcm to be build with Eigen Hamiltonian. Add -DEIGEN_HAMILTONIAN=1 to CMake."
     )
     endif()
     if(DOWNLOAD_PRIMME)
@@ -263,6 +279,12 @@ if(WITH_PRIMME)
         list(APPEND CMD_MAKE_PRIMME "lib")
         list(APPEND CMD_MAKE_PRIMME "CC=${CMAKE_C_COMPILER}"
          "CFLAGS=${CMAKE_CXX_FLAGS_RELEASE} -fPIC -DNDEBUG")
+        set(PRIMME_LIBRARY ${CMAKE_SOURCE_DIR}/external/primme/lib/libprimme.a)
+        # The byproduct lives in a directory that does not exist until PRIMME is
+        # downloaded/built. Create it now so the Makefile generator can emit a
+        # file-level rule for the byproduct (otherwise the link step fails with
+        # "No rule to make target libprimme.a").
+        file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/external/primme/lib)
         ExternalProject_Add(
       PRIMME
       PREFIX ${CMAKE_SOURCE_DIR}/external
@@ -276,15 +298,22 @@ if(WITH_PRIMME)
       BUILD_IN_SOURCE 1
       INSTALL_COMMAND ""
       STEP_TARGETS build
-      BUILD_BYPRODUCTS ${CMAKE_SOURCE_DIR}/external/primme/lib/libprimme.a)
+      BUILD_BYPRODUCTS ${PRIMME_LIBRARY})
+        # Consume PRIMME through an IMPORTED target so the dependency on the
+        # ExternalProject (and thus the byproduct rule) propagates to whatever
+        # links against it, guaranteeing PRIMME is built before qcm is linked.
+        add_library(primme STATIC IMPORTED GLOBAL)
+        set_target_properties(primme PROPERTIES IMPORTED_LOCATION ${PRIMME_LIBRARY})
+        # qcm depends on the ExternalProject so PRIMME is built before qcm links.
         add_dependencies(qcm PRIMME)
-        set(PRIMME_LIBRARY ${CMAKE_SOURCE_DIR}/external/primme/lib/libprimme.a)
     else()
         find_library(
       PRIMME_LIBRARY REQUIRED
       NAMES libprimme.a
       HINTS "/usr/local/lib" ${PRIMME_DIR}/lib
             "${CMAKE_SOURCE_DIR}/external/primme/lib")
+        add_library(primme STATIC IMPORTED GLOBAL)
+        set_target_properties(primme PROPERTIES IMPORTED_LOCATION ${PRIMME_LIBRARY})
     endif()
     get_filename_component(PRIMME_DIR ${PRIMME_LIBRARY} DIRECTORY)
     set(PRIMME_DIR "${PRIMME_DIR}/..")
@@ -373,8 +402,10 @@ endif()
 # -----------------
 # NB: do not link ${Python3_LIBRARIES} explicitly; nanobind_add_module handles
 # Python linkage (uses Development.Module / -undefined dynamic_lookup).
+# Link the PRIMME IMPORTED target (only present when WITH_PRIMME is enabled) so
+# its build-order dependency on the ExternalProject is honoured.
 target_link_libraries(qcm PUBLIC ${LAPACK_LIBRARIES}
-                      ${PRIMME_LIBRARY} OpenMP::OpenMP_CXX)
+                      $<TARGET_NAME_IF_EXISTS:primme> OpenMP::OpenMP_CXX)
 
 target_include_directories(
   qcm
@@ -390,9 +421,15 @@ target_include_directories(
 # ---------------
 # Install targets
 # ---------------
-# Be sure to install in the pyqcm folder
-if(NOT CMAKE_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+# Be sure to install in the pyqcm folder for a direct CMake build. CMake always
+# defines CMAKE_INSTALL_PREFIX (default /usr/local), so test the dedicated
+# "initialized to default" flag instead: only redirect to the source tree when
+# the user did not pass an explicit prefix. Under scikit-build the prefix is set
+# explicitly, so the staged wheel layout is left untouched.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH
+        "Install path prefix" FORCE)
 endif()
 
 install(TARGETS qcm DESTINATION pyqcm)
+
