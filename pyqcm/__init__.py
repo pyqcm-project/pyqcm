@@ -3066,6 +3066,60 @@ def legendre_frequency_grid(w1, w2, n1, n2, n3):
     return w, p
 
 
+def _clenshaw_curtis_nodes_weights(n):
+    """
+    Nodes and Clenshaw-Curtis (Fejer first-rule) weights for the integration
+    of a plain function over the interval [-1,1].
+
+    The nodes are the first-kind Chebyshev nodes x_k = cos((2k-1)*pi/(2n)),
+    which are interior to (-1,1) (an open rule, so the semi-infinite tail
+    mapping stays finite). Unlike the Gauss-Chebyshev weights, these weights
+    carry no 1/sqrt(1-x^2) factor: they integrate a plain function and sum to 2
+    (the length of [-1,1]).
+
+    :param int n: number of points
+    :returns: (nodes, weights), both ascending in the node coordinate
+    """
+    k = np.arange(1, n + 1)
+    theta = (2 * k - 1) * np.pi / (2 * n)  # descending nodes = cos(theta)
+    j = np.arange(1, n // 2 + 1)
+    # Fejer first-rule weights (Waldvogel 2006)
+    c = np.cos(2.0 * np.outer(theta, j)) / (4.0 * j * j - 1.0)
+    weights = (2.0 / n) * (1.0 - 2.0 * c.sum(axis=1))
+    nodes = np.cos(theta)
+    # return ascending in the node coordinate
+    return np.flip(nodes), np.flip(weights)
+
+
+def chebyshev_frequency_grid(w1, w2, n1, n2, n3):
+    """
+    returns a frequency grid (along the positive imaginary axis) tailored for integration.
+    It is a Clenshaw-Curtis (Chebyshev) grid of n1, n2 and n3 points in each of the intervals [0,w1], [w1,w2] and [w2,infinity]
+
+    :param float w1 : low-frequency boundary
+    :param float w2 : high-frequency boundary
+    :param int n1: number of points from 0 to w1
+    :param int n2: number of points from w1 to w2
+    :param int n3: number of points from w2 to infinity
+    """
+
+    nodes, weights = _clenshaw_curtis_nodes_weights(n1)
+    w = np.zeros(n1+n2+n3)
+    p = np.zeros(n1+n2+n3)
+    w[0:n1] = w1 * 0.5 * (nodes + 1)
+    p[0:n1] = weights * w1 * 0.5
+    nodes, weights = _clenshaw_curtis_nodes_weights(n2)
+    w[n1 : n1+n2] = w1 + 0.5 * (w2 - w1) * (nodes + 1)
+    p[n1 : n1+n2] = weights * (w2 - w1) * 0.5
+    nodes, weights = _clenshaw_curtis_nodes_weights(n3)
+    w[n1+n2 :] = 1.0 / ((1 / w2) * 0.5 * np.flip((nodes + 1)))
+    p[n1+n2 :] = (
+        np.flip(weights) * (1 / w2) * 0.5 * w[n1+n2 :] * w[n1+n2 :]
+    )
+    p = p / np.pi
+    return w, p
+
+
 def regular_frequency_grid(wc, n1, n2):
     """
     returns a frequency grid (along the positive imaginary axis) tailored for integration.

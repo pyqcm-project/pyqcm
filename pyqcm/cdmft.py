@@ -822,8 +822,8 @@ class frequency_grid:
     """
     This class contains the imaginary frequency grid data, including weights
 
-    :param str grid_type: type of frequency grid along the imaginary axis : 'legendre', 'matsubara', 'matsubara+', 'regular'
-    :param tuple specs: specific parameters for each grid type. For 'legendre', specs=(w1, w2, n1, n2, n3) where w1 and w2 define 3 regions along the imaginary frequency axis. Below w1, n1 grid points are used; between w1 and w2, n2 grid points are used, and n3 grid points are used between w2 and infinity. For 'matsubara', specs=(wc, beta), where wc is the frequency cutoff and beta the inverse effective temperature. For 'regular', specs=(wc, n1, n2), where wc is the boundary between the low- and high-frequency regions, and n1 and n2 the number of points in each region, respectively. For 'Matsubara+', specs=(wc, beta, n2), like Matsubara, but with n2 points between wc and infinity.
+    :param str grid_type: type of frequency grid along the imaginary axis : 'legendre', 'chebyshev', 'matsubara', 'matsubara+', 'regular'
+    :param tuple specs: specific parameters for each grid type. For 'legendre' and 'chebyshev', specs=(w1, w2, n1, n2, n3) where w1 and w2 define 3 regions along the imaginary frequency axis. Below w1, n1 grid points are used; between w1 and w2, n2 grid points are used, and n3 grid points are used between w2 and infinity. For 'matsubara', specs=(wc, beta), where wc is the frequency cutoff and beta the inverse effective temperature. For 'regular', specs=(wc, n1, n2), where wc is the boundary between the low- and high-frequency regions, and n1 and n2 the number of points in each region, respectively. For 'Matsubara+', specs=(wc, beta, n2), like Matsubara, but with n2 points between wc and infinity.
     :param str opt: if opt='self', the cdmft weights (not the integration weights) are not the same as the integration weights, but scale like the norm of the self-energy at the corresponding frequency (the Hartree-Fock part of the self-energy is subtracted). If opt = 'ifreq', the cdmft weights are rather scaled like 1/frequency.
     :ivar wr: (real array) the frequencies along the imaginary axis
     :ivar weight: the weight associated to each frequency in an integral
@@ -837,6 +837,12 @@ class frequency_grid:
             w1, w2, n1, n2, n3 = specs
             self.wr, self.weight = pyqcm.legendre_frequency_grid(w1, w2, n1, n2, n3)
             self.name = "legendre({:g}-{:g}-{:d}-{:d}-{:d})".format(w1, w2, n1, n2, n3)
+
+        elif grid_type == "chebyshev" or grid_type == "Chebyshev":
+            self.grid_type = "chebyshev"
+            w1, w2, n1, n2, n3 = specs
+            self.wr, self.weight = pyqcm.chebyshev_frequency_grid(w1, w2, n1, n2, n3)
+            self.name = "chebyshev({:g}-{:g}-{:d}-{:d}-{:d})".format(w1, w2, n1, n2, n3)
 
         elif grid_type == "Matsubara" or grid_type == "matsubara":
             wc, beta = specs
