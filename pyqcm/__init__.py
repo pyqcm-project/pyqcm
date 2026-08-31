@@ -55,7 +55,7 @@ class OutOfBoundsError(Exception):
         self.max_value = max_value
 
     def __str__(self):
-        return self.message + f" The maxium value is {self.max_value}."
+        return self.message + f" The maximum value is {self.max_value}."
 
 
 class TooManyIterationsError(Exception):
