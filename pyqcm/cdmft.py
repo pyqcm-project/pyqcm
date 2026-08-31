@@ -562,19 +562,17 @@ class CDMFT:
                 F = lambda x, grad=None: qcm.CDMFT_distance(x, _clus, _label)
                 jac_fn = False
                 maxfev = self.max_function_eval
-            try:
-                opt_x, opt_iter_done, opt_status, opt_msg, _ = optimize(
-                    F,
-                    x0,
-                    self.method,
-                    self.initial_step,
-                    self.accur_bath,
-                    self.accur_dist,
-                    maxfev,
-                    jac=jac_fn,
-                )
-            except pyqcm.MinimizationError:
-                raise pyqcm.MinimizationError(f"Minimization procedure {self.method} failed: {opt_status}: {opt_msg}")
+
+            opt_x, opt_iter_done, opt_status, opt_msg, _ = optimize(
+                F,
+                x0,
+                self.method,
+                self.initial_step,
+                self.accur_bath,
+                self.accur_dist,
+                maxfev,
+                jac=jac_fn,
+            )
 
             opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
@@ -582,20 +580,11 @@ class CDMFT:
 
             if opt_iter_done > maxfev:
                 print(opt_x)
-                pyqcm.banner(
-                    "Number of function evaluations exceeds preset maximum of {:d}".format(
-                        self.max_function_eval
-                    ),
-                    "!",
-                )
                 raise pyqcm.TooManyIterationsError(maxfev)
 
             if np.any(np.isnan(opt_x)):
                 print(opt_x)
-                pyqcm.banner("NaN found in optimization of bath parameters", "!")
-                raise pyqcm.MinimizationError(
-                    "NaN found in optimization of bath parameters"
-                )
+                raise pyqcm.MinimizationError("NaN found in optimization of bath parameters")
 
             # push back into array
             self.x[ic : ic + self.nvar[c]] = np.copy(opt_x)
@@ -634,7 +623,7 @@ class CDMFT:
         self.I.write_summary(self.iter_file)
 
         print("GS sector(s): ", [X[1] for X in gs])
-        print(f"Minimization: {opt_msg[:-1]} in {opt_iter_done} steps.")
+        print(f"Minimization: ({opt_status}) {opt_msg[:-1]} in {opt_iter_done} steps.")
         print(
                "time(Minimization)/time(ED)={:.3g}, distance = {:1.4g}.".format(
                 time_MIN / time_ED, opt_fun
@@ -1548,10 +1537,7 @@ def check_bounds(x, B=100, v=None):
                 S = "parameter {:s} = {:g} is out of bounds!".format(v[i], x[i])
             else:
                 S = "parameter no {:d}  = {:g} is out of bounds!".format(i + 1, x[i])
-            print(
-                "Try setting `max_value` to a bigger value within the CDMFT procedure!"
-            )
-            raise pyqcm.OutOfBoundsError(S)
+            raise pyqcm.OutOfBoundsError(S, B)
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -1731,9 +1717,7 @@ def optimize(
             status = 0  # Integer >= 0 means no error according to Scipy's documentation
 
     if status < 0:
-        raise pyqcm.MinimizationError(
-            "Failure of the optimization of the bath parameters"
-        )
+        raise pyqcm.MinimizationError(f"Minimization procedure {method} failed with code: ({status}) {msg}")
 
     return opt_x, iter_done, status, msg, fun
 

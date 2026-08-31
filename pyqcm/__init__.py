@@ -50,7 +50,12 @@ cluster_model_names = set()
 
 
 class OutOfBoundsError(Exception):
-    pass
+    def __init__(self, message, max_value):
+        self.message = message
+        self.max_value = max_value
+
+    def __str__(self):
+        return self.message + f" The maxium value is {self.max_value}."
 
 
 class TooManyIterationsError(Exception):
@@ -58,7 +63,7 @@ class TooManyIterationsError(Exception):
         self.max_iteration = max_iteration
 
     def __str__(self):
-        return "the number of iterations has exceeded {:d}".format(self.max_iteration)
+        return "The number of iterations has exceeded {:d}!".format(self.max_iteration)
 
 
 class SolverError(Exception):
@@ -68,6 +73,7 @@ class SolverError(Exception):
 class MissingArgError(TypeError):
     pass
 
+
 class MinimizationError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -75,6 +81,7 @@ class MinimizationError(Exception):
 
     def __str__(self):
         return f"{self.message}"
+
 
 class ParseError(Exception):
     pass
