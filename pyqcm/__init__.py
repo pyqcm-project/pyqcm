@@ -68,10 +68,13 @@ class SolverError(Exception):
 class MissingArgError(TypeError):
     pass
 
-
 class MinimizationError(Exception):
-    pass
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
 
+    def __str__(self):
+        return f"{self.message}"
 
 class ParseError(Exception):
     pass
@@ -2048,7 +2051,7 @@ class model_instance:
         )  # adds the timestamp
 
         if f is None: return
-        
+
         if commented:
             des = "#"
             val = "#"
@@ -2928,7 +2931,7 @@ def fixed_point_iteration(
         alpha = damping
     else:
         alpha = 0
-        
+
     iter = 0
     while True:
         print("\n--> fixed_point iteration {:d}".format(iter + 1))

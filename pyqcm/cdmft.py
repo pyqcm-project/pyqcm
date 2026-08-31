@@ -115,7 +115,7 @@ class convergence_manager:
                 self.name, self.ave, self.std
             )
         else:
-            S = "differences in " + self.name + " : "
+            S = "Differences in " + self.name + " : "
             for i in range(self.depth):
                 S += "{:g}\t".format(self.diff[i])
         if self.converged:
@@ -170,13 +170,13 @@ class CDMFT:
     :param str iteration: method of iteration of parameters ('fixed_point' or 'broyden')
     :param float/iterable alpha: if iteration='fixed_point', damping parameter (fraction of the previous iteration in the new one). If iteration='broyden', 1+alpha is the inverse initial Jacobian (or alpha can literally be a matrix, the inverse Jacobian from a previous run).
     :param str method: minimization method. Derivative-free choices: 'Nelder-Mead' (default), 'Powell', 'CG', 'ANNEAL', NLopt methods 'NELDERMEAD', 'COBYLA', 'BOBYQA', 'PRAXIS', 'SUBPLEX'. Least-squares choices, which fit the hybridization residual vector directly and activate the Jacobian ``qcm.CDMFT_gradient`` automatically: 'trf' (trust region reflective), 'BFGS' (Levenberg-Marquardt), 'L-BFGS-B' (dogbox). Note that the latter two names are kept for backward compatibility and do not describe the algorithm actually used. The Jacobian is computed in C++ by central finite differences with step ``cdmft_jacobian_delta`` (default 1e-5, tunable via ``pyqcm.set_global_parameter``), which costs 2 residual evaluations per bath parameter.
-    :param int lm_max_nfev: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param str file: prefix of the file where the solution is written. The solutions in <prefix>.tsv and the iterations in <prefix>_iter.tsv
     :param int eps_algo: number of elements in the epsilon algorithm convergence accelerator = 2*eps_algo + 1 (0 = no acceleration)
     :param float initial_step: initial step in the minimization routine
     :param bool SEF: if True, computes the Potthoff functional at the end
     :param bool check_ground_state: if True, checks the ground state consistency and raises exception if inconsistent
     :param int max_function_eval: maximum number of distance function evaluations when minimizing distance
+    :param int jac_max_eval: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param bool compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
     :param ndarray host_function: if not None, function that computes the host array and passes it to qcm
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
@@ -208,13 +208,13 @@ class CDMFT:
         iteration="broyden",  # or 'fixed_point'
         alpha=0.0,  # or (damping factor, iterations) for fixed_point
         method="Nelder-Mead",
-        lm_max_nfev=2000,
         file="cdmft",
         eps_algo=0,
         initial_step=0.1,
         SEF=False,
         check_ground_state=False,
         max_function_eval=1_000_000,
+        jac_max_eval=10_000,
         compute_potential_energy=False,
         host_function=None,
         pre_host=None,
@@ -237,7 +237,7 @@ class CDMFT:
             None  # internal : hybridization function (spin downs, when mixing=4)
         )
         self.initial_step = initial_step
-        if file[-4:] != '.tsv': 
+        if file[-4:] != '.tsv':
             self.file = file + '.tsv'
             self.iter_file = file + '_iter.tsv'
         else:
@@ -245,7 +245,7 @@ class CDMFT:
             self.iter_file = file[0:-4] + '_iter.tsv'
         self.max_function_eval = max_function_eval
         self.max_value = max_value
-        self.lm_max_nfev = lm_max_nfev
+        self.jac_max_eval = jac_max_eval
         self.method = method
         self.jac = method.lower() in {"trf", "bfgs", "l-bfgs-b"}
         self.model = model
@@ -557,13 +557,13 @@ class CDMFT:
                 jac_fn = lambda x, _c=_clus, _l=_label: np.asarray(
                     qcm.CDMFT_gradient(x, _c, _l)
                 )
-                maxfev = self.lm_max_nfev
+                maxfev = self.jac_max_eval
             else:
                 F = lambda x, grad=None: qcm.CDMFT_distance(x, _clus, _label)
                 jac_fn = False
                 maxfev = self.max_function_eval
             try:
-                opt_x, opt_iter_done, opt_success, _ = optimize(
+                opt_x, opt_iter_done, opt_status, opt_msg, _ = optimize(
                     F,
                     x0,
                     self.method,
@@ -573,11 +573,9 @@ class CDMFT:
                     maxfev,
                     jac=jac_fn,
                 )
-            except MinimizationError:
-                raise MinimizationError(
-                    "Failure of the bath optimization procedure, possibly out of bounds parameter"
-                ) from None
-            
+            except pyqcm.MinimizationError:
+                raise pyqcm.MinimizationError(f"Minimization procedure {self.method} failed: {opt_status}: {opt_msg}")
+
             opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
             self.dist += opt_fun
@@ -585,12 +583,12 @@ class CDMFT:
             if opt_iter_done > maxfev:
                 print(opt_x)
                 pyqcm.banner(
-                    "number of function evaluations exceeds preset maximum of {:d}".format(
+                    "Number of function evaluations exceeds preset maximum of {:d}".format(
                         self.max_function_eval
                     ),
                     "!",
                 )
-                raise pyqcm.MinimizationError()
+                raise pyqcm.TooManyIterationsError(maxfev)
 
             if np.any(np.isnan(opt_x)):
                 print(opt_x)
@@ -635,16 +633,17 @@ class CDMFT:
         self.I.props["min_dist"] = self.dist
         self.I.write_summary(self.iter_file)
 
-        print("GS sector : ", [X[1] for X in gs])
+        print("GS sector(s): ", [X[1] for X in gs])
+        print(f"Minimization: {opt_msg[:-1]} in {opt_iter_done} steps.")
         print(
-            "{:d} minimization steps, time(MIN)/time(ED)={:.3g}, distance = {:1.4g}".format(
-                opt_iter_done, time_MIN / time_ED, opt_fun
+               "time(Minimization)/time(ED)={:.3g}, distance = {:1.4g}.".format(
+                time_MIN / time_ED, opt_fun
             ),
             flush=True,
         )
 
         var_val = pyqcm.varia_table(self.varia, self.x)
-        print("updated variational parameters:\n{:s}".format(var_val))
+        print("Updated variational parameters:\n{:s}".format(var_val))
         self.iter += 1
 
         return
@@ -1566,7 +1565,7 @@ def optimize(
     initial_step=0.1,
     accur=1e-4,
     accur_dist=1e-8,
-    maxfev=5000000,
+    maxfev=1_000_000,
     jac=None,
 ):
     """
@@ -1581,10 +1580,10 @@ def optimize(
         ``BFGS``, ``ANNEAL``. NLopt derivative-free: ``COBYLA``, ``BOBYQA``, ``PRAXIS``,
         ``NELDERMEAD``, ``SUBPLEX``. NLopt gradient-based (forward finite differences): ``L-BFGS-B``.
         Least-squares methods, which require a callable ``jac`` and route to
-        ``scipy.optimize.least_squares``: ``trf`` (trust region reflective), ``BFGS``
-        (Levenberg-Marquardt, no bounds), ``L-BFGS-B`` (dogbox, supports bounds). The last two
-        names are historical and do not name the algorithm that runs. All three share the same
-        stopping criteria, so they converge the bath parameters to a comparable precision.
+        ``scipy.optimize.least_squares``: ``trf`` (trust region reflective) and ``BFGS``
+        (Levenberg-Marquardt, no bounds). The last two names are historical and do not name the
+        algorithm that runs. All three share the same stopping criteria, so they converge the bath
+        parameters to a comparable precision.
     :param float initial_step: initial step in the minimization procedure
     :param float accur: tolerance on the parameters (x-tolerance). Absolute for the NLopt
         methods; relative for the least-squares methods, which stop when the step satisfies
@@ -1594,16 +1593,16 @@ def optimize(
     :param int maxfev: maximum number of function evaluations allowed
     :param jac: ``False`` (default, derivative-free) or a callable ``jac(x) -> 2-D array``
         returning the Jacobian dr/dx, of shape (Nresiduals, Nparams).
-    :returns: a 4-tuple (opt_x, iter_done, success, fun) with the optimal parameters, number of evaluations, success flag, and optimal function value
+    :returns: a 5-tuple (opt_x, iter_done, status, msg, fun) with the optimal parameters, number of evaluations, minimzation exit code and optimal function value
     :rtype: tuple
 
     """
 
-    _JAC_SUPPORTED = {"trf", "bfgs", "l-bfgs-b"}
-    if callable(jac) and method.lower() not in _JAC_SUPPORTED:
+    jacobian_support = {"trf", "bfgs"}
+    if callable(jac) and method.lower() not in jacobian_support:
         raise ValueError(
             f"method '{method}' does not support a Jacobian; "
-            f"supported methods: {', '.join(sorted(_JAC_SUPPORTED))}"
+            f"supported methods: {', '.join(sorted(jacobian_support))}"
         )
     if method.lower() == "trf" and not callable(jac):
         raise ValueError('"trf" requires a callable jac')
@@ -1628,10 +1627,10 @@ def optimize(
             xtol=accur,
             gtol=1e-12,
         )
-        return sol_ls.x, sol_ls.nfev, sol_ls.success, sol_ls.cost
+        return sol_ls.x, sol_ls.nfev, sol_ls.status, sol_ls.message, sol_ls.cost
 
     if method.lower() == "trf":
-        opt_x, iter_done, success, fun = least_squares("trf")
+        opt_x, iter_done, status, msg, fun = least_squares("trf")
 
     elif method == "Nelder-Mead":
         initial_simplex = np.zeros((nvar + 1, nvar))
@@ -1652,11 +1651,11 @@ def optimize(
                 "disp": False,
             },
         )
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+        opt_x, iter_done, status, msg, fun = sol.x, sol.nfev, sol.status, sol.message, sol.fun
 
     elif method == "Powell":
         sol = scipy.optimize.minimize(F, x, method="Powell", tol=accur)
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+        opt_x, iter_done, status, msg, fun = sol.x, sol.nfev, sol.status, sol.message, sol.fun
 
     elif method == "CG":
         sol = scipy.optimize.minimize(
@@ -1670,14 +1669,14 @@ def optimize(
                 "eps": pyqcm.get_global_parameter("cdmft_jacobian_delta"),
             },
         )
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+        opt_x, iter_done, status, msg, fun = sol.x, sol.nfev, sol.status, sol.message, sol.fun
 
     elif method == "BFGS":
         if callable(jac):
             # Levenberg-Marquardt rather than BFGS: feeding BFGS the gradient J^T r
             # throws away the Gauss-Newton structure of a sum of squares, and it has no
             # direct x-tolerance criterion. Unbounded, unlike trf and dogbox.
-            opt_x, iter_done, success, fun = least_squares("lm")
+            opt_x, iter_done, status, msg, fun = least_squares("lm")
         else:
             sol = scipy.optimize.minimize(
                 F,
@@ -1687,7 +1686,7 @@ def optimize(
                 tol=accur,
                 options={"eps": pyqcm.get_global_parameter("cdmft_jacobian_delta")},
             )
-            opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+            opt_x, iter_done, status, msg, fun = sol.x, sol.nfev, sol.status, sol.message, sol.fun
 
     elif method == "ANNEAL":
         sol = scipy.optimize.basinhopping(
@@ -1702,7 +1701,7 @@ def optimize(
                 },
             },
         )
-        opt_x, iter_done, success, fun = sol.x, sol.nfev, sol.success, sol.fun
+        opt_x, iter_done, status, msg, fun = sol.x, sol.nfev, sol.status, sol.message, sol.fun
 
     elif method.lower() in nlopt_df_methods.keys():
         optimizer = nlopt.opt(nlopt_df_methods[method.lower()], nvar)
@@ -1718,56 +1717,25 @@ def optimize(
         optimizer.set_initial_step(initial_step)
 
         sol = optimizer.optimize(np.asarray(x, dtype=float))
-        opt_x, iter_done, success, fun = (
+        opt_x, iter_done, status, fun = (
             sol,
             optimizer.get_numevals(),
-            optimizer.last_optimize_result() > 0,
+            optimizer.get_errmsg(),
             optimizer.last_optimum_value(),
         )
-
-    elif method == "L-BFGS-B":
-        if callable(jac):
-            # dogbox rather than NLopt LD_LBFGS, which stalls when the residual norm
-            # approaches machine precision. Supports bounds, unlike lm.
-            opt_x, iter_done, success, fun = least_squares("dogbox")
+        if status != None:
+            msg = status
+            status = -1
         else:
-            _fd_eps = pyqcm.get_global_parameter("cdmft_jacobian_delta")
+            msg = "Optimization terminated successfully"  # Hardcoded Scipy's default message
+            status = 0  # Integer >= 0 means no error according to Scipy's documentation
 
-            def _F_with_grad(x, grad):
-                f0 = F(x)
-                if grad.size > 0:
-                    for i in range(nvar):
-                        x_fwd = x.copy()
-                        x_fwd[i] += _fd_eps
-                        grad[i] = (F(x_fwd) - f0) / _fd_eps
-                return f0
-
-            optimizer = nlopt.opt(nlopt.LD_LBFGS, nvar)
-            optimizer.set_min_objective(_F_with_grad)
-            optimizer.set_lower_bounds(np.full(nvar, -np.inf))
-            optimizer.set_upper_bounds(np.full(nvar, np.inf))
-            optimizer.set_ftol_abs(accur_dist)
-            optimizer.set_xtol_abs(accur)
-            optimizer.set_maxeval(maxfev)
-            optimizer.set_vector_storage(0)
-            optimizer.set_exceptions_enabled(False)
-            sol = optimizer.optimize(np.asarray(x, dtype=float))
-            opt_x, iter_done, success, fun = (
-                sol,
-                optimizer.get_numevals(),
-                optimizer.last_optimize_result() > 0,
-                optimizer.last_optimum_value(),
-            )
-
-    else:
-        raise ValueError(f"unknown method specified for minimization: {method}")
-
-    if not success:
+    if status < 0:
         raise pyqcm.MinimizationError(
             "Failure of the optimization of the bath parameters"
         )
 
-    return opt_x, iter_done, success, fun
+    return opt_x, iter_done, status, msg, fun
 
 
 if __name__ == "__main__":
