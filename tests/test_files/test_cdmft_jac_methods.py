@@ -70,26 +70,14 @@ trf = CDMFT(
     iteration="fixed_point",
 )
 
-# -------------------------------------------------------
-# BFGS  (routes through scipy LM internally)
-# -------------------------------------------------------
+# -----------------------------------------
+# BFGS (routes through scipy LM internally)
+# -----------------------------------------
 
 reset_bath()
 bfgs_jac = CDMFT(
     model,
     method="BFGS",
-    varia=varia,
-    iteration="fixed_point",
-)
-
-# ----------------------------------------------------------------
-# L-BFGS-B  (routes through scipy dogbox internally)
-# ----------------------------------------------------------------
-
-reset_bath()
-nlopt_jac = CDMFT(
-    model,
-    method="L-BFGS-B",
     varia=varia,
     iteration="fixed_point",
 )

@@ -27,15 +27,13 @@ model.set_parameters("""
 """)
 
 
-for f in range(1,12):
+for f in range(1,7):
     pyqcm.set_global_parameter('max_iter_BL', f)
-    I = pyqcm.model_instance(model)  
+    I = pyqcm.model_instance(model)
 
     I.spectral_function(w=6, nk=32, path='halfline', period = 'G', file="spectrumG_{:d}_{:d}f.pdf".format(L, f))
 
     I.spectral_function(w=6, nk=32, path='halfline', period = 'S', file="spectrumS_{:d}_{:d}f.pdf".format(L, f))
-
-    # I.spectral_function(w=6, nk=32, path='halfline', period = 'L', file="spectrumL_{:d}_{:d}f.pdf".format(L, f))
 
     pyqcm.set_global_parameter('compact_tiling_per_site')
     I.spectral_function(w=6, nk=32, path='halfline', period = 'L', file="spectrumLS_{:d}_{:d}f.pdf".format(L, f))
