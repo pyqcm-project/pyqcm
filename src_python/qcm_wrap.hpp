@@ -693,17 +693,30 @@ inline void register_qcm(nb::module_ &m) {
         "a matrix element of the periodized Green function over wavevectors");
 
   m.def("V_matrix",
-        [](complex<double> z, nb::object k, int spin_down, int label) {
+        [](nb::object z, nb::object k, int spin_down, int label) {
           PyObject *ko = k.ptr();
+          if (PyLong_Check(ko)) {
+            if (!PyLong_Check(z.ptr()))
+              qcm_throw("V_matrix: when 'k' is an integer wavevector-grid "
+                        "index (ik), 'z' must also be given as an integer "
+                        "frequency-grid index (iw), not a frequency");
+            int iw = (int)PyLong_AsLong(z.ptr());
+            int ik = (int)PyLong_AsLong(ko);
+            auto g = QCM::V_matrix(iw, ik, label);
+            return nb_cmat(g);
+          }
+          complex<double> zz = nb::cast<complex<double>>(z);
           int ndim = require_array_ndim(ko, "V_matrix");
           if (ndim > 1)
             qcm_throw("Argument 2 of 'V_matrix' should be of dimension 1");
-          auto g = QCM::V_matrix(z, vector_from_Py((PyArrayObject *)ko),
+          auto g = QCM::V_matrix(zz, vector_from_Py((PyArrayObject *)ko),
                                  (bool)spin_down, label);
           return nb_cmat(g);
         },
         "z"_a, "k"_a, "spin_down"_a = 0, "label"_a = 0,
-        "computes the V matrix at a frequency and wavevector");
+        "computes the V matrix at a frequency and wavevector; if 'k' is an "
+        "integer, it and 'z' are instead taken as the (iw, ik) indices of "
+        "the wavevector/frequency in the external hybridization grid");
 
   m.def("tk",
         [](nb::object k, int spin_down,

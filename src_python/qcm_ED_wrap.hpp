@@ -222,7 +222,9 @@ inline void register_qcm_ED(nb::module_ &m) {
           vector<matrix_element<complex<double>>> elem;
           PyObject *elem_pyobj = elem_obj.ptr();
           double fac = 1.0;
+          bool check_upper = true;
           if (type == "anomalous") fac = 0.5;
+          if (type == "general_interaction") check_upper = false;
           if (PyArray_Check(elem_pyobj)) {
             size_t nelem = PyArray_DIMS((PyArrayObject *)elem_pyobj)[0];
             elem.resize(nelem);
@@ -236,7 +238,7 @@ inline void register_qcm_ED(nb::module_ &m) {
               if (PyTuple_Size(pkey) == 3) {
                 elem[i].r = PyLong_AsLong(PyTuple_GetItem(pkey, 0));
                 elem[i].c = PyLong_AsLong(PyTuple_GetItem(pkey, 1));
-                if (elem[i].r > elem[i].c)
+                if ((elem[i].r > elem[i].c) and check_upper)
                   qcm_ED_throw("the first index of element " + to_string(i) +
                                " of argument 4 of 'new_operator' cannot be "
                                "bigger than the second index");

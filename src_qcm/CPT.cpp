@@ -335,7 +335,18 @@ void lattice_model_instance::self_energy(Green_function_k &M)
 
 //==============================================================================
 /**
- Calculates the integral of Gcpt over wavevectors, using the grid kgrid
+ Calculates the integral of Gcpt over wavevectors, using a uniform grid of
+ kgrid_side^D points in the reduced Brillouin zone.
+
+ Grid convention: k_i = i/kgrid_side, i = 0 ... kgrid_side-1, i.e. the grid CONTAINS
+ the Gamma point. This is the same convention as QCM::k_integral_grid() (used for the
+ lattice averages) and as the wavevector arrays expected in an external hybridization
+ file (see lattice_hybrid and CDMFT_host()). Do not offset it by half a step: the three
+ must sample the same points, otherwise quantities built here (the CDMFT host, in
+ particular) and quantities built there differ by their respective quadrature errors --
+ which is negligible at large frequency but not at the lowest Matsubara frequencies,
+ where the integrand is sharply peaked.
+
  @param w [in] complex frequency
  @param spin_down [in] if true, computes the spin-down component (mixing = 4)
  */
@@ -363,7 +374,7 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
 		case 1:
 			// #pragma omp parallel for
     		for(int i=0; i<kgrid_side; i++){
-				Green_function_k M(G,{(i+0.5)*step,0.0,0.0});
+				Green_function_k M(G,{i*step,0.0,0.0});
 				set_Gcpt(M);
 				// #pragma omp critical
 				PGF += M.Gcpt;
@@ -374,7 +385,7 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
 			for(int i=0; i<kgrid_side; i++){
 				// #pragma omp parallel for
 				for(int j=0; j<kgrid_side; j++){
-					Green_function_k M(G,{(i+0.5)*step, (j+0.5)*step,0.0});
+					Green_function_k M(G,{i*step, j*step,0.0});
 					set_Gcpt(M);
 					// #pragma omp critical
 					PGF += M.Gcpt;
@@ -387,7 +398,7 @@ matrix<Complex> lattice_model_instance::projected_Green_function(Complex w, bool
 				for(int j=0; j<kgrid_side; j++){
 					// #pragma omp parallel for
 					for(int k=0; k<kgrid_side; k++){
-						Green_function_k M(G,{(i+0.5)*step, (j+0.5)*step, (k+0.5)*step});
+						Green_function_k M(G,{i*step, j*step, k*step});
 						set_Gcpt(M);
 						// #pragma omp critical
 						PGF += M.Gcpt;
@@ -476,7 +487,20 @@ void lattice_model_instance::CDMFT_host(const vector<double>& freqs, const vecto
 	}
 	else return;
 	if(model->hybrid != nullptr){
-		QCM_ASSERT(model->hybrid->nw == freqs.size());
+		// With an external hybridization the host is built on the frequency grid stored in the
+		// h5 file, whereas the distance function and the bath hybridization use "freqs". The two
+		// must be the same grid, otherwise the CDMFT procedure silently minimizes a distance
+		// between quantities evaluated at different frequencies.
+		if(model->hybrid->nw != freqs.size())
+			qcm_throw("The CDMFT frequency grid has "+to_string(freqs.size())
+				+" frequencies, but the external hybridization file has "+to_string(model->hybrid->nw)
+				+". They must be the same grid.");
+		for(size_t i=0; i<freqs.size(); i++){
+			if(fabs(model->hybrid->w[i] - freqs[i]) > 1e-9*(1.0+fabs(freqs[i])))
+				qcm_throw("The CDMFT frequency grid differs from that of the external hybridization file at index "
+					+to_string(i)+" : "+to_string(freqs[i])+" vs "+to_string(model->hybrid->w[i])
+					+". They must be the same grid.");
+		}
 		CDMFT_host();
 		return;
 	}

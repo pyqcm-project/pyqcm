@@ -62,6 +62,8 @@ model_instance_base::model_instance_base(size_t _label, shared_ptr<model> _the_m
     if(op.mixing & HS_mixing::anomalous) nonzero_anomalous = true;
     mixing |= op.mixing;
     if(op.is_interaction) is_correlated = true;
+    if(v.second != 0.0 and op.is_on_the_fly == false and Hamiltonian_format == H_FORMAT::H_format_onthefly)
+      qcm_ED_throw("the Hamiltonian format 'on the fly' is not compatible with the operator "+v.first+" of type "+op.type());
   }
   if(mixing>5) mixing = mixing&HS_mixing::full;
   if(mixing==5) mixing = mixing&HS_mixing::anomalous;

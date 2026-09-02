@@ -40,6 +40,8 @@ general_interaction_operator<op_field>::general_interaction_operator(const strin
 {
   set_target(the_model->in_bath);
   is_interaction = true;
+  is_on_the_fly = false;
+  if(typeid(op_field) == typeid(Complex)) is_complex = true;
   // checks on _elements not done here. Should be done.
 }
 

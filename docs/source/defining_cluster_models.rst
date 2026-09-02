@@ -102,6 +102,50 @@ The member function ``new_operator(name, type, elements)`` takes the following a
 
 If a complex-valued operator is needed, then the function ``new_cluster_operator_complex()`` must be used, the only difference being that the actual matrix elements are complex numbers.
 
+General interactions
+--------------------
+
+The interactions available on the lattice (Hubbard, Hund, Heisenberg, X, Y, Z) are all of a special form.
+An arbitrary two-body interaction can be defined on the cluster instead, with the member function
+``general_interaction_operator(name, elements)``. The operator thus defined is
+
+.. math::
+    H = \sum_{ijkl}\sum_{\sigma\sigma'} v_{ijkl}\,
+        c^\dagger_{i\sigma}c^\dagger_{j\sigma'}c_{k\sigma'}c_{l\sigma}
+
+where :math:`i,j,k,l` label the orbitals of the cluster (from 1 to :math:`N_o=N_s+N_b`, the bath orbitals
+coming after the physical sites) and the sum over the spins :math:`\sigma,\sigma'` is performed automatically.
+Each matrix element is specified by a 5-tuple ``(i,j,k,l,v)``. For instance, the Hubbard interaction
+:math:`U\sum_i n_{i\uparrow}n_{i\downarrow}` on a two-site cluster is defined by::
+
+    CM = pyqcm.cluster_model(2, name='clus')
+    CM.general_interaction_operator('U', [(1,1,1,1,0.5), (2,2,2,2,0.5)])
+
+the value of the operator (i.e. of the parameter, see below) then being :math:`U` itself.
+
+Two points require attention:
+
+#. The terms :math:`(i,j,k,l)` and :math:`(j,i,l,k)` are one and the same, because of the sum over the spins
+   and of the anticommutation of the creation (and of the annihilation) operators. If both are provided,
+   their values are added.
+#. The operator must be Hermitian. The Hermitian conjugate of the term :math:`(i,j,k,l)` is the term
+   :math:`(l,k,j,i)`, with the complex conjugate value; it is added automatically to the list if it is
+   absent, and an error is raised if it is present but inconsistent. Thus a pair-hopping term
+   ``(1,1,2,2,v)`` really stands for the pair hopping plus its Hermitian conjugate.
+
+If the interaction is not the same for all spin projections, the option ``spin_dependent=True`` may be used;
+the labels then run from 1 to :math:`2N_o` (the spin-down label of an orbital being its spin-up label plus
+:math:`N_o`) and no sum over spins is performed. The above Hubbard interaction would then read::
+
+    CM.general_interaction_operator('U', [(1,3,3,1,1.0), (2,4,4,2,1.0)], spin_dependent=True)
+
+Since a general interaction has no counterpart on the lattice model, it is a cluster-specific parameter:
+its name carries the label of the cluster, e.g. ``U_1`` for the first cluster, and it must be given a value
+as such in :func:`~pyqcm.lattice_model.set_parameters`. Note also that such an interaction exists on the
+cluster only : it plays no role in the (Hartree) treatment of the interactions on the lattice. Finally, it
+cannot be applied on the fly, i.e. the global option ``Hamiltonian_format`` cannot be set to 'N' when a
+general interaction is present (all the other formats are fine).
+
 Class for defining cluster models
 ---------------------------------
 

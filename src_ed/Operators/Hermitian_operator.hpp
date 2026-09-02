@@ -25,6 +25,7 @@ struct Hermitian_operator
   bool is_complex; //!< true is the operator has complex matrix elements, which requires a complex Hilbert space
   bool is_factorizable; // true if the operator is a tensor product (spins up and down) or diagonal
   bool is_interaction; //!< true if the operator is an interaction
+  bool is_on_the_fly; //!< true if the operator can be applied on the fly, i.e. without storing the Hamiltonian
   double nambu_correction_full; //!< Nambu correction to the averages in the full Nambu mixing case
   double nambu_correction; //!< Nambu correction to the averages in the restricted Nambu mixing case
   double norm; //!< multiplicative factor on the average (e.g. to divide by the number of sites)
@@ -48,6 +49,7 @@ struct Hermitian_operator
     nambu_correction_full=0.0;
     is_active = false;
     is_factorizable = false;
+    is_on_the_fly = true;
   }
 
 

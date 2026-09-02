@@ -92,6 +92,8 @@ namespace QCM{
   matrix<complex<double>> tk(const vector3D<double> &k, bool spin_down, int label);
   //! Computes the V matrix at a given frequency and wavevector.
   matrix<complex<double>> V_matrix(const complex<double> w, const vector3D<double> &k, bool spin_down, int label);
+  //! Computes the V matrix at a frequency and wavevector indexed in the external hybridization grid.
+  matrix<complex<double>> V_matrix(int iw, int ik, int label);
   //! Computes site and bond profiles in all clusters of the repeated unit.
   pair<vector<array<double,9>>, vector<array<complex<double>, 11>>> site_and_bond_profile(int label);
   //! Returns the dimension of the CPT Green function matrix.

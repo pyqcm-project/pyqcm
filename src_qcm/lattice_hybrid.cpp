@@ -46,7 +46,7 @@ lattice_hybrid::lattice_hybrid(const string &filename){
       vector<double> k_tmp(3*nk);
       k.resize(nk);
       k_set.read(k_tmp.data(), H5::PredType::NATIVE_DOUBLE);
-      for(int ik; ik<nk; ik++){
+      for(int ik=0; ik<nk; ik++){
         k[ik] = {k_tmp[3*ik], k_tmp[3*ik+1], k_tmp[3*ik+2]};
       }
 

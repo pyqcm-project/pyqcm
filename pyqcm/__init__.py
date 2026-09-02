@@ -139,8 +139,8 @@ class cluster_model:
         """creates a new operator from its matrix elements
 
         :param str op_name: name of the operator
-        :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
-        :param [(int,int,float)] elem: array of matrix elements (list of tuples)
+        :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z', 'general_interaction')
+        :param [(int,int,float)] elem: array of matrix elements (list of tuples). For the type 'general_interaction', the two indices are compound (two-orbital) indices; use :func:`~pyqcm.cluster_model.general_interaction_operator` instead, which builds them from the two-body matrix elements.
         :returns: None
 
         """
@@ -170,8 +170,8 @@ class cluster_model:
         """creates a new operator from its complex-valued matrix elements
 
         :param str op_name: name of the operator
-        :param str op_type: type of operator ('one-body', 'anomalous', 'interaction', 'Hund', 'Heisenberg', 'X', 'Y', 'Z')
-        :param [(int, int, complex)] elem: array of matrix elements (list of tuples)
+        :param str op_type: type of operator ('one-body', 'anomalous', 'general_interaction')
+        :param [(int, int, complex)] elem: array of matrix elements (list of tuples). For the type 'general_interaction', the two indices are compound (two-orbital) indices; use :func:`~pyqcm.cluster_model.general_interaction_operator` instead, which builds them from the two-body matrix elements.
         :returns: None
 
         """
@@ -195,6 +195,53 @@ class cluster_model:
 
         qcm.new_operator_complex(self.name, op_name, op_type, elem)
         self.operators.append((op_name, op_type, elem, True))
+
+    # -----------------------------------------------------------------------------------------------
+    def general_interaction_operator(self, op_name, elem, spin_dependent=False):
+        r"""creates a new interaction operator from a general two-body matrix
+
+        The operator created is
+
+        .. math::
+            H = \sum_{ijkl}\sum_{\sigma\sigma'} v_{ijkl}\,
+                c^\dagger_{i\sigma}c^\dagger_{j\sigma'}c_{k\sigma'}c_{l\sigma}
+
+        the sum over the spins :math:`\sigma,\sigma'` being performed automatically (unless
+        ``spin_dependent`` is True). For instance, the Hubbard interaction :math:`U\sum_i n_{i\uparrow}n_{i\downarrow}`
+        on a two-site cluster corresponds to the elements ``[(1,1,1,1,0.5), (2,2,2,2,0.5)]``, the
+        value of the operator (its coefficient in the Hamiltonian) then being :math:`U`.
+
+        The operator is Hermitian by construction : the Hermitian conjugate of the term (i,j,k,l) is
+        the term (l,k,j,i), with the complex conjugate value, and it is added automatically if it is
+        not part of the list. Note also that the terms (i,j,k,l) and (j,i,l,k) are one and the same.
+
+        Since the operator is defined on the cluster model and has no counterpart on the lattice, the
+        associated parameter is cluster-specific : it is called ``<op_name>_1`` for the first cluster,
+        ``<op_name>_2`` for the second one, etc. (see :func:`~pyqcm.lattice_model.set_parameters`).
+
+        :param str op_name: name of the operator
+        :param [(int,int,int,int,complex)] elem: array of matrix elements (i,j,k,l,v). The orbital
+            labels start at 1 and go up to n_sites+n_bath (bath orbitals are labelled after the
+            physical sites). If ``spin_dependent`` is True, they are spin-orbital labels instead,
+            i.e. they go up to 2*(n_sites+n_bath), the spin-down label of an orbital being its
+            spin-up label plus n_sites+n_bath.
+        :param bool spin_dependent: if True, the labels are spin-orbital labels and no sum over spins is performed
+        :returns: None
+
+        """
+
+        n = self.n_sites + self.n_bath
+        E = general_interaction_matrix_elements(elem, n, spin_dependent=spin_dependent)
+        if len(E) == 0:
+            raise ValueError(
+                "the general interaction operator '{:s}' has no nonzero matrix elements".format(
+                    op_name
+                )
+            )
+        if isinstance(E[0][2], complex):
+            self.new_operator_complex(op_name, 'general_interaction', E)
+        else:
+            self.new_operator(op_name, 'general_interaction', E)
 
     # -----------------------------------------------------------------------------------------------
     def matrix_elements(self, op):
@@ -487,6 +534,9 @@ class lattice_model:
         :keyword float amplitude: amplitude multiplier
         :keyword str type: one of 'Hubbard', 'Heisenberg', 'Hund', 'X', 'Y', 'Z'
         :returns: None
+
+        An interaction that is not of one of these forms can be defined on a cluster (but not on the
+        lattice) with :func:`~pyqcm.cluster_model.general_interaction_operator`.
 
         """
 
@@ -1946,12 +1996,14 @@ class model_instance:
     # -----------------------------------------------------------------------------------------------
     def V_matrix(self, z, k, spin_down=False):
         r"""
-        Computes the matrix :math:`V=G_0^{-1}-G^{c-1}_0` at a given frequency and wavevectors, where :math:`G_0` is the noninteracting Green function on the infinite lattice and :math:`G^c_0` is the noninteracting Green function on the cluster.
+        Computes the matrix :math:`V=G_0^{-1}-G^{c-1}_0` at a given frequency and wavevector, where :math:`G_0` is the noninteracting Green function on the infinite lattice and :math:`G^c_0` is the noninteracting Green function on the cluster.
 
-        :param complex z: frequency
-        :param wavevector k: wavevector (ndarray(3)) in units of :math:`2\pi`
-        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4)
-        :returns: a single (d,d) or an array (N,d,d) of complex-valued matrices. d is the reduced GF dimension.
+        If both `z` and `k` are integers, they are instead interpreted as the indices (iw, ik) of the frequency and wavevector within the external hybridization grids (requires the model to have been created with a non-empty ``hybrid_file``).
+
+        :param z: complex frequency, or (if k is an int) the index iw of the frequency in the external hybridization frequency array
+        :param k: wavevector (ndarray(3)) in units of :math:`2\pi`, or (if an int) the index ik of the wavevector in the external hybridization wavevector array
+        :param bool spin_down: True is the spin down sector is to be computed (applies if mixing = 4). Ignored if k is an int.
+        :returns: a single (d,d) complex-valued matrix
 
         """
         return qcm.V_matrix(z, k, spin_down, self.label)
@@ -3032,31 +3084,124 @@ def broyden(F, x0, iJ0=0.0, xtol=1e-6, convergence_test=None, maxiter=32, minite
 
 
 # ---------------------------------------------------------------------------------------------------
-def general_interaction_matrix_elements(e, n):
+def canonical_interaction_element(key):
+    r"""
+    Returns the canonical form of the index quadruplet (i,j,k,l) of a two-body matrix element.
+
+    The term :math:`c^\dagger_{i\sigma}c^\dagger_{j\sigma'}c_{k\sigma'}c_{l\sigma}`, once summed over
+    the spins (or, for spin-dependent elements, once the anticommutation of the two creation and of the
+    two annihilation operators is taken into account), is identical to the term (j,i,l,k). The canonical
+    representative of the pair is the smaller of the two quadruplets.
+
+    :param (int,int,int,int) key: index quadruplet (i,j,k,l)
+    :returns: the canonical quadruplet
+
     """
-    Translates a list of matrix elements (i,j,k,l,v) for a general interaction into a list of compound elements (I,J,v)
-    where I = i+n*j and J = k+n*l and v is the value of the matrix element
-    Also checks that only non redundant elements are given.
-    A sum over spin for the Coulomb interaction est performed.
+    i, j, k, l = key
+    return min((i, j, k, l), (j, i, l, k))
 
-    :param (int,int,int,int,float) e: list of matrix elements
-    :param int n: number of orbitals in the impurity model (excluding spin; 2*n with spin)
+
+# ---------------------------------------------------------------------------------------------------
+def general_interaction_matrix_elements(e, n, spin_dependent=False, hermitize=True):
+    r"""
+    Translates a list of matrix elements (i,j,k,l,v) of a general two-body interaction
+
+    .. math::
+        H = \sum_{ijkl}\sum_{\sigma\sigma'} v_{ijkl}\,
+            c^\dagger_{i\sigma}c^\dagger_{j\sigma'}c_{k\sigma'}c_{l\sigma}
+
+    into the list of compound elements (I,J,v) expected by the ED solver for an operator of type
+    'general_interaction'. The compound indices are :math:`I = i_\sigma + 2n\,j_{\sigma'}` and
+    :math:`J = l_\sigma + 2n\,k_{\sigma'}`, in terms of spin-orbital labels running from 0 to :math:`2n-1`
+    (1 is added to I and J on output, since indices start at 1 in the pyqcm interface).
+    The sum over the spins :math:`\sigma,\sigma'` is performed here, unless ``spin_dependent`` is True,
+    in which case the indices (i,j,k,l) are spin-orbital labels (from 1 to 2n, the label of a spin-down
+    orbital being that of the corresponding spin-up orbital plus n) and no sum over spins is performed.
+
+    Terms that vanish identically because of the Pauli principle are discarded. Terms that are
+    equivalent, i.e. (i,j,k,l) and (j,i,l,k), are merged into a single element (their values are added).
+
+    The operator built by the solver is Hermitian by construction : the Hermitian conjugate of the term
+    (i,j,k,l) is the term (l,k,j,i), with the complex conjugate value. Unless ``hermitize`` is False,
+    the missing Hermitian conjugates are added to the list, and an error is raised if a term and its
+    conjugate are both present but inconsistent with each other.
+
+    :param [(int,int,int,int,complex)] e: list of matrix elements (indices start at 1)
+    :param int n: number of orbitals in the impurity model (excluding spin; 2*n with spin), i.e. the
+        number of sites plus the number of bath orbitals
+    :param bool spin_dependent: if True, the indices are spin-orbital labels (1 to 2n) and no sum over spins is performed
+    :param bool hermitize: if True, the Hermitian conjugate of each term is added to the list if absent
+    :returns: the list of compound matrix elements (I,J,v)
 
     """
 
-    E = []
     nn = 2 * n
-    if len(e[0]) != 5:
-        raise ValueError("The general matrix elements do not have the right format")
-    for x in e:
-        for s in [0, n]:
-            for sp in [0, n]:
-                I = x[0] + s - 1 + nn * (x[1] + sp - 1)
-                J = x[3] + s - 1 + nn * (x[2] + sp - 1)
-                print("-----> ", I, J, x[4])
-                E.append((I + 1, J + 1, x[4]))
-                # need to add one because indices start at 1 when transmitted via pyqcm (1 is subtracted in the C++ code)
+    max_index = nn if spin_dependent else n
 
+    # checks the format, the range of the indices, and merges equivalent terms
+    D = {}
+    for x in e:
+        if len(x) != 5:
+            raise ValueError(
+                "The general interaction matrix elements must be 5-tuples (i,j,k,l,v)"
+            )
+        key = tuple(int(y) for y in x[0:4])
+        for y in key:
+            if y < 1 or y > max_index:
+                raise ValueError(
+                    "index {:d} in the matrix elements of a general interaction is out of range [1, {:d}]".format(
+                        y, max_index
+                    )
+                )
+        key = canonical_interaction_element(key)
+        D[key] = D.get(key, 0.0) + complex(x[4])
+
+    # adds the missing Hermitian conjugates
+    if hermitize:
+        for key in list(D.keys()):
+            i, j, k, l = key
+            v = D[key]
+            ckey = canonical_interaction_element((l, k, j, i))
+            if ckey == key:
+                if abs(v.imag) > 1e-12:
+                    raise ValueError(
+                        "the term {:s} of a general interaction is its own Hermitian conjugate : its value must be real".format(
+                            str(key)
+                        )
+                    )
+                D[key] = complex(v.real)
+            elif ckey in D:
+                if abs(D[ckey] - v.conjugate()) > 1e-12:
+                    raise ValueError(
+                        "the terms {:s} and {:s} of a general interaction are Hermitian conjugates of each other : their values must be complex conjugates".format(
+                            str(key), str(ckey)
+                        )
+                    )
+            else:
+                D[ckey] = v.conjugate()
+
+    # builds the compound elements. One is added to the indices because they start at 1 when
+    # transmitted via pyqcm (1 is subtracted in the C++ code)
+    E = []
+    is_complex = False
+    for (i, j, k, l), v in D.items():
+        if abs(v) < 1e-12:
+            continue
+        if abs(v.imag) > 1e-12:
+            is_complex = True
+        if spin_dependent:
+            spins = ((0, 0),)
+        else:
+            spins = ((s, sp) for s in (0, n) for sp in (0, n))
+        for s, sp in spins:
+            if s == sp and (i == j or k == l):
+                continue  # vanishes because of the Pauli principle
+            I = i + s - 1 + nn * (j + sp - 1)
+            J = l + s - 1 + nn * (k + sp - 1)
+            E.append((I + 1, J + 1, v))
+
+    if not is_complex:
+        E = [(I, J, v.real) for I, J, v in E]
     return E
 
 

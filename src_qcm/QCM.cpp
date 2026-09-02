@@ -389,8 +389,35 @@ void erase_lattice_model_instance(size_t label){
     lattice_model_instances.at(label)->set_V(M);
     return M.V;
   }
-  
-  
+
+
+  /**
+   returns the V matrix at a frequency and wavevector indexed within the external hybridization grids.
+   Requires that the model was created with a non-empty hybrid_file.
+   * @param iw index of the frequency in the external hybridization frequency array
+   * @param ik index of the wavevector in the external hybridization wavevector array
+   */
+  matrix<complex<double>> V_matrix(int iw, int ik, int label)
+  {
+    #ifdef QCM_DEBUG
+    check_instance(label);
+    #endif
+    lattice_model& mod = *lattice_model_instances.at(label)->model;
+    if(mod.hybrid == nullptr) qcm_throw("V_matrix(iw, ik, ...) requires an external hybridization (hybrid_file)");
+    lattice_hybrid& H = *mod.hybrid;
+    if(iw < 0 || (size_t)iw >= H.nw) qcm_throw("frequency index iw out of range");
+    if(ik < 0 || (size_t)ik >= H.nk) qcm_throw("wavevector index ik out of range");
+    // If eta == 0, the grid lies on the imaginary (Matsubara) axis: z = i*w.
+    // Otherwise the grid is on the real axis with broadening eta: z = w + i*eta.
+    Complex w = (H.eta == 0.0) ? Complex(0.0, H.w[iw]) : Complex(H.w[iw], H.eta);
+    Green_function G = lattice_model_instances.at(label)->cluster_Green_function(w, false, false);
+    G.iw = iw;
+    Green_function_k M(G, H.k[ik], ik);
+    lattice_model_instances.at(label)->set_V(M);
+    return M.V;
+  }
+
+
 /**
    returns the inverse CPT Green function at a given frequency and for an array of wavevectors
    * @param spin_down true if the spin-down sector is covered
