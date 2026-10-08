@@ -376,10 +376,7 @@ class CDMFT:
             pyqcm.banner("CDMFT procedure", "*", skip=1)
 
         # -------------- first define the frequency grid for the distance function ---------
-        if grid == None:
-            self.grid = frequency_grid()
-        else:
-            self.grid = grid
+        self.grid = grid
         print("frequency grid = ", self.grid.name)
 
         if iteration == "fixed_point":

@@ -59,7 +59,7 @@ def run_cdmft(Z):
     except:
         alpha = 0.0
     t1 = timeit.default_timer()
-    X = CDMFT(model, varia=varia, grid=frequency_grid('legendre', (1, 10, 10, 10, 10)), method=Z, accur=accur, convergence=convergence, converge_with_stdev=False, miniter=1, maxiter=32, depth=1, iteration='broyden', alpha=alpha)
+    X = CDMFT(model, varia=varia, grid=frequency_grid(), method=Z, accur=accur, convergence=convergence, converge_with_stdev=False, miniter=1, maxiter=32, depth=1, iteration='broyden', alpha=alpha)
     t2 = timeit.default_timer()
     time_needed[Z] = t2-t1
     return X.I
@@ -78,7 +78,7 @@ for Z in methods:
 
     try:
     	run_cdmft(Z)
-    except: 
+    except:
         print('Failure with method ', Z)
 
 for x in time_needed:

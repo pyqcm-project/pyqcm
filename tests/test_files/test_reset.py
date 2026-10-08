@@ -1,5 +1,5 @@
 import pyqcm
-from pyqcm.cdmft import *
+from pyqcm.cdmft import CDMFT, frequency_grid
 
 ns = 4
 nb = 4
@@ -30,11 +30,12 @@ eb2_1 = -1
 tb1_1 = 0.5
 tb2_1 = 0.5
 """)
+grid = frequency_grid()
 
 I = pyqcm.model_instance(model) # call to constructor of class "model_instance"
 I.spectral_function(path='line', file='test_reset1.pdf')
 
-cdmft = CDMFT(model, ('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
+cdmft = CDMFT(model=model, grid=grid, varia=('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
 
 ############# new model definition #################
 pyqcm.reset_model()
@@ -70,4 +71,4 @@ tb2_1 = 0.5
 I = pyqcm.model_instance(model) # call to constructor of class "model_instance"
 I.spectral_function(path='line', file='test_reset2.pdf')
 
-cdmft = CDMFT(model, ('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))
+cdmft = CDMFT(model=model, grid=grid, varia=('eb1_1', 'eb2_1', 'tb1_1', 'tb2_1'))

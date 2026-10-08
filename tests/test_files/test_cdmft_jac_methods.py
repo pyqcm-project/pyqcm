@@ -1,7 +1,7 @@
 import numpy as np
 
 import pyqcm
-from pyqcm.cdmft import CDMFT
+from pyqcm.cdmft import CDMFT, frequency_grid
 
 pyqcm.set_global_parameter("cdmft_jacobian_delta", 1e-8)
 
@@ -50,7 +50,7 @@ model.set_parameters("""
 
 initial_bath_params = {"eb1_1": 1.0, "eb2_1": -1.0, "tb1_1": 0.5, "tb2_1": 0.5}
 varia = ["eb1_1", "eb2_1", "tb1_1", "tb2_1"]
-
+grid = frequency_grid()
 
 def reset_bath() -> None:
     """Reset bath parameters to initial values before each CDMFT run."""
@@ -65,6 +65,7 @@ def reset_bath() -> None:
 reset_bath()
 trf = CDMFT(
     model,
+    grid=grid,
     method="trf",
     varia=varia,
     iteration="fixed_point",
@@ -77,6 +78,7 @@ trf = CDMFT(
 reset_bath()
 bfgs_jac = CDMFT(
     model,
+    grid=grid,
     method="BFGS",
     varia=varia,
     iteration="fixed_point",

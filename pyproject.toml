@@ -22,6 +22,7 @@ dependencies = [
     "matplotlib",
     "scipy",
     "nlopt",
+    "h5py"
 ]
 
 [project.optional-dependencies]
@@ -49,4 +50,3 @@ sdist.include = ["pyqcm/_version.py"]
 
 [tool.isort]
 profile = "black"
-

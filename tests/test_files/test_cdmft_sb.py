@@ -49,15 +49,13 @@ model.set_parameters("""
 
 varia = ['eb1_1', 'eb2_1', 'tb1_1', 'tb2_1', 'eb1_2', 'eb2_2', 'tb1_2', 'tb2_2']
 
-fgrid = frequency_grid('legendre', (0.5, 5, 5, 5, 5))
-pyqcm.discrete_integration_grid(fgrid.wr, fgrid.weight)
+grid = frequency_grid()
+pyqcm.discrete_integration_grid(grid.wr, grid.weight)
 pyqcm.set_wavevector_grid(16,1,1)
-X = CDMFT(model, varia=varia, grid=fgrid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
+X = CDMFT(model, varia=varia, grid=grid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
 
 pyqcm.set_wavevector_grid(8,1,1)
-X = CDMFT(model, varia=varia, grid=fgrid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
+X = CDMFT(model, varia=varia, grid=grid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
 
 pyqcm.set_wavevector_grid(4,1,1)
-X = CDMFT(model, varia=varia, grid=fgrid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
-
-
+X = CDMFT(model, varia=varia, grid=grid, accur=1e-3, convergence='self-energy', miniter=1, maxiter=64, depth=1, iteration='fixed_point')
