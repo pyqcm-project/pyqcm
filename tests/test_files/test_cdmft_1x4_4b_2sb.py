@@ -65,12 +65,8 @@ bath_params = """
 
 model.set_parameters(lattice_params + bath_params)
 
-grid = frequency_grid('legendre', (1,10,5,10,5))
-# grid = frequency_grid('matsubara', (2,50))
-# grid = frequency_grid('regular', (10,50,5))
-
+grid = frequency_grid()
 pyqcm.discrete_integration_grid(grid.wr, grid.weight)
-
 
 X = CDMFT(
     model,
@@ -81,4 +77,3 @@ X = CDMFT(
     method="PRAXIS",
     iteration="fixed_point",
 )
-

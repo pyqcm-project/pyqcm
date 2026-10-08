@@ -3,7 +3,7 @@
 #--------------------------------------------------------------------------------
 import pyqcm
 import numpy as np
-from pyqcm.cdmft import CDMFT
+from pyqcm.cdmft import CDMFT, frequency_grid
 
 #--------------------------------------------------------------------------------
 # defining the model
@@ -55,7 +55,9 @@ model.set_parameters("""
     eb2_1=-1.0
 """)
 
-Vm_H = pyqcm.hartree(model, 'Vm', 'V', model.Vm_eig, lattice=False) 
+grid = frequency_grid()
+
+Vm_H = pyqcm.hartree(model, 'Vm', 'V', model.Vm_eig, lattice=False)
 
 varia = ['eb1_1', 'eb2_1', 'tb1_1', 'tb2_1']
 def run_cdmft(iteration):
@@ -67,7 +69,7 @@ def run_cdmft(iteration):
     V = model.parameters()['V']
     model.set_parameter('mu', 0.5*U+2*V)
     try:
-        X = CDMFT(model, varia, iteration=iteration, convergence=('GS energy', 'parameters'), accur=(1e-4, 1e-4), eps_algo=2, alpha = alpha, hartree=(Vm_H,)) 
+        X = CDMFT(model, varia, grid=grid, iteration=iteration, convergence=('GS energy', 'parameters'), accur=(1e-4, 1e-4), eps_algo=2, alpha = alpha, hartree=(Vm_H,))
         return X.I
     except:
         raise pyqcm.SolverError('Failure of the CDMFT method')
@@ -76,13 +78,13 @@ def run_cdmft(iteration):
 model.controlled_loop(
     task=lambda : run_cdmft('fixed_point'),
     varia = varia,
-    loop_param='U', 
+    loop_param='U',
     loop_range=(2, 4.1, 0.5)
 )
 
 model.controlled_loop(
-    task=lambda : run_cdmft('broyden'), 
+    task=lambda : run_cdmft('broyden'),
     varia = varia,
-    loop_param='U', 
+    loop_param='U',
     loop_range=(2, 4.1, 0.5)
 )

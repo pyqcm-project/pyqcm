@@ -44,13 +44,14 @@ model.set_parameters("""
     eb2_2=-1.0
 """)
 
-I = pyqcm.model_instance(model)  
+I = pyqcm.model_instance(model)
 
 convergence=['self-energy', 'distance']; accur=[1e-4, 1e-5]
 
 varia = ['tb1_1', 'eb1_1', 'tb2_1', 'eb2_1', 'tb1_2', 'eb1_2', 'tb2_2', 'eb2_2']
+grid = frequency_grid()
 
 def test_post_min(I):
 	print("coucou ! " , I.parameters()['U'])
 
-sol = CDMFT(model, varia=varia, accur=accur, convergence=convergence, method='PRAXIS', maxiter=64, depth=1, iteration='fixed_point', post_min=test_post_min)
+sol = CDMFT(model, varia=varia, grid=grid, accur=accur, convergence=convergence, method='PRAXIS', maxiter=64, depth=1, iteration='fixed_point', post_min=test_post_min)

@@ -52,6 +52,9 @@ _skbuild
 qcm_git_hash.py
 external
 tests/test_outputs/
+tests/test_files/*.pdf
+tests/test_files/*.hd5
+tests/test_files/*.h5
 doc/build
 .DS_Store
 pyqcm/_version.py
