@@ -869,6 +869,61 @@ class lattice_model:
         qcm.print_model(filename)
 
     # -----------------------------------------------------------------------------------------------
+    def display_irreps(self, s):
+        """Prints the phases of the characters of each irrep of system *s* for each symmetry generator.
+
+        The phases are given in multiples of pi: 0 means 1, 1 means -1, 1/2 means i, etc.
+        Irreps are rows (R0 being the trivial irrep) and generators are columns.
+        The numbering follows that of the C++ code: if generator j has order d_j, irrep R_r
+        has the mixed-radix decomposition r = r_0 + d_0*(r_1 + d_1*(r_2 + ...)), and its
+        character for generator j is exp(2*pi*i*r_j/d_j).
+
+        :param int s: label of the system (0-based)
+        :returns: None
+        """
+        from fractions import Fraction
+
+        CM = self.systems[s]
+        gens = CM.generators
+        if gens is None or len(gens) == 0:
+            print(f"system {s} ({CM.name}): no symmetry generators; single irrep R0")
+            return
+
+        # order of each generator (only the permuted orbitals count, not the bath phases)
+        L = CM.n_sites if CM.bath_irrep else CM.n_sites + CM.n_bath
+        dims = []
+        for gen in gens:
+            p = [x - 1 for x in gen[:L]]
+            q = list(p)
+            d = 1
+            while q != list(range(L)):
+                q = [p[i] for i in q]
+                d += 1
+            dims.append(d)
+        g = int(np.prod(dims))
+
+        def fmt(f):
+            if f == 0:
+                return "0"
+            return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
+
+        header = ["irrep"] + [f"g{j+1}" for j in range(len(gens))]
+        rows = []
+        for r in range(g):
+            row = [f"R{r}"]
+            label = r
+            for d in dims:
+                row.append(fmt(Fraction(2 * (label % d), d)))
+                label //= d
+            rows.append(row)
+
+        w = [max(len(x[j]) for x in [header] + rows) for j in range(len(header))]
+        print(f"system {s} ({CM.name}): phases of the characters, in multiples of pi")
+        print("  ".join(header[j].rjust(w[j]) for j in range(len(header))))
+        for row in rows:
+            print("  ".join(row[j].rjust(w[j]) for j in range(len(row))))
+
+    # -----------------------------------------------------------------------------------------------
     def set_params_from_file(self, out_file, n=0, pr=False):
         """
         sets the parameters in the parameter_set object from a file
