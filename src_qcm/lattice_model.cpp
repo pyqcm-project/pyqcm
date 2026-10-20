@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <fstream>
-
+#include <algorithm>
 #include "lattice_model.hpp"
 #include "qcm_ED.hpp"
 #include "QCM.hpp"
