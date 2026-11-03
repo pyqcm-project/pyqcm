@@ -1510,9 +1510,15 @@ class hybridization:
             I = pyqcm.model_instance(model)
             return self.distance(I)
 
-        return optimize(
+        opt_x, iter_done, status, msg, fun = optimize(
             tmp_distance, x, method=method, accur=accur, accur_dist=accur_dist
         )
+
+        # Update the model parameters
+        for name, val in zip(varia, opt_x):
+            model.set_parameter(name, val)
+
+        return opt_x, iter_done, status, msg, fun
 
 
 ####################################################################################################
