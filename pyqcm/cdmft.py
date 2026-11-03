@@ -1493,13 +1493,14 @@ class hybridization:
         self, model, varia, x, method="Nelder-Mead", accur=1e-4, accur_dist=1e-8
     ):
         """
-        Optimizes the bath parameters to fit the hybridization function delta
+        Optimizes the bath parameters to fit the hybridization function delta, and updates the model with the optimized parameters.
         :param lattice_model model: the lattice model whose bath parameters are to be optimized
         :param [str] varia: list of variational parameters (bath parameters) from PyQCM
         :param [float] x: starting values of the parameters
         :param str method: minimization method passed to optimize() (default 'Nelder-Mead')
         :param float accur: requested accuracy in the parameters (x-tolerance)
         :param float accur_dist: requested accuracy in the distance function (f-tolerance)
+        :returns: a 5-tuple (opt_x, iter_done, status, msg, fun) with the optimal parameters, number of evaluations, minimzation exit code and optimal function value
         """
 
         nvar = len(varia)
@@ -1510,9 +1511,15 @@ class hybridization:
             I = pyqcm.model_instance(model)
             return self.distance(I)
 
-        return optimize(
+        opt_x, iter_done, status, msg, fun = optimize(
             tmp_distance, x, method=method, accur=accur, accur_dist=accur_dist
         )
+
+        # Update the model parameters
+        for name, val in zip(varia, opt_x):
+            model.set_parameter(name, val)
+
+        return opt_x, iter_done, status, msg, fun
 
 
 ####################################################################################################
