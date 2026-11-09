@@ -963,11 +963,11 @@ class lattice_model:
 
         :param model_instance I1: first model instance
         :param model_instance I2: second model instance
-        :param int clus: cluster label
+        :param int clus: label of the system (0-based; ED system index, which differs from the cluster index when clusters share a system)
 
         """
 
-        return qcm.fidelity(I1.label * self.nclus + clus, I2.label * self.nclus + clus)
+        return qcm.fidelity(I1.label * self.nsys + clus, I2.label * self.nsys + clus)
 
     # -----------------------------------------------------------------------------------------------
     def finalize(self):
@@ -1229,12 +1229,12 @@ class model_instance:
         Computes the Lehmann representation of the dynamic susceptibility of an operator
 
         :param str name: name of the operator
-        :param int clus: label of the cluster (starts at 0)
+        :param int clus: label of the system (0-based; ED system index, which differs from the cluster index when clusters share a system)
         :returns [(float,float)]: array of 2-tuple (pole, residue)
 
         """
 
-        return qcm.susceptibility_poles(op_name, self.label * self.model.nclus + clus)
+        return qcm.susceptibility_poles(op_name, self.label * self.model.nsys + clus)
 
     # -----------------------------------------------------------------------------------------------
     def susceptibility(self, op_name, freqs, clus=0):
@@ -1243,12 +1243,12 @@ class model_instance:
 
         :param str op_name: name of the operator
         :param [complex] freqs: array of complex frequencies
-        :param int clus: label of the cluster (starts at 0)
+        :param int clus: label of the system (0-based; ED system index, which differs from the cluster index when clusters share a system)
         :returns: array of complex susceptibilities
 
         """
 
-        return qcm.susceptibility(op_name, freqs, self.label * self.model.nclus + clus)
+        return qcm.susceptibility(op_name, freqs, self.label * self.model.nsys + clus)
 
     # -----------------------------------------------------------------------------------------------
     def qmatrix(self, sys=0):
@@ -2072,14 +2072,14 @@ class model_instance:
         """
         Prints the ground state wavefunction(s) on the screen
 
-        :param int clus: label of the cluster (0 to the number of clusters-1)
+        :param int clus: label of the system (0-based; ED system index, which differs from the cluster index when clusters share a system)
         :param bool pr: prints wavefunction to screen if pr=True
 
         :returns: the wavefunction
         :rtype: str
 
         """
-        wavefunction = qcm.print_wavefunction(self.label * self.model.nclus + clus)
+        wavefunction = qcm.print_wavefunction(self.label * self.model.nsys + clus)
 
         if pr:
             print(wavefunction)
@@ -2166,12 +2166,8 @@ class model_instance:
         :returns: a float
 
         """
-        sigma1 = self.cluster_self_energy(
-            clus, -eta * 1j, spin_down, self.label * self.model.nclus + clus
-        )
-        sigma2 = self.cluster_self_energy(
-            clus, eta * 1j, spin_down, self.label * self.model.nclus + clus
-        )
+        sigma1 = self.cluster_self_energy(-eta * 1j, clus, spin_down)
+        sigma2 = self.cluster_self_energy(eta * 1j, clus, spin_down)
         Z = (sigma1[orb - 1, orb - 1].imag - sigma2[orb - 1, orb - 1].imag) / (
             2 * eta
         ) + 1.0
@@ -2234,6 +2230,7 @@ class model_instance:
         Writes a summary of the properties of the model instance in a file
 
         :param str f: name of the output file
+        :param boolean commented : if True, comments the line (#) it writes
 
         """
 

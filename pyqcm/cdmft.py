@@ -286,6 +286,12 @@ class CDMFT:
                     "{:s} cannot be a CDMFT variational parameter".format(v)
                 )
             elif len(p) == 3:
+                # the cluster label must be a plain positive integer (note that int('1_1') = 11 in Python)
+                if not p[2].isdigit() or not 1 <= int(p[2]) <= len(model.sys_clus):
+                    raise ValueError(
+                        f"CDMFT variational parameter {v}: '{p[2]}' is not a valid cluster label "
+                        f"(the name should be of the form <operator>_<label>, with a label from 1 to {len(model.sys_clus)})"
+                    )
                 var[model.sys_clus[int(p[2]) - 1] + 1].append(v)
             else:
                 raise ValueError("parameter name" + v + " has wrong format")
