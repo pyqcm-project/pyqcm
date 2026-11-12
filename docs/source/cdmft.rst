@@ -22,11 +22,15 @@ All frequency grids used in CDMFT are defined along the imaginary axis. The grid
  * ``grid_type='legendre'`` (default): a non-uniform Gauss-Legendre grid, defined by the tuple ``(w1, w2, n1, n2, n3)``. A Gauss-Legendre grid is defined in the interval :math:`(0,\omega_1)` with :math:`n_1` points, another one in the interval :math:`(\omega_1,\omega_2)` with :math:`n_2` points, and a final one as a function of :math:`1/\omega` in the interval :math:`(0,1/\omega_2)` with :math:`n_3` points.
  * ``grid_type='matsubara'`` : the set of fermionic Matsubara frequencies :math:`\omega_n` at inverse temperature ``beta`` between 0 and a maximum frequency ``wc``, defined by the tuple ``(wc, beta)``. All frequencies carry the same integration weight.
  * ``grid_type='regular'`` : a uniform grid defined by the tuple ``(wc, n1, n2)``, with :math:`n_1` points in :math:`(0, \omega_c)` and :math:`n_2` points in the high-frequency complement.
+ * ``grid_type='log'`` : a logarithmic grid defined by the tuple ``(w_min, w_max, n)``. The interval :math:`(\omega_{\rm min}, \omega_{\rm max})` is divided into :math:`n` cells of equal width in :math:`u=\ln\omega`, and the midpoint rule is applied in :math:`u`. The frequencies therefore form a geometric progression, and the integration weights are :math:`\omega_i\Delta u/\pi`. The intervals :math:`(0,\omega_{\rm min})` and :math:`(\omega_{\rm max},\infty)` are not covered.
 
 In addition, the constructor takes an ``opt`` argument that modifies the CDMFT distance weights:
 
  * ``opt='self'`` : the CDMFT weights are scaled like the norm of the self-energy at each frequency (the Hartree-Fock part is subtracted), giving more weight to those frequencies at which correlations are more important.
  * ``opt='ifreq'`` : the CDMFT weights are scaled like :math:`1/\omega_n`.
+ * ``opt='integral'`` : the CDMFT weights are the normalized integration weights of the grid, so that the distance function approximates an integral over frequency.
+
+By default (``opt=''``) all CDMFT weights are equal, whatever the integration weights; the density of grid points then plays the role of the integration measure (e.g. :math:`d\omega/\omega` for the ``'log'`` grid).
 
 Subbaths
 --------

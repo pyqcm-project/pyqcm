@@ -3553,6 +3553,31 @@ def regular_frequency_grid(wc, n1, n2):
     return w, p
 
 
+def log_frequency_grid(w_min, w_max, n):
+    """
+    returns a frequency grid (along the positive imaginary axis) with logarithmic spacing.
+    The interval [w_min, w_max] is divided into n cells of equal width in u = ln(w), and the
+    midpoint rule is applied in u. Hence the frequencies form a geometric progression and the
+    weights include the Jacobian dw = w du. The intervals [0, w_min] and [w_max, infinity] are
+    not covered.
+
+    :param float w_min : lower boundary of the grid (must be > 0)
+    :param float w_max : upper boundary of the grid
+    :param int n : number of points
+
+    """
+
+    if w_min <= 0 or w_max <= w_min:
+        raise ValueError("log_frequency_grid requires 0 < w_min < w_max")
+    if n < 1:
+        raise ValueError("log_frequency_grid requires n >= 1")
+    du = np.log(w_max / w_min) / n
+    u = np.log(w_min) + (np.arange(n) + 0.5) * du
+    w = np.exp(u)
+    p = w * du / np.pi
+    return w, p
+
+
 def discrete_integration_grid(freqs, weights):
     """
     Defines a frequency grid and associated weights for fixed-grid integration instead of using cubature.
