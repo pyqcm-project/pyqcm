@@ -179,6 +179,7 @@ class CDMFT:
     :param int jac_max_eval: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param bool compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
     :param ndarray host_function: if not None, function that computes the host array and passes it to qcm
+    :param function hyb_function: if not None, a Python function ``hyb_function(model, clus) -> ndarray(nw, d, d)`` that returns the cluster hybridization function on the frequency grid (same convention as ``I.hybridization_function``), computed from the current model parameters. When supplied, the bath-parameter optimization minimizes the CDMFT distance in Python using this hybridization instead of the built-in C++ one (``qcm.CDMFT_distance``). The host array (built-in or from ``host_function``) is read back via ``qcm.get_CDMFT_host``.
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
     :param bias_field bias: bias field (for spontaneous symmetry breaking) that decreases with iterations
@@ -217,6 +218,7 @@ class CDMFT:
         jac_max_eval=10_000,
         compute_potential_energy=False,
         host_function=None,
+        hyb_function=None,
         pre_host=None,
         max_value=100,
         bias=None,
@@ -232,6 +234,9 @@ class CDMFT:
         self.dist = 1e6
         self.hartree = hartree
         self.host_function = host_function
+        self.hyb_function = hyb_function
+        if hyb_function is not None and model.mixing == 4:
+            raise ValueError("hyb_function: up_down mixing is not supported (only the spin-up host is fitted)")
         self.Hyb = None  # internal : hybridization function
         self.Hyb_down = (
             None  # internal : hybridization function (spin downs, when mixing=4)
@@ -550,6 +555,28 @@ class CDMFT:
             x0 = self.x[ic : ic + self.nvar[c]]
             _clus = c - 1
             _label = self.I.label
+            # ------------------------------------------------------------------
+            # Python-side hybridization override: minimize the CDMFT distance
+            # using a user-supplied hybridization function instead of the C++ one.
+            if self.hyb_function is not None:
+                opt_x, opt_iter_done, opt_status, opt_msg, opt_fun = self.optimize_hyb(
+                    x0, _clus, _label, ic, c
+                )
+                self.dist += opt_fun
+                if np.any(np.isnan(opt_x)):
+                    print(opt_x)
+                    pyqcm.banner("NaN found in optimization of bath parameters", "!")
+                    raise pyqcm.MinimizationError(
+                        "NaN found in optimization of bath parameters"
+                    )
+                self.x[ic : ic + self.nvar[c]] = np.copy(opt_x)
+                self.var_data[ic : ic + self.nvar[c], self.iter] = np.copy(opt_x)
+                check_bounds(
+                    opt_x, self.max_value, v=self.varia[ic : ic + self.nvar[c]]
+                )
+                ic += self.nvar[c]
+                continue
+            # ------------------------------------------------------------------
             # CDMFT_residuals returns r with sum(r^2) proportional to the distance
             # function: same minimizer, different scale. CDMFT_distance applies the
             # dw/dim^2 normalization and is what gets reported below.
@@ -639,6 +666,48 @@ class CDMFT:
         self.iter += 1
 
         return
+
+    # -----------------------------------------------------------------------------------------------
+    def optimize_hyb(self, x0, clus, label, ic, c):
+        """
+        Bath fit of cluster ``clus`` against ``self.hyb_function`` instead of the C++ hybridization:
+        minimizes the same weighted distance sum_w weight(w) * |Gamma(w) + host(w)|^2 with least_squares ('trf').
+
+        :returns: tuple (opt_x, n_eval, status, message, distance), as ``optimize`` plus the distance
+        """
+        varia_c = self.varia[ic : ic + self.nvar[c]]
+        host = np.asarray(qcm.get_CDMFT_host(clus, False, label))  # (nw, d, d)
+        sqrt_w = np.sqrt(self.grid.cdmft_weight)[:, None, None]    # (nw, 1, 1)
+        d = host.shape[1]
+        if self.model.mixing == 0:
+            mixfac = 2.0
+        elif self.model.mixing == 3:
+            mixfac = 0.5
+        else:
+            mixfac = 1.0
+        dw = self.grid.wr[1] - self.grid.wr[0]
+        pref = np.sqrt(dw / (d * d) * mixfac)
+
+        def residuals(x):
+            self.model.set_parameter(varia_c, x)
+            gamma = np.asarray(self.hyb_function(self.model, clus))  # (nw, d, d)
+            r = (pref * sqrt_w * (gamma + host)).ravel()
+            return np.concatenate([r.real, r.imag])
+
+        sol = scipy.optimize.least_squares(
+            residuals,
+            x0,
+            method="trf",
+            bounds=(-self.max_value, self.max_value),
+            max_nfev=self.jac_max_eval,
+            ftol=self.accur_dist,
+            xtol=self.accur_bath,
+            gtol=1e-12,
+        )
+        # leave the model holding the converged parameters
+        self.model.set_parameter(varia_c, sol.x)
+        distance = 2.0 * sol.cost  # least_squares cost = 0.5 * ||r||^2
+        return sol.x, sol.nfev, sol.status, sol.message, distance
 
     # -----------------------------------------------------------------------------------------------
     def check_convergence(self):
