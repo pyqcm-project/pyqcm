@@ -179,6 +179,7 @@ class CDMFT:
     :param int jac_max_eval: maximum number of function/gradient evaluations for the jac-capable methods (default 2000; ignored for derivative-free methods)
     :param bool compute_potential_energy: If True, computes Tr(Sigma*G) along with the averages
     :param ndarray host_function: if not None, function that computes the host array and passes it to qcm
+    :param function hyb_function: if not None, ``hyb_function(model, clus) -> ndarray(nw, d, d)``, the cluster hybridization function on the frequency grid (same convention as ``I.hybridization_function``) for the current model parameters. The bath parameters are then fitted to it instead of to the built-in hybridization, with the same method, weights and distance (see ``CDMFT_residuals``)
     :param function pre_host: function to be executed before computing the host. Takes a model instance as argument
     :param float max_value: maximum absolute value of variational parameters
     :param bias_field bias: bias field (for spontaneous symmetry breaking) that decreases with iterations
@@ -217,6 +218,7 @@ class CDMFT:
         jac_max_eval=10_000,
         compute_potential_energy=False,
         host_function=None,
+        hyb_function=None,
         pre_host=None,
         max_value=100,
         bias=None,
@@ -232,6 +234,7 @@ class CDMFT:
         self.dist = 1e6
         self.hartree = hartree
         self.host_function = host_function
+        self.hyb_function = hyb_function
         self.Hyb = None  # internal : hybridization function
         self.Hyb_down = (
             None  # internal : hybridization function (spin downs, when mixing=4)
@@ -553,7 +556,30 @@ class CDMFT:
             # CDMFT_residuals returns r with sum(r^2) proportional to the distance
             # function: same minimizer, different scale. CDMFT_distance applies the
             # dw/dim^2 normalization and is what gets reported below.
-            if self.jac:
+            if self.hyb_function is not None:
+                if self.model.mixing == 4:  # set with the first instance, not before
+                    raise ValueError("hyb_function: up_down mixing is not supported (only the spin-up host is fitted)")
+                # same residuals sqrt(w)(Gamma + host) and distance as the C++ ones, with Gamma = hyb_function
+                host = np.asarray(qcm.get_CDMFT_host(_clus, False, _label))  # (nw, d, d)
+                sqrt_w = np.sqrt(self.grid.cdmft_weight)[:, None, None]
+                norm = {0: 2.0, 3: 0.5}.get(self.model.mixing, 1.0) * (self.grid.wr[1] - self.grid.wr[0]) / host.shape[1] ** 2
+                varia_c = self.varia[ic : ic + self.nvar[c]]
+
+                def residuals(x):
+                    self.model.set_parameter(varia_c, x)
+                    r = (sqrt_w * (np.asarray(self.hyb_function(self.model, _clus)) + host)).ravel()
+                    return np.concatenate([r.real, r.imag])
+
+                distance = lambda x: norm * np.sum(residuals(x) ** 2)
+                if self.jac:
+                    F = residuals
+                    jac_fn = lambda x: fd_jacobian(residuals, x)
+                    maxfev = self.jac_max_eval
+                else:
+                    F = lambda x, grad=None: distance(x)
+                    jac_fn = False
+                    maxfev = self.max_function_eval
+            elif self.jac:
                 F = lambda x, _c=_clus, _l=_label: np.asarray(
                     qcm.CDMFT_residuals(x, _c, _l)
                 )
@@ -577,7 +603,10 @@ class CDMFT:
                 jac=jac_fn,
             )
 
-            opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
+            if self.hyb_function is not None:
+                opt_fun = distance(opt_x)  # also leaves the model at opt_x
+            else:
+                opt_fun = qcm.CDMFT_distance(opt_x, _clus, _label)
 
             self.dist += opt_fun
 
@@ -1560,6 +1589,28 @@ def check_bounds(x, B=100, v=None):
 
 # ---------------------------------------------------------------------------------------------------
 # optimization of the bath parameters
+
+
+def fd_jacobian(F, x):
+    """
+    Jacobian dF/dx by central finite differences, with the step of the C++ ``CDMFT_gradient``:
+    ``cdmft_jacobian_delta * max(1, |x_j|)``. Calls F at x last, so that F's side effects match x.
+
+    :param F: residual function ``F(x) -> 1-D array``
+    :param x: point
+    :returns: array of shape (len(F(x)), len(x))
+    """
+    delta = pyqcm.get_global_parameter("cdmft_jacobian_delta")
+    x = np.asarray(x, dtype=float)
+    cols = []
+    for j in range(len(x)):
+        dj = delta * max(1.0, abs(x[j]))
+        xp, xm = x.copy(), x.copy()
+        xp[j] += dj
+        xm[j] -= dj
+        cols.append((F(xp) - F(xm)) / (2 * dj))
+    F(x)
+    return np.array(cols).T
 
 
 def optimize(
