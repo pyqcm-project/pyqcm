@@ -94,6 +94,7 @@ void lattice_operator::add_matrix_element(const vector3D<int64_t>& pos, const ve
   if(model.position_map.find(pos) == model.position_map.end()){
     qcm_throw("position "+to_string<vector3D<int64_t>>(pos)+" does not exist!");
   }
+  if(v.real() == 0.0 and v.imag() == 0.0) return; // zero amplitude: term omitted
   int s1 = (int)model.position_map.at(pos);
   auto match = model.find_second_site(s1, link);
   if(!match) return;

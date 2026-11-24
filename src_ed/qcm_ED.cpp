@@ -98,8 +98,22 @@ namespace ED{
   }
 
 
-  void new_operator(const string &model_name, const string &_name, const string &_type, const vector<matrix_element<double>> &elements)
+  /**
+   removes the matrix elements with zero amplitude from a list
+   */
+  template<typename T>
+  vector<matrix_element<T>> nonzero_elements(const vector<matrix_element<T>> &elements)
   {
+    vector<matrix_element<T>> out;
+    out.reserve(elements.size());
+    for(auto& x : elements) if(x.v != T(0)) out.push_back(x);
+    return out;
+  }
+
+
+  void new_operator(const string &model_name, const string &_name, const string &_type, const vector<matrix_element<double>> &all_elements)
+  {
+    auto elements = nonzero_elements(all_elements);
     if(!elements.size()) return;
     if(models.find(model_name) == models.end())
       qcm_ED_throw("The model "+model_name+" is not defined. Check spelling.");
@@ -113,8 +127,9 @@ namespace ED{
   }
   
   
-  void new_operator(const string &model_name, const string &_name, const string &_type, const vector<matrix_element<Complex>> &elements)
+  void new_operator(const string &model_name, const string &_name, const string &_type, const vector<matrix_element<Complex>> &all_elements)
   {
+    auto elements = nonzero_elements(all_elements);
     if(!elements.size()) return;
     if(models.find(model_name) == models.end()) qcm_ED_throw("The model "+model_name+" is not defined. Check spelling.");
     shared_ptr<model> M = models.at(model_name);
@@ -143,15 +158,16 @@ namespace ED{
 
 
   template<typename T>
-  string update_operator_templ(const string &model_name, const string &_name, const vector<matrix_element<T>> &elements)
+  string update_operator_templ(const string &model_name, const string &_name, const vector<matrix_element<T>> &all_elements)
   {
+    auto elements = nonzero_elements(all_elements);
     if(models.find(model_name) == models.end())
       qcm_ED_throw("The model "+model_name+" is not defined. Check spelling.");
     shared_ptr<model> M = models.at(model_name);
     if(M->term.find(_name) == M->term.end())
       qcm_ED_throw("operator "+_name+" is not defined in model "+model_name+" and cannot be updated.");
     if(!elements.size())
-      qcm_ED_throw("the new list of matrix elements of operator "+_name+" is empty");
+      qcm_ED_throw("the new list of nonzero matrix elements of operator "+_name+" is empty");
     shared_ptr<Hermitian_operator> old_op = M->term.at(_name);
     string typ = operator_type(*old_op);
 

@@ -189,6 +189,7 @@ void lattice_model::build_cluster_operators(lattice_operator& op)
 			opname += '@' + to_string(c+1);
 
 		}
+		try{
 		switch(op.type){
 			case latt_op_type::one_body:
 				ED::new_operator(systems[s].name, opname, string("one-body"), elem);
@@ -217,6 +218,11 @@ void lattice_model::build_cluster_operators(lattice_operator& op)
 			case latt_op_type::Z:
 				ED::new_operator(systems[s].name, opname, string("Z"), elem);
 				break;
+		}
+		}
+		catch(const std::exception& ex){
+			// add the cluster and system information to errors raised in the ED module (e.g. symmetry checks)
+			qcm_throw("while building operator " + op.name + " on cluster no " + to_string(c+1) + " (system no " + to_string(s+1) + ", cluster model '" + systems[s].name + "') : " + string(ex.what()));
 		}
 	}
 }
