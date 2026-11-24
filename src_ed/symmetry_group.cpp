@@ -318,7 +318,7 @@ void symmetry_group::build()
       }
     }
     site_irrep_dim[irrep] = n_sym_orb_in_irrep;
-    if(irrep>0) site_irrep_dim_cumul[irrep] = site_irrep_dim_cumul[irrep-1] + n_sym_orb_in_irrep;
+    if(irrep>0) site_irrep_dim_cumul[irrep] = site_irrep_dim_cumul[irrep-1] + site_irrep_dim[irrep-1];
   }
   
   if(n_sym_orb != n_sites){
