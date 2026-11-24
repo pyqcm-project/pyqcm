@@ -86,6 +86,7 @@ struct model_instance : model_instance_base
   pair<double, double> cluster_averages(shared_ptr<Hermitian_operator> h) override;
   void Green_function_solve() override;
   pair<double, string> one_body_solve() override;
+  void distribute_qmatrix(Q_matrix<HilbertField>& Qs, Q_matrix_set<HilbertField>& Qset);
   matrix<Complex>  Green_function(const Complex &z, bool spin_down, bool blocks) override;
   void Green_function_average() override;
   matrix<Complex>  self_energy(const Complex &z, bool spin_down) override;
@@ -1158,14 +1159,101 @@ void model_instance<HilbertField>::print(ostream& fout)
 
 
 /**
+ Distributes a Q-matrix expressed in the cluster site basis among the irreducible
+ representations of the cluster symmetry group, i.e., builds the Q-matrix of each
+ irrep in the basis of symmetric orbitals.
+
+ Convention (see Q_matrix::Green_function and symmetry_group::to_site_basis):
+ G_site(a,b) = sum_k conj(v(a,k)) v(b,k) / (z-e_k) and
+ G_site(a,b) = sum_{alpha,beta} conj(S(alpha,a)) G_r(alpha,beta) S(beta,b).
+ Hence the Q-matrix of irrep r is w_r(alpha,k) = sum_a conj(S(alpha,a)) v(a,k),
+ the inverse of the transformation used in Q_matrix_set::consolidated_qmatrix().
+ Columns with negligible weight in irrep r are dropped.
+
+ As a safeguard, the Green function rebuilt from the irrep blocks is compared with
+ the one computed directly in the site basis: they differ if the one-body
+ Hamiltonian is not invariant under the symmetry group.
+
+ @param Qs   [in]  Q-matrix in the site basis (rows = n_mixed*n_sites cluster orbitals)
+ @param Qset [out] set of Q-matrices, one per irrep
+ */
+template<typename HilbertField>
+void model_instance<HilbertField>::distribute_qmatrix(Q_matrix<HilbertField>& Qs, Q_matrix_set<HilbertField>& Qset)
+{
+  symmetry_group& group = *the_model->group;
+  if(group.g == 1){
+    Qset.q[0] = Qs;
+    return;
+  }
+  int ns = group.n_sites;
+  QCM_ASSERT(Qs.L == n_mixed*ns);
+  const double wtol = 1e-12;
+
+  for(int r=0; r<group.g; r++){
+    int dr = group.site_irrep_dim[r];
+    if(dr == 0) continue;
+    int offset = group.site_irrep_dim_cumul[r];
+    int Lr = dr*n_mixed;
+
+    // projection onto the symmetric orbitals of irrep r
+    matrix<HilbertField> W(Lr, Qs.M);
+    vector<double> weight(Qs.M, 0.0);
+    for(size_t k=0; k<Qs.M; k++){
+      for(int mr=0; mr<n_mixed; mr++){
+        for(int alpha=0; alpha<dr; alpha++){
+          HilbertField z(0.0);
+          for(int a=0; a<ns; a++){
+            HilbertField s;
+            if constexpr (std::is_same<HilbertField, double>::value) s = group.S_real(alpha+offset, a);
+            else s = conj(group.S(alpha+offset, a));
+            z += s*Qs.v(a+mr*ns, k);
+          }
+          W(alpha+dr*mr, k) = z;
+          weight[k] += abs(z)*abs(z);
+        }
+      }
+    }
+
+    // keeping only the columns (poles) that have weight in irrep r
+    size_t Mr = 0;
+    for(size_t k=0; k<Qs.M; k++) if(weight[k] > wtol) Mr++;
+    Q_matrix<HilbertField> Qr(Lr, Mr);
+    size_t j = 0;
+    for(size_t k=0; k<Qs.M; k++){
+      if(weight[k] <= wtol) continue;
+      for(int i=0; i<Lr; i++) Qr.v(i,j) = W(i,k);
+      Qr.e[j] = Qs.e[k];
+      j++;
+    }
+    Qset.q[r] = Qr;
+  }
+
+  // safeguard: checking that the block-diagonal form reproduces the site-basis Green function
+  Complex z(0.1, 0.7);
+  matrix<Complex> G_site(Qs.L);
+  Qs.Green_function(z, G_site);
+  block_matrix<Complex> B(group.site_irrep_dim*n_mixed);
+  Qset.Green_function(z, B);
+  matrix<Complex> G_sym(Qs.L);
+  group.to_site_basis(B, G_sym, n_mixed);
+  double diff = 0.0;
+  for(size_t i=0; i<G_site.v.size(); i++) diff = max(diff, abs(G_site.v[i]-G_sym.v[i]));
+  if(diff > 1e-6) qcm_ED_throw("one_body_solve(): the one-body Hamiltonian of instance " + full_name()
+    + " is not invariant under the cluster symmetry group (deviation " + to_string(diff) + ")");
+}
+
+
+
+
+/**
  Constructs a ground state and Green function for the one-body problem only
  Useful when the number of sites exceeds the limit of ED, for studying impurity problems
+ Works with a nontrivial symmetry group: the problem is solved in the site basis,
+ and the resulting Q-matrix is then projected onto the irreducible representations.
  */
 template<typename HilbertField>
 pair<double, string> model_instance<HilbertField>::one_body_solve()
 {
-  if(the_model->group->g != 1) qcm_ED_throw("The symmetry group must be trivial when using 'one_body_solve()'");
-
   GS_energy = 0.0;
   set_hopping_matrix(false);
   GF_solver = GF_format_BL;
@@ -1186,7 +1274,7 @@ pair<double, string> model_instance<HilbertField>::one_body_solve()
   H.eigensystem(Q.e, U);
   U.move_sub_matrix(tc.r, d, 0, 0, 0, 0, Q.v);
   Q.v.cconjugate();
-  Qset->q[0] = Q;
+  distribute_qmatrix(Q, *Qset);
   for(auto& x:Q.e) if(x < 0.0) GS_energy += x;
 
 
@@ -1216,8 +1304,8 @@ pair<double, string> model_instance<HilbertField>::one_body_solve()
     H_down.eigensystem(Q_down.e, U);
     U.move_sub_matrix(tc.r, d, 0, 0, 0, 0, Q_down.v);
     Q_down.v.cconjugate();
-    Qset_down->q[0] = Q_down;
-    for(auto& x:Q.e) if(x < 0.0) GS_energy += x;
+    distribute_qmatrix(Q_down, *Qset_down);
+    for(auto& x:Q_down.e) if(x < 0.0) GS_energy += x;
 
     // computing M_down, the average M_{ab} = \L c^\dagger_b c_a \R
     M_down.set_size(d);
