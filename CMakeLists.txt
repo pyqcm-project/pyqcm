@@ -433,3 +433,20 @@ endif()
 
 install(TARGETS qcm DESTINATION pyqcm)
 
+# ---------------------------------------------------------------
+# Version file for a direct CMake build
+# ---------------------------------------------------------------
+# Under scikit-build (pip install), setuptools-scm writes pyqcm/_version.py.
+# A direct CMake build bypasses setuptools-scm, so regenerate the file from git
+# here, at every build (git HEAD changes do not trigger a CMake reconfigure).
+if(NOT DEFINED SKBUILD)
+    add_custom_target(pyqcm_version ALL
+        COMMAND ${CMAKE_COMMAND}
+                -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+                -DOUTPUT=${CMAKE_SOURCE_DIR}/pyqcm/_version.py
+                -P ${CMAKE_SOURCE_DIR}/cmake/write_version.cmake
+        COMMENT "Updating pyqcm/_version.py from git"
+        VERBATIM)
+    add_dependencies(qcm pyqcm_version)
+endif()
+
